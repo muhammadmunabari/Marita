@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
@@ -9,7 +8,7 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     FirebaseFirestore? firestore,
   }) : _auth = auth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn(),
+       _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
        _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
@@ -79,7 +78,7 @@ class AuthService {
       );
       return await verifyWithCredential(uid: uid, credential: credential);
     } catch (e) {
-      debugPrint('Verification failed: $e');
+      // Handle error appropriately
       return false;
     }
   }
@@ -103,7 +102,7 @@ class AuthService {
       });
       return true;
     } catch (e) {
-      debugPrint('Credential Verification failed: $e');
+      // Handle error appropriately
       return false;
     }
   }
@@ -130,13 +129,14 @@ class AuthService {
   // 4. Login (Google)
   // ---------------------------------------------------------------------------
   Future<UserCredential?> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return null; // User cancelled
+    final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+    // In v7+, authenticate() might throw if cancelled or return a non-null object.
 
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+    final authorizedUser = await googleUser.authorizationClient.authorizeScopes([]);
+    
     final OAuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
+      accessToken: authorizedUser.accessToken,
       idToken: googleAuth.idToken,
     );
 

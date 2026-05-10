@@ -59,6 +59,7 @@ class MaritaColors {
   static const Color shadow300 = Color(0xFF656661);
   static const Color shadow400 = Color(0xFF474842);
   static const Color shadow500 = Color(0xFF22231A);
+  static const Color shadow700 = Color(0xFF181811);
 
   static const Color earth500 = Color(0xFF5B6F01);
 
@@ -701,12 +702,16 @@ class MaritaTypographyAccessor {
   TextStyle get titleLarge => MaritaTypography.titleLarge;
   TextStyle get titleMedium => MaritaTypography.titleMedium;
   TextStyle get titleSmall => MaritaTypography.titleSmall;
+  TextStyle get h3 => MaritaTypography.titleSmall;
+  TextStyle get h4 => MaritaTypography.titleSmall.copyWith(fontSize: 18);
 
   // Body
   TextStyle get bodyLargeBold => MaritaTypography.bodyLargeBold;
   TextStyle get bodyLarge => MaritaTypography.bodyLarge;
   TextStyle get bodyDefaultBold => MaritaTypography.bodyDefaultBold;
   TextStyle get bodyDefault => MaritaTypography.bodyDefault;
+  TextStyle get bodySmallBold => MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12);
+  TextStyle get bodySmall => MaritaTypography.bodyDefault.copyWith(fontSize: 12);
   TextStyle get bodyDisabled => MaritaTypography.bodyDefault.copyWith(
     color: context.maritaColors.contentDisabled,
   );

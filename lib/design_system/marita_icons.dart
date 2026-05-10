@@ -250,6 +250,12 @@ class MaritaIcons {
 
   /// Arrow Down — default (Linear)
   static const IconData arrowDown = IconsaxPlusLinear.arrow_down_1;
+
+  /// Camera — default (Linear)
+  static const IconData camera = IconsaxPlusLinear.camera;
+
+  /// Camera — active (Bold)
+  static const IconData cameraActive = IconsaxPlusBold.camera;
 }
 
 // =============================================================================

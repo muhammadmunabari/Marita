@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../design_system/marita_design_system.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+class FilesScreen extends StatelessWidget {
+  const FilesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +10,7 @@ class SettingsScreen extends StatelessWidget {
       backgroundColor: context.maritaColors.backgroundPrimary,
       body: Center(
         child: Text(
-          'Settings Screen',
+          'Files Screen',
           style: context.maritaTypography.titleLarge,
         ),
       ),

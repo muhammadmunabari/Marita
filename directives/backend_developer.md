@@ -10,15 +10,7 @@ You handle backend logic, Firebase infrastructure, and AI processing.
 
 \-\--
 
-\## 📥 Inputs
 
-\- Financial data - Analysis request
-
-\## 📤 Outputs
-
-\- Analysis result - AI insight - Stored reports
-
-\-\--
 
 \## 🧩 3-Layer Execution
 

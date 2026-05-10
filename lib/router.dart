@@ -12,9 +12,11 @@ import 'screens/login/login_screen.dart';
 import 'screens/signup/signup_screen.dart';
 import 'screens/signup/create_business_account_screen.dart';
 import 'screens/forgot_password/forgot_password_screen.dart';
-import 'screens/home/home_screen.dart';
-import 'screens/upload_report/upload_report_screen.dart';
-import 'screens/report_detail/report_detail_screen.dart';
+import 'screens/main_navigation/main_navigation_screen.dart';
+import 'screens/marita_ai/marita_ai_screen.dart';
+import 'screens/report/report_screen.dart';
+import 'screens/files/files_screen.dart';
+import 'screens/workspaces/workspaces_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 // =============================================================================
@@ -31,12 +33,10 @@ class MaritaRoutes {
   static const String createBusinessAccount = '/create-business-account';
   static const String forgotPassword = '/forgot-password';
   static const String home = '/';
-  static const String uploadReport = '/upload';
-  static const String reportDetail = '/report/:id';
+  static const String report = '/report';
+  static const String files = '/files';
+  static const String workspaces = '/workspaces';
   static const String settings = '/settings';
-
-  /// Builds the report detail path with a specific [reportId].
-  static String reportDetailPath(String reportId) => '/report/$reportId';
 }
 
 // =============================================================================
@@ -53,7 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     // Auth redirect guard
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn = authState.value != null;
       final isPublicRoute =
           state.matchedLocation == MaritaRoutes.login ||
           state.matchedLocation == MaritaRoutes.signup ||
@@ -66,8 +66,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Logged in and on a public auth route (like login) → redirect to home
-      // Note: We don't necessarily want to redirect if they are on splash/onboarding,
-      // but for now we'll allow splash to do its thing.
       final isAuthScreen =
           state.matchedLocation == MaritaRoutes.login ||
           state.matchedLocation == MaritaRoutes.signup ||
@@ -78,7 +76,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         // If profile is loading, don't redirect yet (prevents flashes)
         if (userProfileState.isLoading) return null;
 
-        final profileData = userProfileState.valueOrNull;
+        final profileData = userProfileState.value;
         final hasBusinessAccount = profileData?['hasBusinessAccount'] == true;
 
         if (!hasBusinessAccount) {
@@ -89,7 +87,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
 
         // If verified and has business account, they shouldn't be on auth screens or business creation
-        if (isAuthScreen || state.matchedLocation == MaritaRoutes.createBusinessAccount) {
+        if (isAuthScreen ||
+            state.matchedLocation == MaritaRoutes.createBusinessAccount) {
           return MaritaRoutes.home;
         }
       }
@@ -122,25 +121,53 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      // Main routes (auth required)
-      GoRoute(
-        path: MaritaRoutes.home,
-        builder: (context, state) => const HomeScreen(),
-      ),
-      GoRoute(
-        path: MaritaRoutes.uploadReport,
-        builder: (context, state) => const UploadReportScreen(),
-      ),
-      GoRoute(
-        path: MaritaRoutes.reportDetail,
-        builder: (context, state) {
-          final reportId = state.pathParameters['id']!;
-          return ReportDetailScreen(reportId: reportId);
+      // Main Application Shell
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainNavigationScreen(navigationShell: navigationShell);
         },
-      ),
-      GoRoute(
-        path: MaritaRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.home,
+                builder: (context, state) => const MaritaAIScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.report,
+                builder: (context, state) => const ReportScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.files,
+                builder: (context, state) => const FilesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.workspaces,
+                builder: (context, state) => const WorkspacesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.settings,
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
 

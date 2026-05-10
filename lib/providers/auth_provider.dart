@@ -35,14 +35,14 @@ final authStateProvider = StreamProvider<User?>((ref) {
 ///
 /// Returns `null` if not authenticated.
 final currentUserProvider = Provider<User?>((ref) {
-  return ref.watch(authStateProvider).valueOrNull;
+  return ref.watch(authStateProvider).value;
 });
 
 /// Real-time stream of the current user's Firestore document.
 ///
 /// Used to check custom claims or fields like `isPhoneVerified`.
 final userProfileProvider = StreamProvider<Map<String, dynamic>?>((ref) {
-  final user = ref.watch(authStateProvider).valueOrNull;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) {
     return Stream.value(null);
   }
