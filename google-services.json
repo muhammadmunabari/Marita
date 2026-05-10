@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288888346237",
+    "project_id": "marita-fraud-detection",
+    "storage_bucket": "marita-fraud-detection.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288888346237:android:c69bed2175da8d78560314",
+        "android_client_info": {
+          "package_name": "com.marita.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFqONu3sIGuOLolinWh8IcIL88c1wXTcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

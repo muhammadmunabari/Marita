@@ -1,0 +1,98 @@
+# FIRESTORE SCHEMA - MARITA
+
+---
+
+## COLLECTION: users
+
+users/{userId}
+
+- name: string
+- email: string
+- role: "founder" | "finance" | "investor" | "admin"
+- createdAt: timestamp
+
+---
+
+## COLLECTION: companies
+
+companies/{companyId}
+
+- name: string
+- ownerId: userId
+- members: [userId]
+- createdAt: timestamp
+
+---
+
+## COLLECTION: reports
+
+reports/{reportId}
+
+- companyId: string
+- createdBy: userId
+
+- status:
+  "pending" | "processing" | "completed" | "failed"
+
+- input:
+  revenue: number
+  netIncome: number
+  totalAssets: number
+  totalLiabilities: number
+  cashFlow: number
+
+- beneishScore: number
+- fraudRisk:
+  "low" | "medium" | "high"
+
+- aiInsight:
+  summary: string
+  keyFindings: string
+  riskAnalysis: string
+  recommendation: string
+
+- createdAt: timestamp
+- completedAt: timestamp
+
+---
+
+## COLLECTION: chats
+
+chats/{chatId}
+
+- reportId: string
+- userId: string
+
+- messages: [
+  {
+    role: "user" | "ai"
+    content: string
+    createdAt: timestamp
+  }
+]
+
+---
+
+## COLLECTION: logs (optional)
+
+logs/{logId}
+
+- type: "error" | "info"
+- message: string
+- context: object
+- createdAt: timestamp
+
+---
+
+## INDEXES
+
+- reports by companyId + createdAt DESC
+- chats by reportId
+
+---
+
+## RULES (IMPORTANT)
+
+- users can only access their company
+- investor = read-only
+- admin = full access
