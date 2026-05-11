@@ -169,15 +169,21 @@ class FirestoreService {
   // CHATS
   // ===========================================================================
 
-  /// Creates a new chat session linked to a report.
+  /// Creates a new chat session.
   Future<String> createChat({
-    required String reportId,
+    String? reportId,
     required String userId,
+    String? initialMessage,
+    String? title,
   }) async {
     final doc = await _db.collection('chats').add({
       'reportId': reportId,
       'userId': userId,
       'messages': <Map<String, dynamic>>[],
+      'lastMessage': initialMessage ?? '',
+      'title': title ?? 'New Chat',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
     return doc.id;
   }
@@ -185,13 +191,36 @@ class FirestoreService {
   /// Appends a message to an existing chat.
   Future<void> addChatMessage({
     required String chatId,
-    required String role,
-    required String content,
+    required Map<String, dynamic> messageMap,
   }) async {
     await _db.collection('chats').doc(chatId).update({
-      'messages': FieldValue.arrayUnion([
-        {'role': role, 'content': content, 'createdAt': Timestamp.now()},
-      ]),
+      'messages': FieldValue.arrayUnion([messageMap]),
+      'lastMessage': messageMap['text'] ?? '',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Fetches all chat sessions for a user.
+  Future<List<Map<String, dynamic>>> getUserChats(String userId) async {
+    final query = await _db
+        .collection('chats')
+        .where('userId', isEqualTo: userId)
+        .orderBy('updatedAt', descending: true)
+        .get();
+
+    return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+  }
+
+  /// Deletes a chat session.
+  Future<void> deleteChat(String chatId) async {
+    await _db.collection('chats').doc(chatId).delete();
+  }
+
+  /// Updates the title of a chat session.
+  Future<void> updateChatTitle(String chatId, String newTitle) async {
+    await _db.collection('chats').doc(chatId).update({
+      'title': newTitle,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 

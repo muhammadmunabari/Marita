@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'dart:io';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
@@ -15,100 +17,246 @@ import 'package:marita/services/template_service.dart';
 import 'package:marita/services/gemini_service.dart';
 import 'package:marita/providers/auth_provider.dart';
 import 'package:marita/providers/template_provider.dart';
+import 'package:marita/providers/report_provider.dart';
 import 'package:uuid/uuid.dart';
-import '../settings/settings_screen.dart';
 
 // =============================================================================
 // STATE & NOTIFIER
-class ChatNotifier extends Notifier<List<ChatMessage>> {
+class ChatState {
+  final String? chatId;
+  final String? title;
+  final List<ChatMessage> messages;
+  final bool isLoading;
+
+  ChatState({this.chatId, this.title, this.messages = const [], this.isLoading = false});
+
+  ChatState copyWith({String? chatId, String? title, List<ChatMessage>? messages, bool? isLoading}) {
+    return ChatState(
+      chatId: chatId ?? this.chatId,
+      title: title ?? this.title,
+      messages: messages ?? this.messages,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
+class ChatNotifier extends Notifier<ChatState> {
   @override
-  List<ChatMessage> build() => [];
+  ChatState build() => ChatState();
+
+  void createNewChat() {
+    state = ChatState();
+  }
+
+  void loadChat(String chatId, String? title, List<ChatMessage> messages) {
+    state = ChatState(chatId: chatId, title: title, messages: messages);
+  }
+
+  void updateTitle(String newTitle) {
+    state = state.copyWith(title: newTitle);
+  }
 
   void sendMessage(String text, {List<ChatAttachment>? attachments}) async {
     final user = ref.read(currentUserProvider);
     final userId = user?.uid ?? 'anonymous';
+    final firestoreService = ref.read(firestoreServiceProvider);
 
     // 1. Initial message with local paths
-    final tempId = DateTime.now().toString();
+    final tempId = const Uuid().v4();
     final userMsg = ChatMessage(
       id: tempId,
       text: text,
       role: MessageRole.user,
       attachments: attachments ?? const [],
+      createdAt: DateTime.now(),
     );
-    state = [...state, userMsg];
+    state = state.copyWith(messages: [...state.messages, userMsg]);
 
     // 2. Prepare AI message
-    final aiId = '${DateTime.now()}_ai';
+    final aiId = '${const Uuid().v4()}_ai';
     final aiMsg = ChatMessage(
       id: aiId,
       text: '',
       role: MessageRole.ai,
       isStreaming: true,
+      createdAt: DateTime.now(),
     );
-    state = [...state, aiMsg];
+    state = state.copyWith(messages: [...state.messages, aiMsg]);
 
-    // 3. Upload attachments if any (optional, GeminiService can handle local files)
-    List<ChatAttachment> uploadedAttachments = [];
+    // 3. Ensure chatId exists
+    String? currentChatId = state.chatId;
+    if (currentChatId == null && user != null) {
+      String generateTitle(String content) {
+        final cleanContent = content.replaceAll('\n', ' ').trim();
+        final words = cleanContent.split(RegExp(r'\s+'));
+        final limitedWords = words.take(4).join(' ');
+        if (limitedWords.length > 25) {
+          return '${limitedWords.substring(0, 25)}...';
+        } else if (words.length > 4) {
+          return '$limitedWords...';
+        }
+        return limitedWords.isEmpty ? 'New chat' : limitedWords;
+      }
+      final newTitle = generateTitle(text);
+
+      currentChatId = await firestoreService.createChat(
+        userId: user.uid,
+        initialMessage: text,
+        title: newTitle, // Auto-generate title
+      );
+      state = state.copyWith(chatId: currentChatId, title: newTitle);
+      // Invalidate history provider to show new chat in sidebar
+      ref.invalidate(chatHistoryProvider);
+    }
+
+    // 4. Upload attachments if any
+    List<ChatAttachment> uploadedAttachments = attachments ?? [];
     if (attachments != null && attachments.isNotEmpty) {
+      List<ChatAttachment> results = [];
       for (var attachment in attachments) {
         final url = await AttachmentService.uploadAttachment(attachment, userId);
         if (url != null) {
-          uploadedAttachments.add(attachment.copyWith(url: url));
+          results.add(attachment.copyWith(url: url));
         } else {
-          uploadedAttachments.add(attachment);
+          results.add(attachment);
         }
       }
+      uploadedAttachments = results;
       
       // Update user message with uploaded URLs
-      state = [
-        for (final msg in state)
-          if (msg.id == tempId) msg.copyWith(attachments: uploadedAttachments) else msg,
-      ];
+      state = state.copyWith(
+        messages: [
+          for (final msg in state.messages)
+            if (msg.id == tempId) msg.copyWith(attachments: uploadedAttachments) else msg,
+        ],
+      );
     }
 
-    // 4. Actual Gemini Stream
+    // 5. Save user message to Firestore
+    if (currentChatId != null) {
+      final userMsgToSave = state.messages.firstWhere((m) => m.id == tempId);
+      await firestoreService.addChatMessage(
+        chatId: currentChatId,
+        messageMap: userMsgToSave.toMap(),
+      );
+    }
+
+    // 6. Actual Gemini Stream
+    await _processGeminiStream(aiId, text, uploadedAttachments, currentChatId);
+  }
+
+  void regenerateMessage(ChatMessage aiMessage) async {
+    final index = state.messages.indexOf(aiMessage);
+    if (index <= 0) return;
+    
+    final userMessage = state.messages[index - 1];
+    if (userMessage.role != MessageRole.user) return;
+
+    // Remove the old AI message and any subsequent messages
+    state = state.copyWith(messages: state.messages.sublist(0, index));
+
+    // Prepare new AI message
+    final aiId = '${const Uuid().v4()}_ai';
+    final aiMsg = ChatMessage(
+      id: aiId,
+      text: '',
+      role: MessageRole.ai,
+      isStreaming: true,
+      createdAt: DateTime.now(),
+    );
+    state = state.copyWith(messages: [...state.messages, aiMsg]);
+
+    // Re-trigger Gemini using the same content
+    await _processGeminiStream(aiId, userMessage.text, userMessage.attachments, state.chatId);
+  }
+
+  Future<void> _processGeminiStream(String aiId, String text, List<ChatAttachment> attachments, String? chatId) async {
+    final firestoreService = ref.read(firestoreServiceProvider);
     try {
-      final history = state
-          .where((m) => m.id != tempId && m.id != aiId)
+      var historyList = state.messages
+          .where((m) => m.id != aiId && !m.isStreaming) // Don't include current or other streaming messages in history
           .toList();
+          
+      // Exclude the very last user message because it's passed as the `text` (prompt)
+      if (historyList.isNotEmpty && historyList.last.role == MessageRole.user && historyList.last.text == text) {
+        historyList = historyList.sublist(0, historyList.length - 1);
+      }
 
       final stream = GeminiService.sendMessageStream(
         text,
-        attachments: attachments ?? [],
-        history: history,
+        attachments: attachments,
+        history: historyList,
       );
 
       String fullText = "";
       await for (final chunk in stream) {
         fullText += chunk;
-        state = [
-          for (final msg in state)
-            if (msg.id == aiId) msg.copyWith(text: fullText) else msg,
-        ];
+        state = state.copyWith(
+          messages: [
+            for (final msg in state.messages)
+              if (msg.id == aiId) msg.copyWith(text: fullText) else msg,
+          ],
+        );
       }
 
       // Mark streaming as finished
-      state = [
-        for (final msg in state)
-          if (msg.id == aiId) msg.copyWith(isStreaming: false) else msg,
-      ];
+      final finalAiMsg = ChatMessage(
+        id: aiId,
+        text: fullText,
+        role: MessageRole.ai,
+        isStreaming: false,
+        createdAt: DateTime.now(),
+      );
+      
+      state = state.copyWith(
+        messages: [
+          for (final msg in state.messages)
+            if (msg.id == aiId) finalAiMsg else msg,
+        ],
+      );
+
+      // Save AI message to Firestore
+      if (chatId != null) {
+        await firestoreService.addChatMessage(
+          chatId: chatId,
+          messageMap: finalAiMsg.toMap(),
+        );
+        // Refresh history to update last message/timestamp
+        ref.invalidate(chatHistoryProvider);
+      }
     } catch (e) {
-      state = [
-        for (final msg in state)
-          if (msg.id == aiId)
-            msg.copyWith(
-              text: "Sorry, I encountered an error: $e",
-              isStreaming: false,
-            )
-          else
-            msg,
-      ];
+      final errorMsg = ChatMessage(
+        id: aiId,
+        text: "Sorry, I encountered an error: $e",
+        role: MessageRole.ai,
+        isStreaming: false,
+        createdAt: DateTime.now(),
+      );
+      state = state.copyWith(
+        messages: [
+          for (final msg in state.messages)
+            if (msg.id == aiId) errorMsg else msg,
+        ],
+      );
+      
+      if (chatId != null) {
+        await firestoreService.addChatMessage(
+          chatId: chatId,
+          messageMap: errorMsg.toMap(),
+        );
+      }
     }
   }
 }
 
-final chatProvider = NotifierProvider<ChatNotifier, List<ChatMessage>>(ChatNotifier.new);
+final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
+
+final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return [];
+  final firestoreService = ref.watch(firestoreServiceProvider);
+  return firestoreService.getUserChats(user.uid);
+});
 
 // =============================================================================
 // SCREEN COMPONENT
@@ -163,7 +311,8 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
-    final messages = ref.watch(chatProvider);
+    final chatState = ref.watch(chatProvider);
+    final messages = chatState.messages;
 
     // Auto-scroll when new messages arrive if already at bottom
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -179,7 +328,7 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopNav(context),
+            _buildTopNav(context, chatState),
             Expanded(
               child: Stack(
                 children: [
@@ -219,7 +368,7 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
     );
   }
 
-  Widget _buildTopNav(BuildContext context) {
+  Widget _buildTopNav(BuildContext context, ChatState chatState) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: MaritaSpacing.xl,
@@ -236,16 +385,12 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
               _scaffoldKey.currentState?.openDrawer();
             },
           ),
-          const _DynamicTitle(),
-          _MaritaIconButton(
-            iconPath: 'assets/icons/iconsax-setting.svg',
-            iconData: MaritaIcons.settings,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
+          Expanded(
+            child: Center(
+              child: _DynamicTitle(title: chatState.title ?? 'New chat'),
+            ),
           ),
+          const SizedBox(width: 40), // Balance the menu button for centered title
         ],
       ),
     );
@@ -290,7 +435,8 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
 // =============================================================================
 
 class _DynamicTitle extends StatefulWidget {
-  const _DynamicTitle();
+  final String title;
+  const _DynamicTitle({required this.title});
 
   @override
   State<_DynamicTitle> createState() => _DynamicTitleState();
@@ -298,13 +444,14 @@ class _DynamicTitle extends StatefulWidget {
 
 class _DynamicTitleState extends State<_DynamicTitle>
     with SingleTickerProviderStateMixin {
-  final String _title = "New chat";
+  late String _title;
   String _displayedTitle = "";
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _title = widget.title;
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -312,13 +459,23 @@ class _DynamicTitleState extends State<_DynamicTitle>
     _animateTitle();
   }
 
+  @override
+  void didUpdateWidget(covariant _DynamicTitle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.title != oldWidget.title) {
+      _title = widget.title;
+      _animateTitle();
+    }
+  }
+
   void _animateTitle() async {
+    _controller.reset();
     for (int i = 0; i <= _title.length; i++) {
       if (!mounted) return;
       setState(() {
         _displayedTitle = _title.substring(0, i);
       });
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 30));
     }
     _controller.forward();
   }
@@ -338,45 +495,212 @@ class _DynamicTitleState extends State<_DynamicTitle>
       opacity: Tween<double>(begin: 0.5, end: 1.0).animate(_controller),
       child: Text(
         _displayedTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
         style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
       ),
     );
   }
 }
 
-class _MaritaSidebarDrawer extends StatelessWidget {
+class _MaritaSidebarDrawer extends ConsumerWidget {
   const _MaritaSidebarDrawer();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
+    final historyAsync = ref.watch(chatHistoryProvider);
+    final currentChatId = ref.watch(chatProvider).chatId;
 
     return Drawer(
       backgroundColor: colors.backgroundPrimary,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(MaritaSpacing.xl),
+          padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'History',
-                style: typography.titleMedium.copyWith(
-                  color: colors.contentPrimary,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.xl),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'History',
+                      style: typography.titleMedium.copyWith(
+                        color: colors.contentPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const MaritaIcon(icon: IconsaxPlusLinear.add, size: MaritaIconSize.small),
+                      onPressed: () {
+                        ref.read(chatProvider.notifier).createNewChat();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: MaritaSpacing.xl),
-              Text(
-                'No recent chats.',
-                style: typography.bodyDefault.copyWith(
-                  color: colors.contentTertiary,
+              const SizedBox(height: MaritaSpacing.lg),
+              Expanded(
+                child: historyAsync.when(
+                  data: (chats) {
+                    if (chats.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(MaritaSpacing.xl),
+                        child: Text(
+                          'No recent chats.',
+                          style: typography.bodyDefault.copyWith(
+                            color: colors.contentTertiary,
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: chats.length,
+                      itemBuilder: (context, index) {
+                        final chat = chats[index];
+                        final id = chat['id'] as String;
+                        final title = chat['title'] as String?;
+                        final lastMsg = chat['lastMessage'] as String? ?? '';
+                        final displayTitle = title?.isNotEmpty == true ? title! : (lastMsg.isNotEmpty ? lastMsg : 'New chat');
+                        final isSelected = id == currentChatId;
+
+                        String dateText = '';
+                        if (chat['updatedAt'] != null) {
+                          try {
+                            DateTime date = (chat['updatedAt'] as Timestamp).toDate();
+                            dateText = DateFormat('dd MMM yyyy, HH:mm').format(date);
+                          } catch (e) {
+                            // Fallback if parsing fails
+                          }
+                        }
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: MaritaSpacing.xl,
+                            vertical: MaritaSpacing.xs,
+                          ),
+                          title: Text(
+                            displayTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: typography.bodyDefault.copyWith(
+                              color: isSelected ? colors.interactivePrimary : colors.contentPrimary,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          subtitle: dateText.isNotEmpty ? Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              dateText,
+                              style: typography.bodyDefault.copyWith(
+                                color: colors.contentTertiary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ) : null,
+                          onTap: () {
+                            final messagesList = (chat['messages'] as List? ?? [])
+                                .map((m) => ChatMessage.fromMap(m as Map<String, dynamic>))
+                                .toList();
+                            ref.read(chatProvider.notifier).loadChat(id, displayTitle, messagesList);
+                            Navigator.pop(context);
+                          },
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: MaritaIcon(
+                                  icon: IconsaxPlusLinear.edit_2,
+                                  size: MaritaIconSize.small,
+                                  color: colors.contentTertiary,
+                                ),
+                                onPressed: () {
+                                  _showRenameDialog(context, ref, id, displayTitle);
+                                },
+                              ),
+                              IconButton(
+                                icon: MaritaIcon(
+                                  icon: IconsaxPlusLinear.trash,
+                                  size: MaritaIconSize.small,
+                                  color: colors.contentTertiary,
+                                ),
+                                onPressed: () async {
+                                  await ref.read(firestoreServiceProvider).deleteChat(id);
+                                  ref.invalidate(chatHistoryProvider);
+                                  if (isSelected) {
+                                    ref.read(chatProvider.notifier).createNewChat();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text('Error loading history: $e')),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, WidgetRef ref, String chatId, String currentTitle) {
+    final controller = TextEditingController(text: currentTitle);
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: colors.backgroundSecondary,
+          title: Text('Rename Chat', style: typography.titleMedium.copyWith(color: colors.contentPrimary)),
+          content: TextField(
+            controller: controller,
+            style: typography.bodyLarge.copyWith(color: colors.contentPrimary),
+            decoration: InputDecoration(
+              hintText: 'Enter new title',
+              hintStyle: typography.bodyLarge.copyWith(color: colors.contentTertiary),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: colors.borderPrimary),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: colors.interactivePrimary),
+              ),
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+            ),
+            TextButton(
+              onPressed: () async {
+                final newTitle = controller.text.trim();
+                if (newTitle.isNotEmpty && newTitle != currentTitle) {
+                  await ref.read(firestoreServiceProvider).updateChatTitle(chatId, newTitle);
+                  ref.invalidate(chatHistoryProvider);
+                  if (ref.read(chatProvider).chatId == chatId) {
+                    ref.read(chatProvider.notifier).updateTitle(newTitle);
+                  }
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text('Save', style: typography.bodyDefault.copyWith(color: colors.interactivePrimary)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -497,7 +821,7 @@ class _MessageBubble extends ConsumerWidget {
                   _AIActionIcon(
                     icon: IconsaxPlusLinear.refresh,
                     onTap: () {
-                      // Regenerate action
+                      ref.read(chatProvider.notifier).regenerateMessage(message);
                     },
                   ),
                   const SizedBox(width: MaritaSpacing.md),
@@ -569,8 +893,8 @@ class _MessageBubble extends ConsumerWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    final allMessages = ref.read(chatProvider);
-                    ExportService.exportChatToCsv(allMessages);
+                    final chatState = ref.read(chatProvider);
+                    ExportService.exportChatToCsv(chatState.messages);
                   },
                 ),
               ],
@@ -666,8 +990,14 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
       builder: (context) => const _TemplatesSheet(),
     );
     if (result != null) {
-      _controller.text = result;
-      _updateState();
+      if (result == 'trigger_custom') {
+        _showCustomTemplateDialog();
+      } else {
+        setState(() {
+          _controller.text = result;
+          _updateState();
+        });
+      }
     }
   }
 
@@ -725,16 +1055,6 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
             ],
           ),
         ),
-        PopupMenuItem(
-          value: 'custom',
-          child: Row(
-            children: [
-              MaritaIcon(icon: MaritaIcons.add, size: MaritaIconSize.small),
-              const SizedBox(width: MaritaSpacing.md),
-              Text('Custom Template', style: typography.bodyDefault),
-            ],
-          ),
-        ),
       ],
     ).then((value) {
       if (value == 'camera') {
@@ -743,8 +1063,6 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
         _handleUpload();
       } else if (value == 'templates') {
         _showTemplatesSheet();
-      } else if (value == 'custom') {
-        _showCustomTemplateDialog();
       }
     });
   }
@@ -752,7 +1070,7 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
   void _showCustomTemplateDialog() async {
     final result = await showDialog<PromptTemplate>(
       context: context,
-      builder: (context) => const _CustomTemplateDialog(),
+      builder: (context) => const _CreateTemplateDialog(),
     );
     if (result != null) {
       final user = ref.read(currentUserProvider);
@@ -946,16 +1264,13 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
               ),
             ),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _MaritaIconButton(
-                  key: _plusButtonKey,
-                  iconPath: 'assets/icons/iconsax-add.svg',
-                  iconData: MaritaIcons.add,
-                  onTap: _showPlusMenu,
-                ),
+              _MaritaIconButton(
+                key: _plusButtonKey,
+                iconPath: 'assets/icons/iconsax-add.svg',
+                iconData: MaritaIcons.add,
+                onTap: _showPlusMenu,
               ),
               const SizedBox(width: MaritaSpacing.sm),
               Expanded(
@@ -964,16 +1279,20 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                   minLines: 1,
                   maxLines: 5,
                   keyboardType: TextInputType.multiline,
+                  textAlignVertical: TextAlignVertical.center,
                   style: typography.bodyLarge.copyWith(
                     color: colors.contentPrimary,
+                    height: 1.0, // Match font size exactly (16px)
                   ),
                   cursorColor: colors.interactivePrimary,
                   decoration: InputDecoration(
+                    isCollapsed: true, // Remove all default internal padding
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8), // (32px container - 16px text) / 2 = 8px
                     hintText: 'Ask Marita...',
                     hintStyle: typography.bodyLarge.copyWith(
                       color: colors.contentTertiary,
+                      height: 1.0,
                     ),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -983,21 +1302,18 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                 ),
               ),
               const SizedBox(width: MaritaSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _MaritaIconButton(
-                  iconPath: 'assets/icons/iconsax-send.svg',
-                  iconData: IconsaxPlusLinear.send_1,
-                  onTap: () {
-                    if (_controller.text.trim().isEmpty && _attachments.isEmpty) return;
-                    widget.onSend(_controller.text, _attachments);
-                    _controller.clear();
-                    setState(() {
-                      _attachments = [];
-                      _updateState();
-                    });
-                  },
-                ),
+              _MaritaIconButton(
+                iconPath: 'assets/icons/iconsax-send.svg',
+                iconData: IconsaxPlusLinear.send_1,
+                onTap: () {
+                  if (_controller.text.trim().isEmpty && _attachments.isEmpty) return;
+                  widget.onSend(_controller.text, _attachments);
+                  _controller.clear();
+                  setState(() {
+                    _attachments = [];
+                    _updateState();
+                  });
+                },
               ),
             ],
           ),
@@ -1014,6 +1330,11 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
         return IconsaxPlusLinear.gallery;
       case 'csv':
       case 'xls':
+      case 'text':
+      case 'json':
+      case 'sql':
+      case 'md':
+      case 'xml':
         return IconsaxPlusLinear.document;
       default:
         return IconsaxPlusLinear.document_cloud;
@@ -1210,20 +1531,30 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
     super.dispose();
   }
 
+  Future<void> _createNewTemplate(BuildContext context) async {
+    final template = await showDialog<PromptTemplate>(
+      context: context,
+      builder: (context) => const _CreateTemplateDialog(),
+    );
+
+    if (template != null) {
+      final userId = ref.read(currentUserProvider)?.uid ?? 'anonymous';
+      await TemplateService.saveCustomTemplate(userId, template);
+      ref.invalidate(customTemplatesProvider);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final allTemplates = ref.watch(allTemplatesProvider);
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
-    final filteredTemplates = allTemplates.where((t) {
+    final staticTemplates = allTemplates.where((t) {
       final query = _searchQuery.toLowerCase();
       return t.title.toLowerCase().contains(query) ||
           t.description.toLowerCase().contains(query);
     }).toList();
-
-    final customTemplates = filteredTemplates.where((t) => t.isCustom).toList();
-    final staticTemplates = filteredTemplates.where((t) => !t.isCustom).toList();
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -1267,18 +1598,6 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                     style: typography.bodySmall.copyWith(color: colors.contentSecondary),
                   ),
                 ],
-              ),
-              _MaritaIconButton(
-                iconPath: '',
-                iconData: MaritaIcons.add,
-                onTap: () {
-                  Navigator.pop(context);
-                  // We need to call the parent's _showCustomTemplateDialog
-                  // but we are in a different widget. 
-                  // In a real app, this would be handled via a controller or provider.
-                  // For now, I'll assume the parent handles it if I provide a callback
-                  // or I'll just trigger the dialog from here.
-                },
               ),
             ],
           ),
@@ -1330,18 +1649,18 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (customTemplates.isNotEmpty) ...[
-                    _buildSectionTitle(context, 'Your Custom Templates'),
+                  if (staticTemplates.any((t) => !t.isCustom)) ...[
+                    _buildSectionTitle(context, 'Pre-built Templates'),
                     const SizedBox(height: MaritaSpacing.md),
-                    _buildGrid(context, customTemplates),
+                    _buildGrid(context, staticTemplates.where((t) => !t.isCustom).toList()),
                     const SizedBox(height: MaritaSpacing.xl),
                   ],
-                  if (staticTemplates.isNotEmpty) ...[
-                    _buildSectionTitle(context, 'Standard Analysis'),
+                  if (staticTemplates.any((t) => t.isCustom)) ...[
+                    _buildSectionTitle(context, 'Your Templates'),
                     const SizedBox(height: MaritaSpacing.md),
-                    _buildGrid(context, staticTemplates),
+                    _buildGrid(context, staticTemplates.where((t) => t.isCustom).toList()),
                   ],
-                  if (filteredTemplates.isEmpty)
+                  if (staticTemplates.isEmpty)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(MaritaSpacing.xxl),
@@ -1393,14 +1712,8 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
         final template = templates[index];
         return _TemplateCard(
           template: template,
-          onTap: () async {
-            final result = await showDialog<String>(
-              context: context,
-              builder: (context) => _TemplatePreviewDialog(template: template),
-            );
-            if (result != null) {
-              if (context.mounted) Navigator.pop(context, result);
-            }
+          onTap: () {
+            Navigator.pop(context, template.prompt);
           },
         );
       },
@@ -1451,6 +1764,11 @@ class _AttachmentPreviewBubble extends StatelessWidget {
         return IconsaxPlusLinear.gallery;
       case 'csv':
       case 'xls':
+      case 'text':
+      case 'json':
+      case 'sql':
+      case 'md':
+      case 'xml':
         return IconsaxPlusLinear.document;
       default:
         return IconsaxPlusLinear.document_cloud;
@@ -1519,6 +1837,9 @@ class _TemplatePreviewDialogState extends State<_TemplatePreviewDialog> {
                 decoration: const InputDecoration(
                   contentPadding: EdgeInsets.all(MaritaSpacing.md),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
                 ),
               ),
             ),
@@ -1554,16 +1875,25 @@ class _TemplatePreviewDialogState extends State<_TemplatePreviewDialog> {
   }
 }
 
-class _CustomTemplateDialog extends StatefulWidget {
-  const _CustomTemplateDialog();
+class _CreateTemplateDialog extends StatefulWidget {
+  const _CreateTemplateDialog();
 
   @override
-  State<_CustomTemplateDialog> createState() => _CustomTemplateDialogState();
+  State<_CreateTemplateDialog> createState() => _CreateTemplateDialogState();
 }
 
-class _CustomTemplateDialogState extends State<_CustomTemplateDialog> {
+class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
   final _titleController = TextEditingController();
+  final _descController = TextEditingController();
   final _promptController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _promptController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1573,96 +1903,83 @@ class _CustomTemplateDialogState extends State<_CustomTemplateDialog> {
     return Dialog(
       backgroundColor: colors.backgroundPrimary,
       shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
-      child: Padding(
-        padding: const EdgeInsets.all(MaritaSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Create Custom Template', style: typography.h4),
-            const SizedBox(height: MaritaSpacing.lg),
-            Text(
-              'Title',
-              style: typography.bodySmallBold.copyWith(color: colors.contentSecondary),
-            ),
-            const SizedBox(height: MaritaSpacing.xs),
-            TextField(
-              controller: _titleController,
-              style: typography.bodyDefault,
-              decoration: InputDecoration(
-                hintText: 'e.g., Q3 Tax Review',
-                hintStyle: typography.bodyDefault.copyWith(color: colors.contentTertiary),
-                filled: true,
-                fillColor: colors.backgroundSecondary,
-                border: OutlineInputBorder(
-                  borderRadius: MaritaRadius.borderSmall,
-                  borderSide: BorderSide(color: colors.borderPrimary),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(MaritaSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Create Template', style: typography.h4),
+              const SizedBox(height: MaritaSpacing.lg),
+              TextField(
+                controller: _titleController,
+                style: typography.bodyDefault,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  hintText: 'e.g., Financial Report Analysis',
                 ),
               ),
-            ),
-            const SizedBox(height: MaritaSpacing.lg),
-            Text(
-              'Prompt Content',
-              style: typography.bodySmallBold.copyWith(color: colors.contentSecondary),
-            ),
-            const SizedBox(height: MaritaSpacing.xs),
-            TextField(
-              controller: _promptController,
-              maxLines: 5,
-              style: typography.bodyDefault,
-              decoration: InputDecoration(
-                hintText: 'Enter your custom prompt here...',
-                hintStyle: typography.bodyDefault.copyWith(color: colors.contentTertiary),
-                filled: true,
-                fillColor: colors.backgroundSecondary,
-                border: OutlineInputBorder(
-                  borderRadius: MaritaRadius.borderSmall,
-                  borderSide: BorderSide(color: colors.borderPrimary),
+              const SizedBox(height: MaritaSpacing.md),
+              TextField(
+                controller: _descController,
+                style: typography.bodyDefault,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'What does this template do?',
                 ),
               ),
-            ),
-            const SizedBox(height: MaritaSpacing.xl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
-                  ),
+              const SizedBox(height: MaritaSpacing.md),
+              TextField(
+                controller: _promptController,
+                maxLines: 5,
+                style: typography.bodyDefault,
+                decoration: const InputDecoration(
+                  labelText: 'Prompt',
+                  hintText: 'Write your prompt here...',
                 ),
-                const SizedBox(width: MaritaSpacing.md),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_titleController.text.isEmpty || _promptController.text.isEmpty) return;
-                    
-                    final newTemplate = PromptTemplate(
-                      id: const Uuid().v4(),
-                      title: _titleController.text,
-                      description: 'Custom user template',
-                      prompt: _promptController.text,
-                      icon: IconsaxPlusLinear.document_text,
-                      isCustom: true,
-                    );
-                    Navigator.pop(context, newTemplate);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.interactivePrimary,
-                    foregroundColor: colors.backgroundPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: MaritaRadius.borderSmall,
+              ),
+              const SizedBox(height: MaritaSpacing.xl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
                     ),
                   ),
-                  child: const Text('Save & Use'),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: MaritaSpacing.md),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_titleController.text.isEmpty || _promptController.text.isEmpty) return;
+
+                      final template = PromptTemplate(
+                        id: const Uuid().v4(),
+                        title: _titleController.text,
+                        description: _descController.text,
+                        prompt: _promptController.text,
+                        icon: MaritaIcons.magicStar,
+                        isCustom: true,
+                      );
+                      Navigator.pop(context, template);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.interactivePrimary,
+                      foregroundColor: colors.backgroundPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: MaritaRadius.borderSmall,
+                      ),
+                    ),
+                    child: const Text('Create'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-

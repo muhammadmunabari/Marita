@@ -10,6 +10,7 @@ import 'design_system/marita_design_system.dart';
 import 'router.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,6 +18,12 @@ Future<void> main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize App Check
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.playIntegrity,
+    appleProvider: AppleProvider.appAttest,
+  );
 
   // Connect to Local Firebase Emulators when running in debug
   // if (kDebugMode) {

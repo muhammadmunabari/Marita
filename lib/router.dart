@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'providers/auth_provider.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'screens/onboarding/splash_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/signup/signup_screen.dart';
 import 'screens/signup/create_business_account_screen.dart';
@@ -27,6 +28,7 @@ import 'screens/settings/settings_screen.dart';
 class MaritaRoutes {
   MaritaRoutes._();
 
+  static const String splash = '/splash';
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String signup = '/signup';
@@ -37,6 +39,13 @@ class MaritaRoutes {
   static const String files = '/files';
   static const String workspaces = '/workspaces';
   static const String settings = '/settings';
+  static const List<String> publicRoutes = [
+    splash,
+    onboarding,
+    login,
+    signup,
+    forgotPassword,
+  ];
 }
 
 // =============================================================================
@@ -48,48 +57,70 @@ final routerProvider = Provider<GoRouter>((ref) {
   final userProfileState = ref.watch(userProfileProvider);
 
   return GoRouter(
-    initialLocation: MaritaRoutes.onboarding,
+    initialLocation: MaritaRoutes.splash,
     debugLogDiagnostics: false,
 
     // Auth redirect guard
     redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final isPublicRoute =
-          state.matchedLocation == MaritaRoutes.login ||
-          state.matchedLocation == MaritaRoutes.signup ||
-          state.matchedLocation == MaritaRoutes.forgotPassword ||
-          state.matchedLocation == MaritaRoutes.onboarding;
+      // 1. Wait for Auth State to be fully determined
+      if (authState.isLoading || authState.isRefreshing) {
+        return MaritaRoutes.splash;
+      }
 
-      // Not logged in and not on public route → redirect to login
+      final user = authState.value;
+      final isLoggedIn = user != null;
+      final location = state.matchedLocation;
+      
+      final isSplash = location == MaritaRoutes.splash;
+      final isPublicRoute = MaritaRoutes.publicRoutes.contains(location);
+
+      // 2. Handle Splash Screen Transition (initial load)
+      if (isSplash) {
+        if (!isLoggedIn) {
+          return MaritaRoutes.onboarding;
+        }
+
+        // If logged in, we MUST wait for the profile to decide where to go
+        if (userProfileState.isLoading || userProfileState.isRefreshing) {
+          return MaritaRoutes.splash; 
+        }
+
+        final profile = userProfileState.value;
+        if (profile == null) {
+          return MaritaRoutes.createBusinessAccount;
+        }
+
+        final hasBusiness = profile['hasBusinessAccount'] == true;
+        return hasBusiness ? MaritaRoutes.home : MaritaRoutes.createBusinessAccount;
+      }
+
+      // 3. Protected Route Guard: If not logged in, only allow public routes
       if (!isLoggedIn && !isPublicRoute) {
         return MaritaRoutes.login;
       }
 
-      // Logged in and on a public auth route (like login) → redirect to home
-      final isAuthScreen =
-          state.matchedLocation == MaritaRoutes.login ||
-          state.matchedLocation == MaritaRoutes.signup ||
-          state.matchedLocation == MaritaRoutes.forgotPassword ||
-          state.matchedLocation == MaritaRoutes.onboarding;
+      // 4. Authenticated Guard: If logged in, prevent access to public auth routes
+      if (isLoggedIn && (location == MaritaRoutes.login || location == MaritaRoutes.signup || location == MaritaRoutes.onboarding)) {
+        if (userProfileState.isLoading) return MaritaRoutes.splash;
 
-      if (isLoggedIn) {
-        // If profile is loading, don't redirect yet (prevents flashes)
+        final profile = userProfileState.value;
+        final hasBusiness = profile?['hasBusinessAccount'] == true;
+        return hasBusiness ? MaritaRoutes.home : MaritaRoutes.createBusinessAccount;
+      }
+
+      // 5. Business Account Guard: Ensure logged-in users have a business account
+      if (isLoggedIn && 
+          location != MaritaRoutes.createBusinessAccount && 
+          location != MaritaRoutes.splash &&
+          location != MaritaRoutes.settings) { 
+        
         if (userProfileState.isLoading) return null;
 
-        final profileData = userProfileState.value;
-        final hasBusinessAccount = profileData?['hasBusinessAccount'] == true;
-
-        if (!hasBusinessAccount) {
-          if (state.matchedLocation != MaritaRoutes.createBusinessAccount) {
-            return MaritaRoutes.createBusinessAccount;
-          }
-          return null;
-        }
-
-        // If verified and has business account, they shouldn't be on auth screens or business creation
-        if (isAuthScreen ||
-            state.matchedLocation == MaritaRoutes.createBusinessAccount) {
-          return MaritaRoutes.home;
+        final profile = userProfileState.value;
+        final hasBusiness = profile?['hasBusinessAccount'] == true;
+        
+        if (!hasBusiness) {
+          return MaritaRoutes.createBusinessAccount;
         }
       }
 
@@ -98,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
     routes: [
       // Entry & Public routes
+      GoRoute(
+        path: MaritaRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: MaritaRoutes.onboarding,
         builder: (context, state) => const OnboardingScreen(),

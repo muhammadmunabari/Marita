@@ -16,7 +16,10 @@ class AttachmentService {
       final result = await FilePicker.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'csv', 'doc', 'docx', 'xls', 'xlsx'],
+        allowedExtensions: [
+          'pdf', 'csv', 'doc', 'docx', 'xls', 'xlsx', 
+          'txt', 'json', 'sql', 'md', 'xml'
+        ],
       );
 
       if (result == null || result.files.isEmpty) return [];
@@ -88,7 +91,15 @@ class AttachmentService {
       case 'png':
       case 'jpg':
       case 'jpeg':
+      case 'webp':
+      case 'heic':
         return 'image';
+      case 'txt':
+      case 'json':
+      case 'sql':
+      case 'md':
+      case 'xml':
+        return 'text';
       default:
         return 'file';
     }

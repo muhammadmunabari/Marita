@@ -1,153 +1,508 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:printing/printing.dart';
 import '../models/chat_message.dart';
 
 class ExportService {
-  /// Exports a single AI response to PDF with premium branding.
+  /// Exports a single AI response to PDF with professional formatting.
   static Future<void> exportMessageToPdf(String content) async {
     try {
       final pdf = pw.Document();
+      
+      // Load premium fonts that support Unicode
+      final font = await PdfGoogleFonts.plusJakartaSansRegular();
+      final boldFont = await PdfGoogleFonts.plusJakartaSansBold();
+      final italicFont = await PdfGoogleFonts.plusJakartaSansItalic();
+      final boldItalicFont = await PdfGoogleFonts.plusJakartaSansBoldItalic();
 
-      // Premium Header Design
+      // 1. Clean Content: Remove AI preamble (anything before the first title/header)
+      final cleanedContent = _cleanAIContent(content);
+
       pdf.addPage(
-        pw.Page(
+        pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(40),
+          theme: pw.ThemeData.withFont(
+            base: font,
+            bold: boldFont,
+            italic: italicFont,
+            boldItalic: boldItalicFont,
+          ),
+          header: (pw.Context context) => _buildHeader(context),
+          footer: (pw.Context context) => _buildFooter(context),
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // Brand Header
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'MARITA',
-                          style: pw.TextStyle(
-                            fontSize: 28,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.black,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        pw.Text(
-                          'AI-POWERED FRAUD DETECTION',
-                          style: const pw.TextStyle(
-                            fontSize: 8,
-                            color: PdfColors.grey700,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          'ANALYSIS REPORT',
-                          style: pw.TextStyle(
-                            fontSize: 12,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.grey900,
-                          ),
-                        ),
-                        pw.Text(
-                          'Ref: ${DateTime.now().millisecondsSinceEpoch}',
-                          style: const pw.TextStyle(
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 10),
-                pw.Container(height: 2, color: PdfColors.limeAccent700),
-                pw.SizedBox(height: 30),
-
-                // Report Date
-                pw.Text(
-                  'Date: ${DateTime.now().toString().split('.')[0]}',
-                  style: pw.TextStyle(
-                    fontSize: 10,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey800,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-
-                // Content Section
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(20),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                    border: pw.Border.all(color: PdfColors.grey200),
-                  ),
-                  child: pw.Text(
-                    content,
-                    style: const pw.TextStyle(
-                      fontSize: 11,
-                      lineSpacing: 5,
-                      color: PdfColors.black,
-                    ),
-                  ),
-                ),
-
-                pw.Spacer(),
-
-                // Premium Footer
-                pw.Divider(thickness: 0.5, color: PdfColors.grey400),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'Confidential — Marita Internal Analysis',
-                      style: const pw.TextStyle(
-                        fontSize: 7,
-                        color: PdfColors.grey500,
-                      ),
-                    ),
-                    pw.Text(
-                      'marita.ai',
-                      style: pw.TextStyle(
-                        fontSize: 7,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            final List<pw.Widget> contentWidgets = _parseMarkdownToWidgets(
+              cleanedContent, 
+              font, 
+              boldFont, 
+              italicFont,
+              boldItalicFont,
             );
+            
+            // Add Forensic Verification Section at the end
+            contentWidgets.add(pw.SizedBox(height: 30));
+            contentWidgets.add(_buildVerificationSection(font, boldFont));
+            
+            return contentWidgets;
           },
         ),
       );
 
       final output = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final file = File("${output.path}/Marita_Report_$timestamp.pdf");
-      await file.writeAsBytes(await pdf.save());
+      final file = File("${output.path}/Marita_Analysis_$timestamp.pdf");
+      
+      final bytes = await pdf.save();
+      await file.writeAsBytes(bytes);
 
-      // Using the new SharePlus API (v11.0.0+)
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          subject: 'Marita AI Analysis Report',
-          text: 'Financial analysis report generated by Marita AI.',
-        ),
+      if (kDebugMode) {
+        print("Professional PDF saved to: ${file.path}");
+      }
+
+      // Updated share_plus usage for v10+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Marita Forensic Analysis Report',
+        text: 'Professional forensic analysis report generated by Marita AI.',
       );
-    } catch (e) {
-      // Handle error gracefully in production
+    } catch (e, stack) {
+      if (kDebugMode) {
+        print("Error exporting professional PDF: $e");
+        print(stack);
+      }
     }
+  }
+
+  static pw.Widget _buildHeader(pw.Context context) {
+    return pw.Column(
+      children: [
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'MARITA',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.black,
+                    letterSpacing: 2,
+                  ),
+                ),
+                pw.Text(
+                  'AI-POWERED FRAUD DETECTION',
+                  style: const pw.TextStyle(
+                    fontSize: 7,
+                    color: PdfColors.grey700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text(
+                  'FORENSIC REPORT',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey900,
+                  ),
+                ),
+                pw.Text(
+                  'Date: ${DateTime.now().toString().split(' ')[0]}',
+                  style: const pw.TextStyle(
+                    fontSize: 7,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 10),
+        pw.Container(height: 1.5, color: PdfColors.limeAccent700),
+        pw.SizedBox(height: 25),
+      ],
+    );
+  }
+
+  static pw.Widget _buildFooter(pw.Context context) {
+    return pw.Column(
+      children: [
+        pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              'Confidential Forensic Document — Marita AI',
+              style: const pw.TextStyle(
+                fontSize: 7,
+                color: PdfColors.grey500,
+              ),
+            ),
+            pw.Text(
+              'Page ${context.pageNumber} of ${context.pagesCount}',
+              style: const pw.TextStyle(
+                fontSize: 7,
+                color: PdfColors.grey500,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Removes AI introductions like "Of course, I can help..."
+  static String _cleanAIContent(String content) {
+    // We want to start from the first major header or bolded title line.
+    // Sometimes Gemini doesn't use # but uses **Title** at the start.
+    final List<String> lines = content.split('\n');
+    int startIndex = 0;
+
+    for (int i = 0; i < lines.length; i++) {
+      final trimmed = lines[i].trim();
+      // Look for a header (#) or a line that is exclusively bolded (**Text**)
+      if (trimmed.startsWith('#') || (trimmed.startsWith('**') && trimmed.endsWith('**'))) {
+        startIndex = i;
+        break;
+      }
+    }
+
+    return lines.sublist(startIndex).join('\n').trim();
+  }
+
+  /// A lite Markdown parser that converts strings to PDF widgets.
+  static List<pw.Widget> _parseMarkdownToWidgets(
+    String content,
+    pw.Font base,
+    pw.Font bold,
+    pw.Font italic,
+    pw.Font boldItalic,
+  ) {
+    final List<pw.Widget> widgets = [];
+    final lines = content.split('\n');
+    
+    List<String> currentTableLines = [];
+    bool inTable = false;
+
+    for (int i = 0; i < lines.length; i++) {
+      String line = lines[i].trim();
+      
+      // Handle Tables
+      if (line.startsWith('|')) {
+        inTable = true;
+        currentTableLines.add(line);
+        continue;
+      } else if (inTable) {
+        widgets.add(_buildTable(currentTableLines, base, bold, italic, boldItalic));
+        currentTableLines = [];
+        inTable = false;
+      }
+
+      if (line.isEmpty) {
+        widgets.add(pw.SizedBox(height: 10));
+        continue;
+      }
+
+      // Handle Headers
+      if (line.startsWith('###')) {
+        widgets.add(_buildHeaderWidget(line.replaceAll('###', '').replaceAll('**', '').trim(), 14, bold));
+      } else if (line.startsWith('##')) {
+        widgets.add(_buildHeaderWidget(line.replaceAll('##', '').replaceAll('**', '').trim(), 16, bold));
+      } else if (line.startsWith('#')) {
+        widgets.add(_buildHeaderWidget(line.replaceAll('#', '').replaceAll('**', '').trim(), 20, bold));
+      } 
+      // Handle Horizontal Rule
+      else if (line.startsWith('---') || line.startsWith('***')) {
+        widgets.add(pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(vertical: 10),
+          child: pw.Divider(thickness: 0.5, color: PdfColors.grey300),
+        ));
+      }
+      // Handle Lists
+      else if (line.startsWith('- ') || line.startsWith('* ')) {
+        widgets.add(pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 4, right: 8),
+              child: pw.Container(
+                width: 4,
+                height: 4,
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.limeAccent700,
+                  shape: pw.BoxShape.circle,
+                ),
+              ),
+            ),
+            pw.Expanded(
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 6),
+                child: _buildRichText(line.substring(2).trim(), base, bold, italic, boldItalic, 10),
+              ),
+            ),
+          ],
+        ));
+      }
+      // Handle Normal Paragraphs
+      else {
+        // Detect key points (lines that are entirely bold)
+        final isKeyPoint = line.startsWith('**') && line.endsWith('**') && !line.substring(2, line.length-2).contains('**');
+        
+        if (isKeyPoint) {
+          widgets.add(pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            margin: const pw.EdgeInsets.symmetric(vertical: 8),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.lime50,
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+              border: pw.Border.all(color: PdfColors.lime300, width: 0.5),
+            ),
+            child: _buildRichText(line.replaceAll('**', '').trim(), base, bold, italic, boldItalic, 10, textColor: PdfColors.limeAccent700),
+          ));
+        } else {
+          widgets.add(pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: _buildRichText(line, base, bold, italic, boldItalic, 10),
+          ));
+        }
+      }
+    }
+
+    // Catch trailing table
+    if (inTable) {
+      widgets.add(_buildTable(currentTableLines, base, bold, italic, boldItalic));
+    }
+
+    return widgets;
+  }
+
+  static pw.Widget _buildHeaderWidget(String text, double size, pw.Font font) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(top: 15, bottom: 8),
+      child: pw.Text(
+        text.toUpperCase(),
+        style: pw.TextStyle(
+          font: font,
+          fontSize: size,
+          color: PdfColors.black,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _buildRichText(
+    String text, 
+    pw.Font base, 
+    pw.Font bold, 
+    pw.Font italic, 
+    pw.Font boldItalic, 
+    double size,
+    {PdfColor textColor = PdfColors.black}
+  ) {
+    final List<pw.TextSpan> spans = [];
+    
+    // Improved regex to find bold and italic parts
+    // Order of operations: check for bold-italic (***), then bold (**), then italic (*)
+    final regExp = RegExp(r'(\*\*\*|__|\*\*|\*)(.*?)\1');
+    int lastMatchEnd = 0;
+    
+    for (final match in regExp.allMatches(text)) {
+      // Add plain text before match
+      if (match.start > lastMatchEnd) {
+        spans.add(pw.TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: pw.TextStyle(font: base, fontSize: size, color: textColor),
+        ));
+      }
+      
+      final delimiter = match.group(1);
+      final content = match.group(2);
+      
+      pw.Font selectedFont = base;
+      if (delimiter == '***') {
+        selectedFont = boldItalic;
+      } else if (delimiter == '**' || delimiter == '__') {
+        selectedFont = bold;
+      } else if (delimiter == '*') {
+        selectedFont = italic;
+      }
+
+      // Add formatted text
+      spans.add(pw.TextSpan(
+        text: content,
+        style: pw.TextStyle(font: selectedFont, fontSize: size, color: textColor),
+      ));
+      
+      lastMatchEnd = match.end;
+    }
+    
+    // Add remaining plain text
+    if (lastMatchEnd < text.length) {
+      spans.add(pw.TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: pw.TextStyle(font: base, fontSize: size, color: textColor),
+      ));
+    }
+
+    if (spans.isEmpty) {
+       return pw.Text(text, style: pw.TextStyle(font: base, fontSize: size, color: textColor), textAlign: pw.TextAlign.justify);
+    }
+
+    return pw.RichText(
+      text: pw.TextSpan(children: spans),
+      textAlign: pw.TextAlign.justify,
+    );
+  }
+
+  static pw.Widget _buildTable(
+    List<String> tableLines, 
+    pw.Font base, 
+    pw.Font bold,
+    pw.Font italic,
+    pw.Font boldItalic,
+  ) {
+    if (tableLines.length < 2) return pw.SizedBox();
+
+    // Parse rows and cells
+    final List<List<String>> data = [];
+    for (var line in tableLines) {
+      if (line.contains('---') || line.contains(':---')) continue; // Skip separator line
+      final cells = line.split('|')
+          .where((c) => c.trim().isNotEmpty || line.startsWith('|')) // Better handling of split
+          .toList();
+      
+      // Clean up empty first/last elements if they exist
+      if (cells.isNotEmpty && cells.first.trim().isEmpty) cells.removeAt(0);
+      if (cells.isNotEmpty && cells.last.trim().isEmpty) cells.removeAt(cells.length - 1);
+      
+      final cleanedCells = cells.map((c) => c.trim()).toList();
+      if (cleanedCells.isNotEmpty) data.add(cleanedCells);
+    }
+
+    if (data.isEmpty) return pw.SizedBox();
+
+    // Dynamically calculate column widths to prevent squishing small columns (like years)
+    final Map<int, pw.TableColumnWidth> columnWidths = {};
+    if (data.isNotEmpty) {
+      final int colCount = data[0].length;
+      for (int c = 0; c < colCount; c++) {
+        int maxLen = 0;
+        for (int r = 0; r < data.length; r++) {
+          if (c < data[r].length) {
+            // Strip markdown characters for length calculation
+            final cleanText = data[r][c].replaceAll('*', '').replaceAll('_', '').trim();
+            final len = cleanText.length;
+            if (len > maxLen) maxLen = len;
+          }
+        }
+        
+        // If the column generally contains short text (like numbers, years, or short metric names),
+        // let it take its intrinsic width to avoid squishing/wrapping mid-word.
+        if (maxLen <= 30) {
+          // A tiny bit of flex allows it to breathe if there's extra space, but mostly it uses intrinsic
+          columnWidths[c] = const pw.IntrinsicColumnWidth();
+        } else {
+          // For paragraphs (like Analysis), use flex width. 
+          // Cap the flex factor so one huge column doesn't completely crush other flex columns.
+          double flex = maxLen.toDouble();
+          if (flex > 150) flex = 150;
+          columnWidths[c] = pw.FlexColumnWidth(flex);
+        }
+      }
+    }
+
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 15),
+      child: pw.Table(
+        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+        columnWidths: columnWidths,
+        children: data.asMap().entries.map((entry) {
+          final rowIndex = entry.key;
+          final rowData = entry.value;
+          
+          return pw.TableRow(
+            decoration: rowIndex == 0 
+                ? const pw.BoxDecoration(color: PdfColors.grey100) 
+                : null,
+            children: rowData.map((cell) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.all(8),
+                child: _buildRichText(
+                  cell, 
+                  base, 
+                  rowIndex == 0 ? bold : bold, // Force bold header, or allow nested in body
+                  italic, 
+                  boldItalic, 
+                  9,
+                  textColor: rowIndex == 0 ? PdfColors.black : PdfColors.grey900,
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  static pw.Widget _buildVerificationSection(pw.Font base, pw.Font bold) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(15),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey400, width: 1),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'FORENSIC VERIFICATION STATEMENT',
+            style: pw.TextStyle(font: bold, fontSize: 10, color: PdfColors.grey900),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'This report was autonomously generated by the Marita AI Forensic Engine. The analysis is based on financial patterns and historical data provided during the session. This document is intended for internal forensic review and startup advisory purposes only.',
+            style: pw.TextStyle(font: base, fontSize: 8, color: PdfColors.grey700),
+          ),
+          pw.SizedBox(height: 15),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('REPORT ID:', style: pw.TextStyle(font: bold, fontSize: 7)),
+                  pw.Text('MRT-${DateTime.now().millisecondsSinceEpoch}', style: pw.TextStyle(font: base, fontSize: 7)),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Container(
+                    width: 100,
+                    height: 1,
+                    color: PdfColors.grey400,
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text('AUTHORIZED SIGNATURE', style: pw.TextStyle(font: base, fontSize: 6)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   /// Exports the entire conversation to a CSV file.
@@ -178,7 +533,6 @@ class ExportService {
       final file = File("${output.path}/Marita_Chat_$timestamp.csv");
       await file.writeAsString(csvData);
 
-      // Using the new SharePlus API (v11.0.0+)
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
@@ -187,8 +541,12 @@ class ExportService {
         ),
       );
     } catch (e) {
-      // Handle error gracefully in production
+      if (kDebugMode) {
+        print("Error exporting CSV: $e");
+      }
     }
   }
 }
+
+
 
