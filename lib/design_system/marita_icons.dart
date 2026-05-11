@@ -42,6 +42,9 @@ import 'marita_design_system.dart';
 class MaritaIconSize {
   MaritaIconSize._();
 
+  /// Extra small icon — 12px.
+  static const double extraSmall = MaritaSizing.iconExtraSmall;
+
   /// Small icon — 16px. For inline indicators, badges.
   static const double small = MaritaSizing.iconSmall;
 

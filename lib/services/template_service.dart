@@ -69,4 +69,34 @@ class TemplateService {
       return false;
     }
   }
+
+  /// Updates an existing custom template in Firestore.
+  static Future<bool> updateCustomTemplate(String userId, PromptTemplate template) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('custom_templates')
+          .doc(template.id)
+          .update(template.toMap());
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Deletes a custom template from Firestore.
+  static Future<bool> deleteCustomTemplate(String userId, String templateId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('custom_templates')
+          .doc(templateId)
+          .delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }

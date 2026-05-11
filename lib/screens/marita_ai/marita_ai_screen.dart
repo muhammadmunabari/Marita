@@ -1106,7 +1106,7 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
         children: [
           if (_attachments.isNotEmpty)
             Container(
-              height: 80,
+              height: 56, // Adjusted height for pill-shape
               margin: const EdgeInsets.only(bottom: MaritaSpacing.md),
               child: Stack(
                 children: [
@@ -1119,105 +1119,108 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                       final isImage = attachment.type == 'image';
                       final extension = attachment.name.split('.').last.toUpperCase();
                       
+                      String fileSizeStr = '';
+                      try {
+                        final file = File(attachment.path);
+                        if (file.existsSync()) {
+                          final bytes = file.lengthSync();
+                          if (bytes < 1024) {
+                            fileSizeStr = '${bytes}B';
+                          } else if (bytes < 1024 * 1024) {
+                            fileSizeStr = '${(bytes / 1024).toStringAsFixed(2)}KB';
+                          } else {
+                            fileSizeStr = '${(bytes / (1024 * 1024)).toStringAsFixed(2)}MB';
+                          }
+                        }
+                      } catch (_) {}
+                      
                       return Container(
-                        width: 130,
                         margin: const EdgeInsets.only(right: MaritaSpacing.sm),
+                        padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
                         decoration: BoxDecoration(
-                          color: colors.backgroundPrimary,
-                          borderRadius: MaritaRadius.borderMedium,
+                          color: colors.backgroundSecondary, // Dark capsule
+                          borderRadius: BorderRadius.circular(100), // Pill shape
                           border: Border.all(color: colors.borderPrimary),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors.contentPrimary.withValues(alpha: 0.04),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: MaritaRadius.borderMedium,
-                          child: Stack(
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 56,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      color: colors.backgroundSecondary,
-                                      border: Border(
-                                        right: BorderSide(color: colors.borderPrimary),
-                                      ),
-                                    ),
-                                    child: isImage
-                                        ? Image.file(
-                                            File(attachment.path),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Center(
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                MaritaIcon(
-                                                  icon: _getAttachmentIcon(attachment.type),
-                                                  size: MaritaIconSize.small,
-                                                  color: colors.interactivePrimary,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  extension,
-                                                  style: typography.bodySmallBold.copyWith(
-                                                    fontSize: 8,
-                                                    color: colors.contentTertiary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(MaritaSpacing.xs),
-                                      child: Text(
-                                        attachment.name,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: typography.bodySmall.copyWith(
-                                          fontSize: 10,
-                                          height: 1.2,
-                                          color: colors.contentPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Icon Container
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: extension == 'CSV' || extension == 'XLS' || extension == 'XLSX' 
+                                    ? const Color(0xFF107C41) 
+                                    : colors.interactivePrimary,
+                                shape: BoxShape.circle,
                               ),
-                              Positioned(
-                                top: 2,
-                                right: 2,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _attachments.removeAt(index);
-                                      _updateState();
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: colors.backgroundInverse.withValues(alpha: 0.8),
-                                      shape: BoxShape.circle,
+                              child: isImage
+                                  ? ClipOval(
+                                      child: Image.file(
+                                        File(attachment.path),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Center(
+                                      child: MaritaIcon(
+                                        icon: _getAttachmentIcon(attachment.type),
+                                        size: MaritaIconSize.small,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    child: Icon(
-                                      Icons.close,
-                                      size: 10,
-                                      color: colors.backgroundPrimary,
+                            ),
+                            const SizedBox(width: MaritaSpacing.sm),
+                            // Text Info
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 100, // Constrain text width
+                                  child: Text(
+                                    attachment.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: typography.bodyDefaultBold.copyWith(
+                                      color: colors.interactivePrimary, // Blue text
                                     ),
                                   ),
                                 ),
+                                Text(
+                                  fileSizeStr.isNotEmpty ? '$extension $fileSizeStr' : extension,
+                                  style: typography.bodySmall.copyWith(
+                                    color: colors.contentSecondary,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: MaritaSpacing.md),
+                            // Close Button
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _attachments.removeAt(index);
+                                  _updateState();
+                                });
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: colors.backgroundPrimary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: colors.borderPrimary),
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: colors.contentPrimary,
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -1321,24 +1324,28 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
       ),
     );
   }
+}
 
-  IconData _getAttachmentIcon(String type) {
-    switch (type) {
-      case 'pdf':
-        return IconsaxPlusLinear.document_text;
-      case 'image':
-        return IconsaxPlusLinear.gallery;
-      case 'csv':
-      case 'xls':
-      case 'text':
-      case 'json':
-      case 'sql':
-      case 'md':
-      case 'xml':
-        return IconsaxPlusLinear.document;
-      default:
-        return IconsaxPlusLinear.document_cloud;
-    }
+IconData _getAttachmentIcon(String type) {
+  switch (type) {
+    case 'pdf':
+      return IconsaxPlusLinear.document_text;
+    case 'image':
+      return IconsaxPlusLinear.gallery;
+    case 'csv':
+    case 'xls':
+    case 'xlsx':
+    case 'text':
+    case 'json':
+    case 'sql':
+    case 'md':
+    case 'xml':
+      return IconsaxPlusLinear.document;
+    case 'doc':
+    case 'docx':
+      return IconsaxPlusLinear.document_text;
+    default:
+      return IconsaxPlusLinear.document_cloud;
   }
 }
 
@@ -1412,8 +1419,15 @@ class _MaritaIconButtonState extends State<_MaritaIconButton>
 class _TemplateCard extends StatelessWidget {
   final PromptTemplate template;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const _TemplateCard({required this.template, required this.onTap});
+  const _TemplateCard({
+    required this.template,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1438,76 +1452,114 @@ class _TemplateCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(MaritaSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: colors.backgroundPrimary,
-                    borderRadius: MaritaRadius.borderSmall,
-                    border: Border.all(color: colors.borderPrimary.withValues(alpha: 0.5)),
-                  ),
-                  child: MaritaIcon(
-                    icon: template.icon,
-                    size: MaritaIconSize.small,
-                    color: colors.interactivePrimary,
-                  ),
-                ),
-                if (template.isCustom)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.interactivePrimary.withValues(alpha: 0.1),
-                      borderRadius: MaritaRadius.borderSmall,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.person, size: 10, color: colors.interactivePrimary),
-                        const SizedBox(width: 2),
-                        Text(
-                          'YOU',
-                          style: typography.bodySmallBold.copyWith(
-                            fontSize: 8,
-                            color: colors.interactivePrimary,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          template.title,
+                          style: typography.bodyDefaultBold.copyWith(
+                            color: colors.contentPrimary,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                      if (template.isCustom) ...[
+                        const SizedBox(width: MaritaSpacing.xs),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: colors.interactivePrimary.withValues(alpha: 0.1),
+                            borderRadius: MaritaRadius.borderSmall,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.person, size: 10, color: colors.interactivePrimary),
+                              const SizedBox(width: 2),
+                              Text(
+                                'YOU',
+                                style: typography.bodySmallBold.copyWith(
+                                  fontSize: 8,
+                                  color: colors.interactivePrimary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    template.description,
+                    style: typography.bodySmall.copyWith(
+                      color: colors.contentSecondary,
+                      height: 1.2,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: MaritaSpacing.md),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  template.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: typography.bodyDefaultBold.copyWith(
-                    color: colors.contentPrimary,
-                    height: 1.1,
+            if (template.isCustom) ...[
+              const SizedBox(width: MaritaSpacing.sm),
+              Column(
+                children: [
+                  _TemplateActionButton(
+                    icon: IconsaxPlusLinear.edit_2,
+                    onTap: onEdit ?? () {},
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  template.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: typography.bodySmall.copyWith(
-                    color: colors.contentSecondary,
-                    height: 1.2,
+                  const SizedBox(height: MaritaSpacing.xs),
+                  _TemplateActionButton(
+                    icon: IconsaxPlusLinear.trash,
+                    color: colors.error,
+                    onTap: onDelete ?? () {},
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TemplateActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? color;
+
+  const _TemplateActionButton({
+    required this.icon,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Prevent tapping the card itself
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: context.maritaColors.backgroundPrimary,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 14,
+          color: color ?? context.maritaColors.contentSecondary,
         ),
       ),
     );
@@ -1531,18 +1583,106 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
     super.dispose();
   }
 
-  Future<void> _createNewTemplate(BuildContext context) async {
-    final template = await showDialog<PromptTemplate>(
+  void _createNewTemplate() async {
+    final result = await showDialog<PromptTemplate>(
       context: context,
       builder: (context) => const _CreateTemplateDialog(),
     );
-
-    if (template != null) {
-      final userId = ref.read(currentUserProvider)?.uid ?? 'anonymous';
-      await TemplateService.saveCustomTemplate(userId, template);
-      ref.invalidate(customTemplatesProvider);
+    if (result != null) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        try {
+          await TemplateService.saveCustomTemplate(user.uid, result);
+          ref.invalidate(customTemplatesProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Template created successfully')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error creating template: $e')),
+            );
+          }
+        }
+      }
     }
   }
+
+  void _editTemplate(PromptTemplate template) async {
+    final result = await showDialog<PromptTemplate>(
+      context: context,
+      builder: (context) => _CreateTemplateDialog(template: template),
+    );
+    if (result != null) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        try {
+          await TemplateService.updateCustomTemplate(user.uid, result);
+          ref.invalidate(customTemplatesProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Template updated successfully')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error updating template: $e')),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  void _deleteTemplate(PromptTemplate template) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.maritaColors.backgroundPrimary,
+        title: Text('Delete Template', style: context.maritaTypography.h4),
+        content: Text(
+          'Are you sure you want to delete "${template.title}"?',
+          style: context.maritaTypography.bodyDefault,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: context.maritaColors.contentSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: context.maritaColors.error),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        try {
+          await TemplateService.deleteCustomTemplate(user.uid, template.id);
+          ref.invalidate(customTemplatesProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Template deleted successfully')),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error deleting template: $e')),
+            );
+          }
+        }
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1599,6 +1739,21 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                   ),
                 ],
               ),
+              IconButton(
+                onPressed: _createNewTemplate,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colors.interactivePrimary,
+                    borderRadius: MaritaRadius.borderSmall,
+                  ),
+                  child: Icon(
+                    IconsaxPlusLinear.add,
+                    color: colors.backgroundPrimary,
+                    size: 20,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: MaritaSpacing.xl),
@@ -1652,13 +1807,13 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                   if (staticTemplates.any((t) => !t.isCustom)) ...[
                     _buildSectionTitle(context, 'Pre-built Templates'),
                     const SizedBox(height: MaritaSpacing.md),
-                    _buildGrid(context, staticTemplates.where((t) => !t.isCustom).toList()),
+                    _buildList(context, staticTemplates.where((t) => !t.isCustom).toList()),
                     const SizedBox(height: MaritaSpacing.xl),
                   ],
                   if (staticTemplates.any((t) => t.isCustom)) ...[
                     _buildSectionTitle(context, 'Your Templates'),
                     const SizedBox(height: MaritaSpacing.md),
-                    _buildGrid(context, staticTemplates.where((t) => t.isCustom).toList()),
+                    _buildList(context, staticTemplates.where((t) => t.isCustom).toList()),
                   ],
                   if (staticTemplates.isEmpty)
                     Center(
@@ -1697,17 +1852,13 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
     );
   }
 
-  Widget _buildGrid(BuildContext context, List<PromptTemplate> templates) {
-    return GridView.builder(
+  Widget _buildList(BuildContext context, List<PromptTemplate> templates) {
+    return ListView.separated(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: MaritaSpacing.md,
-        mainAxisSpacing: MaritaSpacing.md,
-        childAspectRatio: 1.25,
-      ),
       itemCount: templates.length,
+      separatorBuilder: (context, index) => const SizedBox(height: MaritaSpacing.md),
       itemBuilder: (context, index) {
         final template = templates[index];
         return _TemplateCard(
@@ -1715,6 +1866,8 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
           onTap: () {
             Navigator.pop(context, template.prompt);
           },
+          onEdit: template.isCustom ? () => _editTemplate(template) : null,
+          onDelete: template.isCustom ? () => _deleteTemplate(template) : null,
         );
       },
     );
@@ -1730,162 +1883,133 @@ class _AttachmentPreviewBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
+    
+    final isImage = attachment.type == 'image';
+    final extension = attachment.name.split('.').last.toUpperCase();
+    
+    String fileSizeStr = '';
+    if (attachment.size != null) {
+      final bytes = attachment.size!;
+      if (bytes < 1024) {
+        fileSizeStr = '${bytes}B';
+      } else if (bytes < 1024 * 1024) {
+        fileSizeStr = '${(bytes / 1024).toStringAsFixed(2)}KB';
+      } else {
+        fileSizeStr = '${(bytes / (1024 * 1024)).toStringAsFixed(2)}MB';
+      }
+    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
       decoration: BoxDecoration(
-        color: colors.backgroundSecondary,
-        borderRadius: MaritaRadius.borderSmall,
+        color: colors.backgroundSecondary, // Dark capsule
+        borderRadius: BorderRadius.circular(100), // Pill shape
         border: Border.all(color: colors.borderPrimary),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MaritaIcon(
-            icon: _getIconForType(attachment.type),
-            size: MaritaIconSize.small,
-            color: colors.interactivePrimary,
+          // Icon Container
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: extension == 'CSV' || extension == 'XLS' || extension == 'XLSX' 
+                  ? const Color(0xFF107C41) 
+                  : colors.interactivePrimary,
+              shape: BoxShape.circle,
+            ),
+            child: isImage
+                ? ClipOval(
+                    child: (attachment.url != null && attachment.url!.isNotEmpty)
+                        ? Image.network(
+                            attachment.url!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Center(
+                              child: MaritaIcon(
+                                icon: _getAttachmentIcon(attachment.type),
+                                size: MaritaIconSize.extraSmall,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : Image.file(
+                            File(attachment.path),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Center(
+                              child: MaritaIcon(
+                                icon: _getAttachmentIcon(attachment.type),
+                                size: MaritaIconSize.extraSmall,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                  )
+                : Center(
+                    child: MaritaIcon(
+                      icon: _getAttachmentIcon(attachment.type),
+                      size: MaritaIconSize.extraSmall,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            attachment.name,
-            style: typography.bodySmall.copyWith(color: colors.contentPrimary),
+          const SizedBox(width: MaritaSpacing.sm),
+          // Text Info
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 150),
+                child: Text(
+                  attachment.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: typography.bodySmallBold.copyWith(
+                    color: colors.interactivePrimary, // Blue text
+                  ),
+                ),
+              ),
+              Text(
+                fileSizeStr.isNotEmpty ? '$extension $fileSizeStr' : extension,
+                style: typography.bodySmall.copyWith(
+                  color: colors.contentSecondary,
+                  fontSize: 9,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-
-  IconData _getIconForType(String type) {
-    switch (type) {
-      case 'pdf':
-        return IconsaxPlusLinear.document_text;
-      case 'image':
-        return IconsaxPlusLinear.gallery;
-      case 'csv':
-      case 'xls':
-      case 'text':
-      case 'json':
-      case 'sql':
-      case 'md':
-      case 'xml':
-        return IconsaxPlusLinear.document;
-      default:
-        return IconsaxPlusLinear.document_cloud;
-    }
-  }
 }
 
-class _TemplatePreviewDialog extends StatefulWidget {
-  final PromptTemplate template;
 
-  const _TemplatePreviewDialog({required this.template});
-
-  @override
-  State<_TemplatePreviewDialog> createState() => _TemplatePreviewDialogState();
-}
-
-class _TemplatePreviewDialogState extends State<_TemplatePreviewDialog> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.template.prompt);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.maritaColors;
-    final typography = context.maritaTypography;
-
-    return Dialog(
-      backgroundColor: colors.backgroundPrimary,
-      shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
-      child: Padding(
-        padding: const EdgeInsets.all(MaritaSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                MaritaIcon(
-                  icon: widget.template.icon,
-                  color: colors.interactivePrimary,
-                ),
-                const SizedBox(width: MaritaSpacing.md),
-                Text(widget.template.title, style: typography.h4),
-              ],
-            ),
-            const SizedBox(height: MaritaSpacing.lg),
-            Text(
-              'You can customize the prompt before sending it.',
-              style: typography.bodySmall.copyWith(color: colors.contentSecondary),
-            ),
-            const SizedBox(height: MaritaSpacing.md),
-            Container(
-              decoration: BoxDecoration(
-                color: colors.backgroundSecondary,
-                borderRadius: MaritaRadius.borderSmall,
-                border: Border.all(color: colors.borderPrimary),
-              ),
-              child: TextField(
-                controller: _controller,
-                maxLines: 8,
-                style: typography.bodyDefault,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.all(MaritaSpacing.md),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                ),
-              ),
-            ),
-            const SizedBox(height: MaritaSpacing.xl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
-                  ),
-                ),
-                const SizedBox(width: MaritaSpacing.md),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, _controller.text),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.interactivePrimary,
-                    foregroundColor: colors.backgroundPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: MaritaRadius.borderSmall,
-                    ),
-                  ),
-                  child: const Text('Use Template'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _CreateTemplateDialog extends StatefulWidget {
-  const _CreateTemplateDialog();
+  final PromptTemplate? template;
+  const _CreateTemplateDialog({this.template});
 
   @override
   State<_CreateTemplateDialog> createState() => _CreateTemplateDialogState();
 }
 
 class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
+  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _promptController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.template != null) {
+      _titleController.text = widget.template!.title;
+      _descController.text = widget.template!.description;
+      _promptController.text = widget.template!.prompt;
+    }
+  }
 
   @override
   void dispose() {
@@ -1902,81 +2026,159 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
 
     return Dialog(
       backgroundColor: colors.backgroundPrimary,
-      shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(MaritaSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Create Template', style: typography.h4),
-              const SizedBox(height: MaritaSpacing.lg),
-              TextField(
-                controller: _titleController,
-                style: typography.bodyDefault,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'e.g., Financial Report Analysis',
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.xl),
+      shape: RoundedRectangleBorder(
+        borderRadius: MaritaRadius.borderLarge,
+        side: BorderSide(color: colors.borderPrimary),
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        padding: const EdgeInsets.all(MaritaSpacing.xl),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.template == null ? 'New Template' : 'Edit Template',
+                            style: typography.h4,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Create a reusable prompt for your analysis.',
+                            style: typography.bodySmall.copyWith(color: colors.contentTertiary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: colors.contentSecondary),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: MaritaSpacing.md),
-              TextField(
-                controller: _descController,
-                style: typography.bodyDefault,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'What does this template do?',
-                ),
-              ),
-              const SizedBox(height: MaritaSpacing.md),
-              TextField(
-                controller: _promptController,
-                maxLines: 5,
-                style: typography.bodyDefault,
-                decoration: const InputDecoration(
-                  labelText: 'Prompt',
-                  hintText: 'Write your prompt here...',
-                ),
-              ),
-              const SizedBox(height: MaritaSpacing.xl),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Cancel',
-                      style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                const SizedBox(height: MaritaSpacing.xl),
+                
+                TextFormField(
+                  controller: _titleController,
+                  style: typography.bodyDefault,
+                  maxLength: 50,
+                  validator: (v) => (v == null || v.isEmpty) ? 'Title is required' : null,
+                  decoration: InputDecoration(
+                    labelText: 'Template Title',
+                    hintText: 'e.g., Financial Report Analysis',
+                    filled: true,
+                    fillColor: colors.backgroundSecondary,
+                    border: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
                     ),
                   ),
-                  const SizedBox(width: MaritaSpacing.md),
-                  ElevatedButton(
+                ),
+                const SizedBox(height: MaritaSpacing.lg),
+                TextFormField(
+                  controller: _descController,
+                  style: typography.bodyDefault,
+                  maxLength: 100,
+                  decoration: InputDecoration(
+                    labelText: 'Description (Optional)',
+                    hintText: 'What does this template do?',
+                    filled: true,
+                    fillColor: colors.backgroundSecondary,
+                    border: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: MaritaSpacing.lg),
+                TextFormField(
+                  controller: _promptController,
+                  maxLines: 6,
+                  maxLength: 1000,
+                  style: typography.bodyDefault,
+                  validator: (v) => (v == null || v.isEmpty) ? 'Prompt is required' : null,
+                  decoration: InputDecoration(
+                    labelText: 'Prompt',
+                    hintText: 'Write your instructions here...',
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: colors.backgroundSecondary,
+                    border: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.borderPrimary),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: MaritaRadius.borderSmall,
+                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: MaritaSpacing.xxl),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
                     onPressed: () {
-                      if (_titleController.text.isEmpty || _promptController.text.isEmpty) return;
-
-                      final template = PromptTemplate(
-                        id: const Uuid().v4(),
-                        title: _titleController.text,
-                        description: _descController.text,
-                        prompt: _promptController.text,
-                        icon: MaritaIcons.magicStar,
-                        isCustom: true,
-                      );
-                      Navigator.pop(context, template);
+                      if (_formKey.currentState?.validate() ?? false) {
+                        final template = PromptTemplate(
+                          id: widget.template?.id ?? const Uuid().v4(),
+                          title: _titleController.text.trim(),
+                          description: _descController.text.trim(),
+                          prompt: _promptController.text.trim(),
+                          icon: widget.template?.icon ?? MaritaIcons.magicStar,
+                          isCustom: true,
+                        );
+                        Navigator.pop(context, template);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colors.interactivePrimary,
                       foregroundColor: colors.backgroundPrimary,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: MaritaRadius.borderSmall,
+                        borderRadius: MaritaRadius.borderMedium,
                       ),
                     ),
-                    child: const Text('Create'),
+                    child: Text(
+                      widget.template == null ? 'Create Template' : 'Save Changes',
+                      style: typography.bodyDefaultBold.copyWith(color: colors.backgroundPrimary),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

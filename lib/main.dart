@@ -21,8 +21,8 @@ Future<void> main() async {
 
   // Initialize App Check
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity,
-    appleProvider: AppleProvider.appAttest,
+    providerAndroid: const AndroidPlayIntegrityProvider(),
+    providerApple: const AppleAppAttestProvider(),
   );
 
   // Connect to Local Firebase Emulators when running in debug
@@ -43,7 +43,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
     ),
   );
 
@@ -61,9 +61,7 @@ class MaritaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Marita',
       debugShowCheckedModeBanner: false,
-      theme: MaritaTheme.light(),
-      darkTheme: MaritaTheme.dark(),
-      themeMode: ThemeMode.dark,
+      theme: MaritaTheme.dark(),
       routerConfig: router,
     );
   }

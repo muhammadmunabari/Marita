@@ -29,11 +29,18 @@ class AttachmentService {
         final name = file.name;
         final type = _determineType(name);
         
+        // Get file size
+        int? size;
+        try {
+          size = File(path).lengthSync();
+        } catch (_) {}
+        
         return ChatAttachment(
           id: _uuid.v4(),
           name: name,
           path: path,
           type: type,
+          size: size,
         );
       }).toList();
     } catch (e) {
@@ -47,11 +54,18 @@ class AttachmentService {
       final XFile? image = await _imagePicker.pickImage(source: ImageSource.gallery);
       if (image == null) return null;
 
+      // Get file size
+      int? size;
+      try {
+        size = File(image.path).lengthSync();
+      } catch (_) {}
+
       return ChatAttachment(
         id: _uuid.v4(),
         name: image.name,
         path: image.path,
         type: 'image',
+        size: size,
       );
     } catch (e) {
       return null;
@@ -64,11 +78,18 @@ class AttachmentService {
       final XFile? photo = await _imagePicker.pickImage(source: ImageSource.camera);
       if (photo == null) return null;
 
+      // Get file size
+      int? size;
+      try {
+        size = File(photo.path).lengthSync();
+      } catch (_) {}
+
       return ChatAttachment(
         id: _uuid.v4(),
         name: photo.name,
         path: photo.path,
         type: 'image',
+        size: size,
       );
     } catch (e) {
       return null;

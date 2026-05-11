@@ -383,6 +383,9 @@ class MaritaSizing {
   /// Standard input field height — 48px.
   static const double inputHeight = 48;
 
+  /// Extra small icon size — 12px.
+  static const double iconExtraSmall = 12;
+
   /// Small icon size — 16px.
   static const double iconSmall = 16;
 
@@ -420,36 +423,11 @@ class MaritaElevation {
 /// Usage:
 /// ```dart
 /// MaterialApp(
-///   theme: MaritaTheme.light(),
+///   theme: MaritaTheme.dark(),
 /// )
 /// ```
 class MaritaTheme {
   MaritaTheme._();
-
-  /// Builds the light-mode [ThemeData] aligned with Marita brand.
-  static ThemeData light() {
-    const palette = MaritaColorPalette(
-      contentPrimary: MaritaColors.black,
-      contentSecondary: MaritaColors.shadow400,
-      contentTertiary: MaritaColors.shadow300,
-      contentInverse: MaritaColors.white,
-      contentDisabled: MaritaColors.shadow300,
-      backgroundPrimary: MaritaColors.cloud100,
-      backgroundSecondary: MaritaColors.white,
-      backgroundInverse: MaritaColors.black,
-      interactivePrimary: MaritaColors.lime,
-      interactiveSecondary: MaritaColors.earth500,
-      interactiveDisabled: MaritaColors.shadow100,
-      borderPrimary: MaritaColors.cloud700,
-      borderSecondary: MaritaColors.cloud800,
-      success: MaritaColors.mint500,
-      warning: MaritaColors.orange500,
-      error: MaritaColors.orange700,
-    );
-
-    return _buildTheme(Brightness.light, palette);
-  }
-
   /// Builds the dark-mode [ThemeData] aligned with Marita brand.
   static ThemeData dark() {
     const palette = MaritaColorPalette(
@@ -550,10 +528,7 @@ class MaritaTheme {
       // Input decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor:
-            brightness == Brightness.dark
-                ? palette.backgroundSecondary
-                : palette.backgroundPrimary,
+        fillColor: palette.backgroundSecondary,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: MaritaSpacing.lg,
           vertical: MaritaSpacing.md,
@@ -618,7 +593,7 @@ class MaritaTheme {
       // Card
       cardTheme: CardThemeData(
         color: palette.backgroundSecondary,
-        elevation: brightness == Brightness.light ? MaritaElevation.low : 0,
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
         margin: const EdgeInsets.all(MaritaSpacing.sm),
       ),

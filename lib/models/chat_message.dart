@@ -6,6 +6,7 @@ class ChatAttachment {
   final String path;
   final String type; // 'image', 'pdf', 'csv', 'doc'
   final String? url;
+  final int? size; // Added size field
 
   ChatAttachment({
     required this.id,
@@ -13,6 +14,7 @@ class ChatAttachment {
     required this.path,
     required this.type,
     this.url,
+    this.size,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class ChatAttachment {
       'path': path,
       'type': type,
       'url': url,
+      'size': size,
     };
   }
 
@@ -32,11 +35,13 @@ class ChatAttachment {
       path: map['path'] ?? '',
       type: map['type'] ?? '',
       url: map['url'],
+      size: map['size'],
     );
   }
 
   ChatAttachment copyWith({
     String? url,
+    int? size,
   }) {
     return ChatAttachment(
       id: id,
@@ -44,6 +49,7 @@ class ChatAttachment {
       path: path,
       type: type,
       url: url ?? this.url,
+      size: size ?? this.size,
     );
   }
 }
