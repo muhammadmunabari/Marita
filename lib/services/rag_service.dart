@@ -15,11 +15,12 @@ class RAGService {
   }) async {
     try {
       // Query all chunks for documents in the specific workspace.
-      final docSnapshots = await _firestore
-          .collection('companies')
-          .doc(workspaceId)
-          .collection('files')
-          .get();
+      final docSnapshots =
+          await _firestore
+              .collection('companies')
+              .doc(workspaceId)
+              .collection('files')
+              .get();
 
       print("  │  [RAG DEBUG] Files in workspace: ${docSnapshots.docs.length}");
 
@@ -27,15 +28,19 @@ class RAGService {
 
       for (final doc in docSnapshots.docs) {
         final chunkSnapshots = await doc.reference.collection('chunks').get();
-        print("  │  [RAG DEBUG] File '${doc.id}' has ${chunkSnapshots.docs.length} chunks");
+        print(
+          "  │  [RAG DEBUG] File '${doc.id}' has ${chunkSnapshots.docs.length} chunks",
+        );
         for (final chunkDoc in chunkSnapshots.docs) {
           try {
             final chunkData = chunkDoc.data();
-            allChunks.add(DocumentChunk.fromMap({
-              ...chunkData,
-              'id': chunkDoc.id,
-              'documentId': doc.id,
-            }));
+            allChunks.add(
+              DocumentChunk.fromMap({
+                ...chunkData,
+                'id': chunkDoc.id,
+                'documentId': doc.id,
+              }),
+            );
           } catch (_) {
             // Skip invalid chunk records
           }
@@ -47,19 +52,56 @@ class RAGService {
       // Check if we should use keyword-based fallback search
       if (queryEmbedding.isEmpty && query.isNotEmpty) {
         final stopwords = {
-          'what', 'is', 'are', 'the', 'a', 'an', 'to', 'for', 'in', 'of', 'and', 'or', 'on', 'with', 'by', 'at', 'from',
-          'this', 'that', 'these', 'those', 'it', 'its', 'we', 'our', 'you', 'your', 'they', 'their', 'he', 'she', 'him', 'her'
+          'what',
+          'is',
+          'are',
+          'the',
+          'a',
+          'an',
+          'to',
+          'for',
+          'in',
+          'of',
+          'and',
+          'or',
+          'on',
+          'with',
+          'by',
+          'at',
+          'from',
+          'this',
+          'that',
+          'these',
+          'those',
+          'it',
+          'its',
+          'we',
+          'our',
+          'you',
+          'your',
+          'they',
+          'their',
+          'he',
+          'she',
+          'him',
+          'her',
         };
 
-        final cleanQuery = query.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), ' ');
-        final keywords = cleanQuery
-            .split(RegExp(r'\s+'))
-            .where((w) => w.length > 2 && !stopwords.contains(w))
-            .toSet() // Deduplicate
-            .take(20)  // Cap to first 20 meaningful keywords
-            .toList();
+        final cleanQuery = query.toLowerCase().replaceAll(
+          RegExp(r'[^\w\s]'),
+          ' ',
+        );
+        final keywords =
+            cleanQuery
+                .split(RegExp(r'\s+'))
+                .where((w) => w.length > 2 && !stopwords.contains(w))
+                .toSet() // Deduplicate
+                .take(20) // Cap to first 20 meaningful keywords
+                .toList();
 
-        print("  │  [RAG DEBUG] Keywords (${keywords.length}): ${keywords.join(', ')}");
+        print(
+          "  │  [RAG DEBUG] Keywords (${keywords.length}): ${keywords.join(', ')}",
+        );
 
         if (keywords.isNotEmpty) {
           final ratedChunks = <MapEntry<DocumentChunk, double>>[];
@@ -78,8 +120,11 @@ class RAGService {
           }
           // Sort descending by match score
           ratedChunks.sort((a, b) => b.value.compareTo(a.value));
-          final results = ratedChunks.map((entry) => entry.key).take(topK).toList();
-          print("  │  [RAG DEBUG] Keyword-scored chunks: ${ratedChunks.length}, returning top ${results.length}");
+          final results =
+              ratedChunks.map((entry) => entry.key).take(topK).toList();
+          print(
+            "  │  [RAG DEBUG] Keyword-scored chunks: ${ratedChunks.length}, returning top ${results.length}",
+          );
           return results;
         }
       }
@@ -111,9 +156,10 @@ class RAGService {
     for (int i = 0; i < chunks.length; i++) {
       final chunk = chunks[i];
       // Prefer top-level fileName, fall back to metadata for older chunks
-      final sourceName = chunk.fileName.isNotEmpty
-          ? chunk.fileName
-          : (chunk.metadata['fileName'] as String? ?? 'Unknown');
+      final sourceName =
+          chunk.fileName.isNotEmpty
+              ? chunk.fileName
+              : (chunk.metadata['fileName'] as String? ?? 'Unknown');
       sb.writeln("Source [${i + 1}]:");
       sb.writeln("File: $sourceName (page ${chunk.pageNumber})");
       sb.writeln("Content:\n${chunk.content}");

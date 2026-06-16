@@ -21,7 +21,10 @@ class CurrentFolderIdNotifier extends Notifier<String?> {
   set state(String? value) => super.state = value;
 }
 
-final currentFolderIdProvider = NotifierProvider<CurrentFolderIdNotifier, String?>(CurrentFolderIdNotifier.new);
+final currentFolderIdProvider =
+    NotifierProvider<CurrentFolderIdNotifier, String?>(
+      CurrentFolderIdNotifier.new,
+    );
 
 /// View mode notifier & provider (true for grid view, false for list view)
 class FileGridViewNotifier extends Notifier<bool> {
@@ -32,7 +35,9 @@ class FileGridViewNotifier extends Notifier<bool> {
   set state(bool value) => super.state = value;
 }
 
-final fileGridViewProvider = NotifierProvider<FileGridViewNotifier, bool>(FileGridViewNotifier.new);
+final fileGridViewProvider = NotifierProvider<FileGridViewNotifier, bool>(
+  FileGridViewNotifier.new,
+);
 
 /// Stream provider for all files in the active workspace
 final allWorkspaceFilesProvider = StreamProvider<Result<List<FileItem>>>((ref) {
@@ -49,10 +54,10 @@ final currentFolderFilesProvider = Provider<List<FileItem>>((ref) {
   if (allFilesResult == null || allFilesResult is Failure) {
     return [];
   }
-  
+
   final files = (allFilesResult as Success<List<FileItem>>).data;
   final currentFolderId = ref.watch(currentFolderIdProvider);
-  
+
   return files.where((item) => item.parentId == currentFolderId).toList();
 });
 
@@ -62,26 +67,33 @@ final folderBreadcrumbsProvider = Provider<List<FileItem>>((ref) {
   if (allFilesResult == null || allFilesResult is Failure) {
     return [];
   }
-  
+
   final files = (allFilesResult as Success<List<FileItem>>).data;
   final currentFolderId = ref.watch(currentFolderIdProvider);
-  
+
   if (currentFolderId == null) return [];
-  
+
   final path = <FileItem>[];
   String? nextId = currentFolderId;
-  
+
   while (nextId != null) {
     final parent = files.firstWhere(
       (item) => item.id == nextId && item.isFolder,
-      orElse: () => FileItem(id: '', name: '', type: '', isFolder: false, createdAt: DateTime.now()),
+      orElse:
+          () => FileItem(
+            id: '',
+            name: '',
+            type: '',
+            isFolder: false,
+            createdAt: DateTime.now(),
+          ),
     );
-    
+
     if (parent.id.isEmpty) break;
     path.insert(0, parent);
     nextId = parent.parentId;
   }
-  
+
   return path;
 });
 
@@ -93,7 +105,11 @@ class FileOpsState {
 
   const FileOpsState({this.isLoading = false, this.error, this.successMessage});
 
-  FileOpsState copyWith({bool? isLoading, AppError? error, String? successMessage}) {
+  FileOpsState copyWith({
+    bool? isLoading,
+    AppError? error,
+    String? successMessage,
+  }) {
     return FileOpsState(
       isLoading: isLoading ?? this.isLoading,
       error: error, // Can reset to null
@@ -111,19 +127,21 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
   Future<bool> createFolder(String name) async {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
-    
+
     state = const FileOpsState(isLoading: true);
     final parentId = ref.read(currentFolderIdProvider);
-    
+
     final result = await _fileService.createWorkspaceFolder(
       companyId: activeWorkspace.id,
       name: name,
       parentId: parentId,
     );
-    
+
     return result.fold(
       (data) {
-        state = const FileOpsState(successMessage: 'Folder created successfully');
+        state = const FileOpsState(
+          successMessage: 'Folder created successfully',
+        );
         return true;
       },
       (error) {
@@ -136,15 +154,15 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
   Future<bool> rename(FileItem item, String newName) async {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
-    
+
     state = const FileOpsState(isLoading: true);
-    
+
     final result = await _fileService.renameWorkspaceFile(
       companyId: activeWorkspace.id,
       fileId: item.id,
       newName: newName,
     );
-    
+
     return result.fold(
       (_) {
         state = const FileOpsState(successMessage: 'Renamed successfully');
@@ -160,14 +178,14 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
   Future<bool> delete(FileItem item) async {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
-    
+
     state = const FileOpsState(isLoading: true);
-    
+
     final result = await _fileService.deleteWorkspaceFile(
       companyId: activeWorkspace.id,
       item: item,
     );
-    
+
     return result.fold(
       (_) {
         state = const FileOpsState(successMessage: 'Deleted successfully');
@@ -183,10 +201,12 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
   Future<bool> syncChatFiles() async {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
-    
+
     state = const FileOpsState(isLoading: true);
-    final result = await _fileService.syncWorkspaceChatAttachments(activeWorkspace.id);
-    
+    final result = await _fileService.syncWorkspaceChatAttachments(
+      activeWorkspace.id,
+    );
+
     return result.fold(
       (_) {
         state = const FileOpsState(successMessage: 'Chat files synchronized');
@@ -199,7 +219,11 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
     );
   }
 
-  Future<bool> uploadFile(File file, String originalName, String? parentId) async {
+  Future<bool> uploadFile(
+    File file,
+    String originalName,
+    String? parentId,
+  ) async {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
 
@@ -213,7 +237,9 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
 
     return result.fold(
       (_) {
-        state = const FileOpsState(successMessage: 'File uploaded successfully');
+        state = const FileOpsState(
+          successMessage: 'File uploaded successfully',
+        );
         return true;
       },
       (error) {
@@ -224,4 +250,6 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
   }
 }
 
-final fileOpsProvider = NotifierProvider<FileOpsNotifier, FileOpsState>(FileOpsNotifier.new);
+final fileOpsProvider = NotifierProvider<FileOpsNotifier, FileOpsState>(
+  FileOpsNotifier.new,
+);

@@ -3,7 +3,7 @@ import '../design_system/marita_design_system.dart';
 import '../design_system/marita_icons.dart';
 
 /// A selector field for the Marita Design System.
-/// 
+///
 /// Matches the style of MaritaTextInput but optimized for selection (dropdowns).
 /// Displays a value and a label inside the field container.
 class MaritaSelectField extends StatelessWidget {
@@ -55,12 +55,13 @@ class MaritaSelectField extends StatelessWidget {
               vertical: MaritaSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: enabled ? colors.backgroundPrimary : colors.backgroundSecondary,
+              color:
+                  enabled
+                      ? colors.backgroundPrimary
+                      : colors.backgroundSecondary,
               borderRadius: MaritaRadius.borderMedium,
               border: Border.all(
-                color: _hasError 
-                  ? colors.error 
-                  : colors.borderPrimary,
+                color: _hasError ? colors.error : colors.borderPrimary,
                 width: _hasError ? 2 : 1,
               ),
             ),
@@ -74,7 +75,10 @@ class MaritaSelectField extends StatelessWidget {
                       Text(
                         value,
                         style: typography.bodyLarge.copyWith(
-                          color: enabled ? colors.contentPrimary : colors.contentTertiary,
+                          color:
+                              enabled
+                                  ? colors.contentPrimary
+                                  : colors.contentTertiary,
                           height: 1.2,
                         ),
                         maxLines: 1,
@@ -84,8 +88,12 @@ class MaritaSelectField extends StatelessWidget {
                       Text(
                         label,
                         style: typography.bodyDefault.copyWith(
-                          color: _hasError ? colors.error : colors.contentSecondary,
-                          fontSize: 10, // Explicitly smaller for the inner label
+                          color:
+                              _hasError
+                                  ? colors.error
+                                  : colors.contentSecondary,
+                          fontSize:
+                              10, // Explicitly smaller for the inner label
                           height: 1.0,
                         ),
                       ),

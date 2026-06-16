@@ -23,8 +23,8 @@ class MigrationService {
   MigrationService({
     required FirestoreService firestoreService,
     FirebaseFirestore? db,
-  })  : _firestoreService = firestoreService,
-        _db = db ?? FirebaseFirestore.instance;
+  }) : _firestoreService = firestoreService,
+       _db = db ?? FirebaseFirestore.instance;
 
   /// Runs the user-scoped data migration to the active workspace if not already done.
   Future<void> runMigrationIfNeeded({
@@ -45,7 +45,9 @@ class MigrationService {
         return; // Migration already done
       }
 
-      debugPrint('Starting workspace isolation migration for user: $userId to company: $companyId');
+      debugPrint(
+        'Starting workspace isolation migration for user: $userId to company: $companyId',
+      );
 
       // 2. Migrate chats
       await _migrateChats(userId, companyId);
@@ -60,7 +62,9 @@ class MigrationService {
         'status': 'completed',
       });
 
-      debugPrint('Successfully completed workspace isolation migration for user: $userId');
+      debugPrint(
+        'Successfully completed workspace isolation migration for user: $userId',
+      );
     } catch (e, stack) {
       debugPrint('Error during workspace isolation migration: $e\n$stack');
     }
@@ -147,8 +151,17 @@ class MigrationService {
   // ---------------------------------------------------------------------------
 
   static const _indexableExtensions = {
-    'pdf', 'txt', 'md', 'csv', 'xls', 'xlsx', 'docx', 'doc',
-    'json', 'xml', 'sql',
+    'pdf',
+    'txt',
+    'md',
+    'csv',
+    'xls',
+    'xlsx',
+    'docx',
+    'doc',
+    'json',
+    'xml',
+    'sql',
   };
 
   /// Finds all workspace files that have not been indexed yet (or have stale
@@ -170,7 +183,9 @@ class MigrationService {
     String companyId, {
     bool force = false,
   }) async {
-    debugPrint('[Migration] Starting reindex for workspace: $companyId (force=$force)');
+    debugPrint(
+      '[Migration] Starting reindex for workspace: $companyId (force=$force)',
+    );
     final chunker = DocumentChunkerService();
     int indexed = 0;
     int skipped = 0;
@@ -179,13 +194,16 @@ class MigrationService {
     try {
       // ── Option A Fix 1: remove brittle .where('isFolder') filter ──────────
       // Fetch ALL file docs; filter in Dart with null-safe check.
-      final snapshot = await _db
-          .collection('companies')
-          .doc(companyId)
-          .collection('files')
-          .get();
+      final snapshot =
+          await _db
+              .collection('companies')
+              .doc(companyId)
+              .collection('files')
+              .get();
 
-      debugPrint('[Migration] Found ${snapshot.docs.length} doc(s) to evaluate.');
+      debugPrint(
+        '[Migration] Found ${snapshot.docs.length} doc(s) to evaluate.',
+      );
 
       final tempDir = await getTemporaryDirectory();
 
@@ -193,9 +211,10 @@ class MigrationService {
         final data = doc.data();
         final fileId = doc.id;
         final fileName = data['name'] as String? ?? '';
-        final ext = fileName.contains('.')
-            ? fileName.split('.').last.toLowerCase()
-            : '';
+        final ext =
+            fileName.contains('.')
+                ? fileName.split('.').last.toLowerCase()
+                : '';
 
         // ── Option A Fix 1: null-safe isFolder check ────────────────────────
         final isFolder = data['isFolder'] as bool? ?? false;
@@ -208,7 +227,9 @@ class MigrationService {
         final alreadyIndexed = data['isIndexed'] == true;
         final chunkCount = data['chunkCount'] as int? ?? 0;
         if (!force && alreadyIndexed && chunkCount > 0) {
-          debugPrint('[Migration] Skipping already-indexed file ($chunkCount chunks): $fileName');
+          debugPrint(
+            '[Migration] Skipping already-indexed file ($chunkCount chunks): $fileName',
+          );
           skipped++;
           continue;
         }
@@ -224,7 +245,9 @@ class MigrationService {
         // ── Option B fast path: use stored extractedText ─────────────────────
         final storedText = data['extractedText'] as String?;
         if (storedText != null && storedText.isNotEmpty) {
-          debugPrint('[Migration] Using stored extractedText for "$fileName" (no download needed)');
+          debugPrint(
+            '[Migration] Using stored extractedText for "$fileName" (no download needed)',
+          );
           try {
             await chunker.deleteChunks(companyId: companyId, fileId: fileId);
 
@@ -236,10 +259,14 @@ class MigrationService {
             );
 
             await _updateIndexState(companyId, fileId, count);
-            debugPrint('[Migration] ✓ "$fileName" → $count chunks (from stored text)');
+            debugPrint(
+              '[Migration] ✓ "$fileName" → $count chunks (from stored text)',
+            );
             indexed++;
           } catch (e) {
-            debugPrint('[Migration] Failed to reindex "$fileName" from stored text: $e');
+            debugPrint(
+              '[Migration] Failed to reindex "$fileName" from stored text: $e',
+            );
             await _markFailed(companyId, fileId, e.toString());
             failed++;
           }
@@ -263,9 +290,11 @@ class MigrationService {
               .writeToFile(tempFile)
               .timeout(
                 const Duration(minutes: 2),
-                onTimeout: () => throw TimeoutException(
-                  'Storage download timed out for "$fileName"',
-                ),
+                onTimeout:
+                    () =>
+                        throw TimeoutException(
+                          'Storage download timed out for "$fileName"',
+                        ),
               );
 
           await chunker.deleteChunks(companyId: companyId, fileId: fileId);
@@ -278,11 +307,15 @@ class MigrationService {
           );
 
           await _updateIndexState(companyId, fileId, count);
-          debugPrint('[Migration] ✓ "$fileName" → $count chunks (from download)');
+          debugPrint(
+            '[Migration] ✓ "$fileName" → $count chunks (from download)',
+          );
           indexed++;
         } on FirebaseException catch (e) {
           // ── Option A Fix 3: App Check / permission errors don't abort batch ─
-          debugPrint('[Migration] Firebase error for "$fileName": ${e.code} - ${e.message}');
+          debugPrint(
+            '[Migration] Firebase error for "$fileName": ${e.code} - ${e.message}',
+          );
           await _markFailed(companyId, fileId, '${e.code}: ${e.message}');
           failed++;
         } catch (e) {
@@ -318,11 +351,11 @@ class MigrationService {
         .collection('files')
         .doc(fileId)
         .update({
-      'isIndexed': count > 0,
-      'indexedAt': FieldValue.serverTimestamp(),
-      'chunkCount': count,
-      'indexError': FieldValue.delete(), // clear any previous error
-    });
+          'isIndexed': count > 0,
+          'indexedAt': FieldValue.serverTimestamp(),
+          'chunkCount': count,
+          'indexError': FieldValue.delete(), // clear any previous error
+        });
   }
 
   Future<void> _markFailed(
@@ -336,11 +369,7 @@ class MigrationService {
           .doc(companyId)
           .collection('files')
           .doc(fileId)
-          .update({
-        'isIndexed': false,
-        'chunkCount': 0,
-        'indexError': error,
-      });
+          .update({'isIndexed': false, 'chunkCount': 0, 'indexError': error});
     } catch (_) {}
   }
 }

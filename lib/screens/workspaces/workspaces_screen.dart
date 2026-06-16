@@ -35,14 +35,21 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.error!.message, style: const TextStyle(color: Colors.white)),
+            content: Text(
+              next.error!.message,
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: colors.error,
           ),
         );
-      } else if (next.successMessage != null && next.successMessage != previous?.successMessage) {
+      } else if (next.successMessage != null &&
+          next.successMessage != previous?.successMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.successMessage!, style: const TextStyle(color: Colors.white)),
+            content: Text(
+              next.successMessage!,
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: colors.success,
           ),
         );
@@ -94,25 +101,40 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                           if (wsResult.isFailure) {
                             return Center(
                               child: Text(
-                                wsResult.errorOrNull?.message ?? 'Unknown error',
-                                style: typography.bodyDefault.copyWith(color: colors.error),
+                                wsResult.errorOrNull?.message ??
+                                    'Unknown error',
+                                style: typography.bodyDefault.copyWith(
+                                  color: colors.error,
+                                ),
                               ),
                             );
                           }
                           if (invResult.isFailure) {
                             return Center(
                               child: Text(
-                                invResult.errorOrNull?.message ?? 'Unknown error',
-                                style: typography.bodyDefault.copyWith(color: colors.error),
+                                invResult.errorOrNull?.message ??
+                                    'Unknown error',
+                                style: typography.bodyDefault.copyWith(
+                                  color: colors.error,
+                                ),
                               ),
                             );
                           }
 
-                          final workspaces = (wsResult as Success<List<Workspace>>).data;
-                          final invitations = (invResult as Success<List<Map<String, dynamic>>>).data;
+                          final workspaces =
+                              (wsResult as Success<List<Workspace>>).data;
+                          final invitations =
+                              (invResult as Success<List<Map<String, dynamic>>>)
+                                  .data;
 
-                          final createdWorkspaces = workspaces.where((w) => w.ownerId == currentUser?.uid).toList();
-                          final joinedWorkspaces = workspaces.where((w) => w.ownerId != currentUser?.uid).toList();
+                          final createdWorkspaces =
+                              workspaces
+                                  .where((w) => w.ownerId == currentUser?.uid)
+                                  .toList();
+                          final joinedWorkspaces =
+                              workspaces
+                                  .where((w) => w.ownerId != currentUser?.uid)
+                                  .toList();
 
                           if (workspaces.isEmpty && invitations.isEmpty) {
                             return _buildEmptyState(context);
@@ -122,55 +144,100 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
 
                           // 1. Pending Invitations Section
                           if (invitations.isNotEmpty) {
-                            listItems.add(_buildSectionHeader(context, 'Pending Invitations', invitations.length));
+                            listItems.add(
+                              _buildSectionHeader(
+                                context,
+                                'Pending Invitations',
+                                invitations.length,
+                              ),
+                            );
                             for (final invitation in invitations) {
-                              listItems.add(_buildInvitationCard(context, invitation));
+                              listItems.add(
+                                _buildInvitationCard(context, invitation),
+                              );
                             }
                           }
 
                           // 2. Created Workspaces Section
                           if (createdWorkspaces.isNotEmpty) {
-                            listItems.add(_buildSectionHeader(context, 'Created Workspaces', createdWorkspaces.length));
+                            listItems.add(
+                              _buildSectionHeader(
+                                context,
+                                'Created Workspaces',
+                                createdWorkspaces.length,
+                              ),
+                            );
                             for (final workspace in createdWorkspaces) {
-                              final isSelected = activeWorkspace?.id == workspace.id;
-                              listItems.add(_buildWorkspaceCard(context, workspace, isSelected, currentUser?.uid));
+                              final isSelected =
+                                  activeWorkspace?.id == workspace.id;
+                              listItems.add(
+                                _buildWorkspaceCard(
+                                  context,
+                                  workspace,
+                                  isSelected,
+                                  currentUser?.uid,
+                                ),
+                              );
                             }
                           }
 
                           // 3. Joined Workspaces Section
                           if (joinedWorkspaces.isNotEmpty) {
-                            listItems.add(_buildSectionHeader(context, 'Joined Workspaces', joinedWorkspaces.length));
+                            listItems.add(
+                              _buildSectionHeader(
+                                context,
+                                'Joined Workspaces',
+                                joinedWorkspaces.length,
+                              ),
+                            );
                             for (final workspace in joinedWorkspaces) {
-                              final isSelected = activeWorkspace?.id == workspace.id;
-                              listItems.add(_buildWorkspaceCard(context, workspace, isSelected, currentUser?.uid));
+                              final isSelected =
+                                  activeWorkspace?.id == workspace.id;
+                              listItems.add(
+                                _buildWorkspaceCard(
+                                  context,
+                                  workspace,
+                                  isSelected,
+                                  currentUser?.uid,
+                                ),
+                              );
                             }
                           }
 
                           return ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.lg, vertical: MaritaSpacing.md),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: MaritaSpacing.lg,
+                              vertical: MaritaSpacing.md,
+                            ),
                             children: listItems,
                           );
                         },
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                        error: (err, stack) => Center(
-                          child: Text(
-                            'Error loading invitations: $err',
-                            style: typography.bodyDefault.copyWith(color: colors.error),
-                          ),
-                        ),
+                        loading:
+                            () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                        error:
+                            (err, stack) => Center(
+                              child: Text(
+                                'Error loading invitations: $err',
+                                style: typography.bodyDefault.copyWith(
+                                  color: colors.error,
+                                ),
+                              ),
+                            ),
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                    error: (err, stack) => Center(
-                      child: Text(
-                        'Error loading workspaces: $err',
-                        style: typography.bodyDefault.copyWith(color: colors.error),
-                      ),
-                    ),
+                    loading:
+                        () => const Center(child: CircularProgressIndicator()),
+                    error:
+                        (err, stack) => Center(
+                          child: Text(
+                            'Error loading workspaces: $err',
+                            style: typography.bodyDefault.copyWith(
+                              color: colors.error,
+                            ),
+                          ),
+                        ),
                   ),
                 ),
               ],
@@ -185,12 +252,16 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(colors.interactivePrimary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.interactivePrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.md),
                     Text(
                       'Processing...',
-                      style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                      style: typography.bodyDefault.copyWith(
+                        color: colors.contentSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -219,12 +290,16 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
             const SizedBox(height: MaritaSpacing.md),
             Text(
               'No Workspaces Found',
-              style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+              style: typography.bodyLargeBold.copyWith(
+                color: colors.contentPrimary,
+              ),
             ),
             const SizedBox(height: MaritaSpacing.xs),
             Text(
               'Create a business account to collaborate and share financial data.',
-              style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+              style: typography.bodyDefault.copyWith(
+                color: colors.contentSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: MaritaSpacing.xl),
@@ -239,7 +314,12 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  Widget _buildWorkspaceCard(BuildContext context, Workspace workspace, bool isSelected, String? currentUserId) {
+  Widget _buildWorkspaceCard(
+    BuildContext context,
+    Workspace workspace,
+    bool isSelected,
+    String? currentUserId,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
     final isOwner = workspace.ownerId == currentUserId;
@@ -257,12 +337,14 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
         margin: const EdgeInsets.only(bottom: MaritaSpacing.md),
         padding: const EdgeInsets.all(MaritaSpacing.lg),
         decoration: BoxDecoration(
-          color: isSelected
-              ? colors.interactivePrimary.withValues(alpha: 0.04)
-              : colors.backgroundSecondary,
+          color:
+              isSelected
+                  ? colors.interactivePrimary.withValues(alpha: 0.04)
+                  : colors.backgroundSecondary,
           borderRadius: MaritaRadius.borderMedium,
           border: Border.all(
-            color: isSelected ? colors.interactivePrimary : colors.borderPrimary,
+            color:
+                isSelected ? colors.interactivePrimary : colors.borderPrimary,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -274,7 +356,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                 Expanded(
                   child: Text(
                     workspace.name,
-                    style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                    style: typography.bodyLargeBold.copyWith(
+                      color: colors.contentPrimary,
+                    ),
                   ),
                 ),
                 if (isSelected) ...[
@@ -369,10 +453,31 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                 const SizedBox(width: MaritaSpacing.xs),
                 Text(
                   'Role: $roleLabel',
-                  style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentSecondary,
+                  ),
                 ),
               ],
             ),
+            if (workspace.taxId != null && workspace.taxId!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  MaritaIcon(
+                    icon: MaritaIcons.document,
+                    size: MaritaIconSize.small,
+                    color: colors.contentTertiary,
+                  ),
+                  const SizedBox(width: MaritaSpacing.xs),
+                  Text(
+                    'Tax ID: ${workspace.taxId}',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (workspace.address != null && workspace.address!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Row(
@@ -387,7 +492,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                   Expanded(
                     child: Text(
                       workspace.address!,
-                      style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                      style: typography.bodyDefault.copyWith(
+                        color: colors.contentSecondary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -400,7 +507,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  onPressed: () => _showShareWorkspaceSheet(context, workspace, isOwner),
+                  onPressed:
+                      () =>
+                          _showShareWorkspaceSheet(context, workspace, isOwner),
                   icon: MaritaIcon(
                     icon: MaritaIcons.people,
                     size: MaritaIconSize.small,
@@ -408,13 +517,16 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                   ),
                   label: Text(
                     'Members',
-                    style: typography.bodyDefaultBold.copyWith(color: colors.interactivePrimary),
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.interactivePrimary,
+                    ),
                   ),
                 ),
                 if (isOwner) ...[
                   const SizedBox(width: MaritaSpacing.md),
                   TextButton.icon(
-                    onPressed: () => _showEditWorkspaceSheet(context, workspace),
+                    onPressed:
+                        () => _showEditWorkspaceSheet(context, workspace),
                     icon: MaritaIcon(
                       icon: MaritaIcons.edit,
                       size: MaritaIconSize.small,
@@ -422,7 +534,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     ),
                     label: Text(
                       'Edit',
-                      style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                      style: typography.bodyDefaultBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: MaritaSpacing.md),
@@ -432,7 +546,8 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                       size: MaritaIconSize.medium,
                       color: colors.error,
                     ),
-                    onPressed: () => _confirmDeleteWorkspace(context, workspace),
+                    onPressed:
+                        () => _confirmDeleteWorkspace(context, workspace),
                   ),
                 ],
               ],
@@ -462,14 +577,16 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final isFormValid = nameController.text.trim().isNotEmpty && selectedRole != null;
+            final isFormValid =
+                nameController.text.trim().isNotEmpty && selectedRole != null;
 
             return Padding(
               padding: EdgeInsets.only(
                 left: MaritaSpacing.lg,
                 right: MaritaSpacing.lg,
                 top: MaritaSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -490,7 +607,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Create Business Account',
-                      style: typography.titleLarge.copyWith(color: colors.contentPrimary),
+                      style: typography.titleLarge.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.lg),
                     MaritaTextInput(
@@ -526,17 +645,26 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.xl),
                     MaritaPrimaryButton(
                       label: 'Create Account',
-                      onPressed: isFormValid
-                          ? () async {
-                              Navigator.pop(context);
-                              await ref.read(workspaceOpsProvider.notifier).createWorkspace(
-                                    name: nameController.text.trim(),
-                                    role: selectedRole!.toJsonString(),
-                                    address: addressController.text.trim().isEmpty ? null : addressController.text.trim(),
-                                    taxId: taxIdController.text.trim().isEmpty ? null : taxIdController.text.trim(),
-                                  );
-                            }
-                          : null,
+                      onPressed:
+                          isFormValid
+                              ? () async {
+                                Navigator.pop(context);
+                                await ref
+                                    .read(workspaceOpsProvider.notifier)
+                                    .createWorkspace(
+                                      name: nameController.text.trim(),
+                                      role: selectedRole!.toJsonString(),
+                                      address:
+                                          addressController.text.trim().isEmpty
+                                              ? null
+                                              : addressController.text.trim(),
+                                      taxId:
+                                          taxIdController.text.trim().isEmpty
+                                              ? null
+                                              : taxIdController.text.trim(),
+                                    );
+                              }
+                              : null,
                     ),
                   ],
                 ),
@@ -553,7 +681,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     final typography = context.maritaTypography;
 
     final nameController = TextEditingController(text: workspace.name);
-    final addressController = TextEditingController(text: workspace.address ?? '');
+    final addressController = TextEditingController(
+      text: workspace.address ?? '',
+    );
     final taxIdController = TextEditingController(text: workspace.taxId ?? '');
 
     showModalBottomSheet(
@@ -573,7 +703,8 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                 left: MaritaSpacing.lg,
                 right: MaritaSpacing.lg,
                 top: MaritaSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -593,7 +724,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Edit Workspace Details',
-                      style: typography.titleLarge.copyWith(color: colors.contentPrimary),
+                      style: typography.titleLarge.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.lg),
                     MaritaTextInput(
@@ -617,17 +750,26 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.xl),
                     MaritaPrimaryButton(
                       label: 'Save Changes',
-                      onPressed: isFormValid
-                          ? () async {
-                              Navigator.pop(context);
-                              await ref.read(workspaceOpsProvider.notifier).updateWorkspace(
-                                    workspaceId: workspace.id,
-                                    name: nameController.text.trim(),
-                                    address: addressController.text.trim().isEmpty ? null : addressController.text.trim(),
-                                    taxId: taxIdController.text.trim().isEmpty ? null : taxIdController.text.trim(),
-                                  );
-                            }
-                          : null,
+                      onPressed:
+                          isFormValid
+                              ? () async {
+                                Navigator.pop(context);
+                                await ref
+                                    .read(workspaceOpsProvider.notifier)
+                                    .updateWorkspace(
+                                      workspaceId: workspace.id,
+                                      name: nameController.text.trim(),
+                                      address:
+                                          addressController.text.trim().isEmpty
+                                              ? null
+                                              : addressController.text.trim(),
+                                      taxId:
+                                          taxIdController.text.trim().isEmpty
+                                              ? null
+                                              : taxIdController.text.trim(),
+                                    );
+                              }
+                              : null,
                     ),
                   ],
                 ),
@@ -639,7 +781,10 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  void _showRoleSelector(BuildContext context, ValueChanged<WorkspaceRole> onRoleSelected) {
+  void _showRoleSelector(
+    BuildContext context,
+    ValueChanged<WorkspaceRole> onRoleSelected,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -659,14 +804,26 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               children: [
                 Text(
                   'Select Your Role',
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
                 const SizedBox(height: MaritaSpacing.md),
                 ...WorkspaceRole.values.map((role) {
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(role.label, style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary)),
-                    subtitle: Text(role.description, style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+                    title: Text(
+                      role.label,
+                      style: typography.bodyDefaultBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      role.description,
+                      style: typography.bodyDefault.copyWith(
+                        color: colors.contentSecondary,
+                      ),
+                    ),
                     trailing: MaritaIcon(
                       icon: MaritaIcons.arrowRight,
                       size: MaritaIconSize.small,
@@ -686,7 +843,11 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  void _showShareWorkspaceSheet(BuildContext context, Workspace workspace, bool isOwner) {
+  void _showShareWorkspaceSheet(
+    BuildContext context,
+    Workspace workspace,
+    bool isOwner,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -704,14 +865,17 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isFormValid = emailController.text.trim().isNotEmpty;
-            final invitationsStream = ref.watch(workspaceInvitationsProvider(workspace.id));
+            final invitationsStream = ref.watch(
+              workspaceInvitationsProvider(workspace.id),
+            );
 
             return Padding(
               padding: EdgeInsets.only(
                 left: MaritaSpacing.lg,
                 right: MaritaSpacing.lg,
                 top: MaritaSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
               ),
               child: SizedBox(
                 height: MediaQuery.of(context).size.height * 0.75,
@@ -731,7 +895,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Share Workspace',
-                      style: typography.titleLarge.copyWith(color: colors.contentPrimary),
+                      style: typography.titleLarge.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.lg),
                     if (isOwner) ...[
@@ -756,7 +922,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                             },
                             child: Container(
                               height: MaritaSizing.inputHeight,
-                              padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.md),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: MaritaSpacing.md,
+                              ),
                               decoration: BoxDecoration(
                                 color: colors.backgroundPrimary,
                                 borderRadius: MaritaRadius.borderMedium,
@@ -766,7 +934,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                                 children: [
                                   Text(
                                     selectedAccess.label,
-                                    style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
+                                    style: typography.bodyDefault.copyWith(
+                                      color: colors.contentPrimary,
+                                    ),
                                   ),
                                   const SizedBox(width: 4),
                                   MaritaIcon(
@@ -781,25 +951,37 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                           const SizedBox(width: MaritaSpacing.sm),
                           IconButton(
                             style: IconButton.styleFrom(
-                              backgroundColor: isFormValid ? colors.interactivePrimary : colors.interactiveDisabled,
-                              shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
+                              backgroundColor:
+                                  isFormValid
+                                      ? colors.interactivePrimary
+                                      : colors.interactiveDisabled,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: MaritaRadius.borderMedium,
+                              ),
                             ),
                             icon: MaritaIcon(
                               icon: MaritaIcons.add,
-                              color: isFormValid ? MaritaColors.black : colors.contentTertiary,
+                              color:
+                                  isFormValid
+                                      ? MaritaColors.black
+                                      : colors.contentTertiary,
                             ),
-                            onPressed: isFormValid
-                                ? () async {
-                                    final email = emailController.text.trim();
-                                    emailController.clear();
-                                    setModalState(() {});
-                                    await ref.read(workspaceOpsProvider.notifier).inviteMember(
-                                          workspaceId: workspace.id,
-                                          email: email,
-                                          access: selectedAccess.toJsonString(),
-                                        );
-                                  }
-                                : null,
+                            onPressed:
+                                isFormValid
+                                    ? () async {
+                                      final email = emailController.text.trim();
+                                      emailController.clear();
+                                      setModalState(() {});
+                                      await ref
+                                          .read(workspaceOpsProvider.notifier)
+                                          .inviteMember(
+                                            workspaceId: workspace.id,
+                                            email: email,
+                                            access:
+                                                selectedAccess.toJsonString(),
+                                          );
+                                    }
+                                    : null,
                           ),
                         ],
                       ),
@@ -807,7 +989,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     ],
                     Text(
                       'Who has access',
-                      style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                      style: typography.bodyLargeBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.sm),
                     Expanded(
@@ -819,52 +1003,84 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: Text(
-                                member.name.isEmpty ? member.email : member.name,
-                                style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                                member.name.isEmpty
+                                    ? member.email
+                                    : member.name,
+                                style: typography.bodyDefaultBold.copyWith(
+                                  color: colors.contentPrimary,
+                                ),
                               ),
                               subtitle: Text(
                                 member.email,
-                                style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                                style: typography.bodyDefault.copyWith(
+                                  color: colors.contentSecondary,
+                                ),
                               ),
-                              trailing: isSelf
-                                  ? Text(
-                                      'Owner',
-                                      style: typography.bodyDefaultBold.copyWith(color: colors.contentTertiary),
-                                    )
-                                  : (isOwner
-                                      ? GestureDetector(
-                                          onTap: () {
-                                            _showMemberActionsSelector(context, member, workspace.id);
-                                          },
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                member.access.label,
-                                                style: typography.bodyDefaultBold.copyWith(color: colors.interactivePrimary),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              MaritaIcon(
-                                                icon: MaritaIcons.arrowDown,
-                                                size: MaritaIconSize.small,
-                                                color: colors.interactivePrimary,
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : Text(
-                                          member.access.label,
-                                          style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
-                                        )),
+                              trailing:
+                                  isSelf
+                                      ? Text(
+                                        'Owner',
+                                        style: typography.bodyDefaultBold
+                                            .copyWith(
+                                              color: colors.contentTertiary,
+                                            ),
+                                      )
+                                      : (isOwner
+                                          ? GestureDetector(
+                                            onTap: () {
+                                              _showMemberActionsSelector(
+                                                context,
+                                                member,
+                                                workspace.id,
+                                              );
+                                            },
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  member.access.label,
+                                                  style: typography
+                                                      .bodyDefaultBold
+                                                      .copyWith(
+                                                        color:
+                                                            colors
+                                                                .interactivePrimary,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                MaritaIcon(
+                                                  icon: MaritaIcons.arrowDown,
+                                                  size: MaritaIconSize.small,
+                                                  color:
+                                                      colors.interactivePrimary,
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                          : Text(
+                                            member.access.label,
+                                            style: typography.bodyDefault
+                                                .copyWith(
+                                                  color:
+                                                      colors.contentSecondary,
+                                                ),
+                                          )),
                             );
                           }),
 
                           // Render pending invitations
                           invitationsStream.when(
                             data: (result) {
-                              if (result is Failure) return const SizedBox.shrink();
-                              final invitations = (result as Success<List<Map<String, dynamic>>>).data;
-                              if (invitations.isEmpty) return const SizedBox.shrink();
+                              if (result is Failure)
+                                return const SizedBox.shrink();
+                              final invitations =
+                                  (result
+                                          as Success<
+                                            List<Map<String, dynamic>>
+                                          >)
+                                      .data;
+                              if (invitations.isEmpty)
+                                return const SizedBox.shrink();
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -872,64 +1088,93 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                                   const Divider(height: MaritaSpacing.xl),
                                   Text(
                                     'Pending Invitations',
-                                    style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                                    style: typography.bodyLargeBold.copyWith(
+                                      color: colors.contentPrimary,
+                                    ),
                                   ),
                                   const SizedBox(height: MaritaSpacing.sm),
                                   ...invitations.map((invite) {
-                                    final inviteId = invite['id'] as String? ?? '';
-                                    final inviteEmail = invite['email'] as String? ?? '';
-                                    final inviteAccess = MemberAccess.fromString(invite['access'] as String? ?? '');
+                                    final inviteId =
+                                        invite['id'] as String? ?? '';
+                                    final inviteEmail =
+                                        invite['email'] as String? ?? '';
+                                    final inviteAccess =
+                                        MemberAccess.fromString(
+                                          invite['access'] as String? ?? '',
+                                        );
 
                                     return ListTile(
                                       contentPadding: EdgeInsets.zero,
                                       title: Text(
                                         inviteEmail,
-                                        style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                                        style: typography.bodyDefaultBold
+                                            .copyWith(
+                                              color: colors.contentPrimary,
+                                            ),
                                       ),
                                       subtitle: Text(
                                         'Access: ${inviteAccess.label}',
-                                        style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                                        style: typography.bodyDefault.copyWith(
+                                          color: colors.contentSecondary,
+                                        ),
                                       ),
-                                      trailing: isOwner
-                                          ? IconButton(
-                                              icon: MaritaIcon(
-                                                icon: MaritaIcons.trash,
-                                                size: MaritaIconSize.small,
-                                                color: colors.error,
-                                              ),
-                                              onPressed: () async {
-                                                await ref.read(workspaceOpsProvider.notifier).cancelInvitation(
-                                                      workspaceId: workspace.id,
-                                                      invitationId: inviteId,
-                                                    );
-                                              },
-                                            )
-                                          : Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: MaritaSpacing.sm,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: colors.backgroundPrimary,
-                                                borderRadius: MaritaRadius.borderSmall,
-                                                border: Border.all(color: colors.borderPrimary),
-                                              ),
-                                              child: Text(
-                                                'Pending',
-                                                style: typography.bodyDefault.copyWith(
-                                                  color: colors.contentSecondary,
-                                                  fontSize: 10,
+                                      trailing:
+                                          isOwner
+                                              ? IconButton(
+                                                icon: MaritaIcon(
+                                                  icon: MaritaIcons.trash,
+                                                  size: MaritaIconSize.small,
+                                                  color: colors.error,
+                                                ),
+                                                onPressed: () async {
+                                                  await ref
+                                                      .read(
+                                                        workspaceOpsProvider
+                                                            .notifier,
+                                                      )
+                                                      .cancelInvitation(
+                                                        workspaceId:
+                                                            workspace.id,
+                                                        invitationId: inviteId,
+                                                      );
+                                                },
+                                              )
+                                              : Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          MaritaSpacing.sm,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      colors.backgroundPrimary,
+                                                  borderRadius:
+                                                      MaritaRadius.borderSmall,
+                                                  border: Border.all(
+                                                    color: colors.borderPrimary,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  'Pending',
+                                                  style: typography.bodyDefault
+                                                      .copyWith(
+                                                        color:
+                                                            colors
+                                                                .contentSecondary,
+                                                        fontSize: 10,
+                                                      ),
                                                 ),
                                               ),
-                                            ),
                                     );
                                   }),
                                 ],
                               );
                             },
-                            loading: () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            loading:
+                                () => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                             error: (err, stack) => const SizedBox.shrink(),
                           ),
                         ],
@@ -945,7 +1190,10 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  void _showAccessSelector(BuildContext context, ValueChanged<MemberAccess> onAccessSelected) {
+  void _showAccessSelector(
+    BuildContext context,
+    ValueChanged<MemberAccess> onAccessSelected,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -965,7 +1213,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               children: [
                 Text(
                   'Select Access Level',
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
                 const SizedBox(height: MaritaSpacing.md),
                 ...[MemberAccess.canEdit, MemberAccess.canView].map((access) {
@@ -973,7 +1223,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       access.label,
-                      style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                      style: typography.bodyDefaultBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     onTap: () {
                       onAccessSelected(access);
@@ -989,7 +1241,11 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  void _showMemberActionsSelector(BuildContext context, WorkspaceMember member, String workspaceId) {
+  void _showMemberActionsSelector(
+    BuildContext context,
+    WorkspaceMember member,
+    String workspaceId,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -1009,18 +1265,31 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               children: [
                 Text(
                   'Manage Access for ${member.name}',
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
                 const SizedBox(height: MaritaSpacing.md),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: member.access == MemberAccess.canEdit
-                      ? MaritaIcon(icon: MaritaIcons.success, color: colors.interactivePrimary)
-                      : const SizedBox(width: MaritaIconSize.medium),
-                  title: Text('can edit', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                  leading:
+                      member.access == MemberAccess.canEdit
+                          ? MaritaIcon(
+                            icon: MaritaIcons.success,
+                            color: colors.interactivePrimary,
+                          )
+                          : const SizedBox(width: MaritaIconSize.medium),
+                  title: Text(
+                    'can edit',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(context);
-                    await ref.read(workspaceOpsProvider.notifier).updateMemberRoleOrAccess(
+                    await ref
+                        .read(workspaceOpsProvider.notifier)
+                        .updateMemberRoleOrAccess(
                           workspaceId: workspaceId,
                           memberId: member.uid,
                           access: MemberAccess.canEdit.toJsonString(),
@@ -1029,13 +1298,24 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: member.access == MemberAccess.canView
-                      ? MaritaIcon(icon: MaritaIcons.success, color: colors.interactivePrimary)
-                      : const SizedBox(width: MaritaIconSize.medium),
-                  title: Text('can view', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                  leading:
+                      member.access == MemberAccess.canView
+                          ? MaritaIcon(
+                            icon: MaritaIcons.success,
+                            color: colors.interactivePrimary,
+                          )
+                          : const SizedBox(width: MaritaIconSize.medium),
+                  title: Text(
+                    'can view',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(context);
-                    await ref.read(workspaceOpsProvider.notifier).updateMemberRoleOrAccess(
+                    await ref
+                        .read(workspaceOpsProvider.notifier)
+                        .updateMemberRoleOrAccess(
                           workspaceId: workspaceId,
                           memberId: member.uid,
                           access: MemberAccess.canView.toJsonString(),
@@ -1045,8 +1325,16 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                 const Divider(),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: MaritaIcon(icon: MaritaIcons.trash, color: colors.error),
-                  title: Text('Remove member', style: typography.bodyDefaultBold.copyWith(color: colors.error)),
+                  leading: MaritaIcon(
+                    icon: MaritaIcons.trash,
+                    color: colors.error,
+                  ),
+                  title: Text(
+                    'Remove member',
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.error,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(context);
                     _confirmRemoveMember(context, member, workspaceId);
@@ -1060,7 +1348,11 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  void _confirmRemoveMember(BuildContext context, WorkspaceMember member, String workspaceId) {
+  void _confirmRemoveMember(
+    BuildContext context,
+    WorkspaceMember member,
+    String workspaceId,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -1069,25 +1361,40 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('Remove Member', style: typography.bodyLargeBold.copyWith(color: colors.error)),
+          title: Text(
+            'Remove Member',
+            style: typography.bodyLargeBold.copyWith(color: colors.error),
+          ),
           content: Text(
             'Are you sure you want to remove ${member.name} from this workspace?',
-            style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentPrimary,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                await ref.read(workspaceOpsProvider.notifier).removeMember(
+                await ref
+                    .read(workspaceOpsProvider.notifier)
+                    .removeMember(
                       workspaceId: workspaceId,
                       memberId: member.uid,
                     );
               },
-              child: Text('Remove', style: typography.bodyDefaultBold.copyWith(color: colors.error)),
+              child: Text(
+                'Remove',
+                style: typography.bodyDefaultBold.copyWith(color: colors.error),
+              ),
             ),
           ],
         );
@@ -1104,22 +1411,37 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('Delete Workspace', style: typography.bodyLargeBold.copyWith(color: colors.error)),
+          title: Text(
+            'Delete Workspace',
+            style: typography.bodyLargeBold.copyWith(color: colors.error),
+          ),
           content: Text(
             'Are you sure you want to delete ${workspace.name}? This action is irreversible.',
-            style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentPrimary,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                await ref.read(workspaceOpsProvider.notifier).deleteWorkspace(workspace.id);
+                await ref
+                    .read(workspaceOpsProvider.notifier)
+                    .deleteWorkspace(workspace.id);
               },
-              child: Text('Delete', style: typography.bodyDefaultBold.copyWith(color: colors.error)),
+              child: Text(
+                'Delete',
+                style: typography.bodyDefaultBold.copyWith(color: colors.error),
+              ),
             ),
           ],
         );
@@ -1132,7 +1454,10 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     final typography = context.maritaTypography;
 
     return Padding(
-      padding: const EdgeInsets.only(top: MaritaSpacing.md, bottom: MaritaSpacing.sm),
+      padding: const EdgeInsets.only(
+        top: MaritaSpacing.md,
+        bottom: MaritaSpacing.sm,
+      ),
       child: Row(
         children: [
           Text(
@@ -1164,7 +1489,10 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
     );
   }
 
-  Widget _buildInvitationCard(BuildContext context, Map<String, dynamic> invitation) {
+  Widget _buildInvitationCard(
+    BuildContext context,
+    Map<String, dynamic> invitation,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -1180,10 +1508,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
       decoration: BoxDecoration(
         color: colors.backgroundSecondary,
         borderRadius: MaritaRadius.borderMedium,
-        border: Border.all(
-          color: colors.borderPrimary,
-          width: 1,
-        ),
+        border: Border.all(color: colors.borderPrimary, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1193,7 +1518,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               Expanded(
                 child: Text(
                   companyName,
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
               ),
               Container(
@@ -1227,7 +1554,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               Expanded(
                 child: Text(
                   'Invited by: $invitedByName',
-                  style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentSecondary,
+                  ),
                 ),
               ),
             ],
@@ -1244,7 +1573,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               Expanded(
                 child: Text(
                   'Access: $access',
-                  style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentSecondary,
+                  ),
                 ),
               ),
             ],
@@ -1255,7 +1586,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    ref.read(workspaceOpsProvider.notifier).declineInvitation(
+                    ref
+                        .read(workspaceOpsProvider.notifier)
+                        .declineInvitation(
                           workspaceId: companyId,
                           invitationId: invitationId,
                         );
@@ -1270,7 +1603,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     child: Center(
                       child: Text(
                         'Decline',
-                        style: typography.bodyDefaultBold.copyWith(color: colors.contentSecondary),
+                        style: typography.bodyDefaultBold.copyWith(
+                          color: colors.contentSecondary,
+                        ),
                       ),
                     ),
                   ),
@@ -1280,7 +1615,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    ref.read(workspaceOpsProvider.notifier).acceptInvitation(
+                    ref
+                        .read(workspaceOpsProvider.notifier)
+                        .acceptInvitation(
                           workspaceId: companyId,
                           invitationId: invitationId,
                         );
@@ -1294,7 +1631,9 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     child: Center(
                       child: Text(
                         'Accept',
-                        style: typography.bodyDefaultBold.copyWith(color: colors.backgroundPrimary),
+                        style: typography.bodyDefaultBold.copyWith(
+                          color: colors.backgroundPrimary,
+                        ),
                       ),
                     ),
                   ),

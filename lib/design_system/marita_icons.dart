@@ -28,6 +28,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'marita_design_system.dart';
@@ -176,6 +177,12 @@ class MaritaIcons {
 
   /// Settings — active (Bold)
   static const IconData settingsActive = IconsaxPlusBold.setting_2;
+
+  /// SMS / Mail — default (Linear)
+  static const IconData sms = IconsaxPlusLinear.sms;
+
+  /// Lock / Password — default (Linear)
+  static const IconData lock = IconsaxPlusLinear.lock_1;
 
   // ---------------------------------------------------------------------------
   // Sentiment / Status
@@ -353,10 +360,46 @@ class MaritaIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedColor = color ?? context.maritaColors.contentPrimary;
+
+    if (icon == MaritaIcons.arrowLeft) {
+      return SvgPicture.asset(
+        'assets/icons/arrow-left.svg',
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(resolvedColor, BlendMode.srcIn),
+        semanticsLabel: semanticLabel,
+      );
+    } else if (icon == MaritaIcons.arrowRight) {
+      return SvgPicture.asset(
+        'assets/icons/arrow-right.svg',
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(resolvedColor, BlendMode.srcIn),
+        semanticsLabel: semanticLabel,
+      );
+    } else if (icon == MaritaIcons.arrowUp) {
+      return SvgPicture.asset(
+        'assets/icons/arrow-up.svg',
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(resolvedColor, BlendMode.srcIn),
+        semanticsLabel: semanticLabel,
+      );
+    } else if (icon == MaritaIcons.arrowDown) {
+      return SvgPicture.asset(
+        'assets/icons/arrow-down.svg',
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(resolvedColor, BlendMode.srcIn),
+        semanticsLabel: semanticLabel,
+      );
+    }
+
     return Icon(
       icon,
       size: size,
-      color: color ?? context.maritaColors.contentPrimary,
+      color: resolvedColor,
       semanticLabel: semanticLabel,
     );
   }

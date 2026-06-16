@@ -6,7 +6,7 @@ class BiometricService {
   final LocalAuthentication _auth;
 
   BiometricService({LocalAuthentication? auth})
-      : _auth = auth ?? LocalAuthentication();
+    : _auth = auth ?? LocalAuthentication();
 
   Future<bool> canAuthenticate() async {
     try {
@@ -22,10 +22,13 @@ class BiometricService {
     try {
       final isSupported = await canAuthenticate();
       if (!isSupported) {
-        return const Failure(AppError(
-          code: 'biometrics_unavailable',
-          message: 'Biometrics are not available or supported on this device.',
-        ));
+        return const Failure(
+          AppError(
+            code: 'biometrics_unavailable',
+            message:
+                'Biometrics are not available or supported on this device.',
+          ),
+        );
       }
 
       final authenticated = await _auth.authenticate(
@@ -39,16 +42,15 @@ class BiometricService {
       if (authenticated) {
         return const Success(true);
       } else {
-        return const Failure(AppError(
-          code: 'authentication_failed',
-          message: 'Biometric verification failed.',
-        ));
+        return const Failure(
+          AppError(
+            code: 'authentication_failed',
+            message: 'Biometric verification failed.',
+          ),
+        );
       }
     } catch (e) {
-      return Failure(AppError(
-        code: 'biometric_error',
-        message: e.toString(),
-      ));
+      return Failure(AppError(code: 'biometric_error', message: e.toString()));
     }
   }
 }

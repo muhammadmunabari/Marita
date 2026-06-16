@@ -3,7 +3,9 @@ import 'package:marita/models/prompt_template.dart';
 import 'package:marita/services/template_service.dart';
 import 'package:marita/providers/auth_provider.dart';
 
-final customTemplatesProvider = FutureProvider<List<PromptTemplate>>((ref) async {
+final customTemplatesProvider = FutureProvider<List<PromptTemplate>>((
+  ref,
+) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return TemplateService.getCustomTemplates(user.uid);

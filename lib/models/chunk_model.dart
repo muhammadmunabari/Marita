@@ -1,11 +1,11 @@
 class DocumentChunk {
   final String id;
-  final String fileId;       // Firestore file document ID
-  final String fileName;     // human-readable file name
+  final String fileId; // Firestore file document ID
+  final String fileName; // human-readable file name
   final String content;
   final List<double> embedding;
   final int pageNumber;
-  final int chunkIndex;      // sequential index within the file
+  final int chunkIndex; // sequential index within the file
   final Map<String, dynamic> metadata;
 
   DocumentChunk({

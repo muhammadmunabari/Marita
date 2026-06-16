@@ -19,7 +19,8 @@ sealed class Result<T> {
   bool get isFailure => this is Failure<T>;
 
   T? get dataOrNull => this is Success<T> ? (this as Success<T>).data : null;
-  AppError? get errorOrNull => this is Failure<T> ? (this as Failure<T>).error : null;
+  AppError? get errorOrNull =>
+      this is Failure<T> ? (this as Failure<T>).error : null;
 }
 
 class Success<T> extends Result<T> {

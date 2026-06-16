@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EvaluationMetrics {
-  final double precision;        // 0.0 to 1.0 (accuracy vs ground truth)
+  final double precision; // 0.0 to 1.0 (accuracy vs ground truth)
   final double hallucinationRate; // 0.0 to 1.0 (unverified claims ratio)
-  final double retrievalRecall;     // 0.0 to 1.0 (relevance hit rate)
+  final double retrievalRecall; // 0.0 to 1.0 (relevance hit rate)
   final int latencyMs;
   final int tokenCount;
 
@@ -41,10 +41,7 @@ class EvaluationService {
           .doc(workspaceId)
           .collection('evaluations')
           .doc(queryId)
-          .set({
-        ...metrics.toMap(),
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+          .set({...metrics.toMap(), 'timestamp': FieldValue.serverTimestamp()});
     } catch (_) {
       // Avoid interrupting the main pipeline on logging errors
     }
@@ -55,11 +52,12 @@ class EvaluationService {
     required String workspaceId,
   }) async {
     try {
-      final snap = await _firestore
-          .collection('companies')
-          .doc(workspaceId)
-          .collection('evaluations')
-          .get();
+      final snap =
+          await _firestore
+              .collection('companies')
+              .doc(workspaceId)
+              .collection('evaluations')
+              .get();
 
       if (snap.docs.isEmpty) {
         return {

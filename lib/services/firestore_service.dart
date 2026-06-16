@@ -202,11 +202,12 @@ class FirestoreService {
 
   /// Fetches all chat sessions for a user.
   Future<List<Map<String, dynamic>>> getUserChats(String userId) async {
-    final query = await _db
-        .collection('chats')
-        .where('userId', isEqualTo: userId)
-        .orderBy('updatedAt', descending: true)
-        .get();
+    final query =
+        await _db
+            .collection('chats')
+            .where('userId', isEqualTo: userId)
+            .orderBy('updatedAt', descending: true)
+            .get();
 
     return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
   }
@@ -249,14 +250,14 @@ class FirestoreService {
         .doc(companyId)
         .collection('chats')
         .add({
-      'reportId': reportId,
-      'userId': userId,
-      'messages': <Map<String, dynamic>>[],
-      'lastMessage': initialMessage ?? '',
-      'title': title ?? 'New Chat',
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          'reportId': reportId,
+          'userId': userId,
+          'messages': <Map<String, dynamic>>[],
+          'lastMessage': initialMessage ?? '',
+          'title': title ?? 'New Chat',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
     return doc.id;
   }
 
@@ -272,20 +273,21 @@ class FirestoreService {
         .collection('chats')
         .doc(chatId)
         .update({
-      'messages': FieldValue.arrayUnion([messageMap]),
-      'lastMessage': messageMap['text'] ?? '',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          'messages': FieldValue.arrayUnion([messageMap]),
+          'lastMessage': messageMap['text'] ?? '',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   /// Fetches all chat sessions for a workspace.
   Future<List<Map<String, dynamic>>> getWorkspaceChats(String companyId) async {
-    final query = await _db
-        .collection('companies')
-        .doc(companyId)
-        .collection('chats')
-        .orderBy('updatedAt', descending: true)
-        .get();
+    final query =
+        await _db
+            .collection('companies')
+            .doc(companyId)
+            .collection('chats')
+            .orderBy('updatedAt', descending: true)
+            .get();
 
     return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
   }
@@ -301,20 +303,24 @@ class FirestoreService {
   }
 
   /// Updates the title of a workspace chat session.
-  Future<void> updateWorkspaceChatTitle(String companyId, String chatId, String newTitle) async {
+  Future<void> updateWorkspaceChatTitle(
+    String companyId,
+    String chatId,
+    String newTitle,
+  ) async {
     await _db
         .collection('companies')
         .doc(companyId)
         .collection('chats')
         .doc(chatId)
-        .update({
-      'title': newTitle,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+        .update({'title': newTitle, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   /// Real-time stream of a workspace chat session.
-  Stream<Map<String, dynamic>?> watchWorkspaceChat(String companyId, String chatId) {
+  Stream<Map<String, dynamic>?> watchWorkspaceChat(
+    String companyId,
+    String chatId,
+  ) {
     return _db
         .collection('companies')
         .doc(companyId)
@@ -322,9 +328,9 @@ class FirestoreService {
         .doc(chatId)
         .snapshots()
         .map((doc) {
-      if (!doc.exists) return null;
-      return {'id': doc.id, ...doc.data()!};
-    });
+          if (!doc.exists) return null;
+          return {'id': doc.id, ...doc.data()!};
+        });
   }
 
   // ===========================================================================
@@ -356,8 +362,10 @@ class FirestoreService {
         .collection('files')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList(),
+        );
   }
 
   /// Saves (creates or overwrites) a file or folder document.
@@ -372,10 +380,10 @@ class FirestoreService {
         .collection('files')
         .doc(fileId)
         .set({
-      ...fileData,
-      'createdAt': fileData['createdAt'] ?? FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          ...fileData,
+          'createdAt': fileData['createdAt'] ?? FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   /// Updates specific fields in a file or folder document.
@@ -389,10 +397,7 @@ class FirestoreService {
         .doc(userId)
         .collection('files')
         .doc(fileId)
-        .update({
-      ...updateData,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+        .update({...updateData, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   /// Deletes a file or folder document.
@@ -420,8 +425,10 @@ class FirestoreService {
         .collection('files')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList(),
+        );
   }
 
   /// Saves (creates or overwrites) a workspace file or folder document.
@@ -436,10 +443,10 @@ class FirestoreService {
         .collection('files')
         .doc(fileId)
         .set({
-      ...fileData,
-      'createdAt': fileData['createdAt'] ?? FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          ...fileData,
+          'createdAt': fileData['createdAt'] ?? FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
   }
 
   /// Updates specific fields in a workspace file or folder document.
@@ -453,10 +460,7 @@ class FirestoreService {
         .doc(companyId)
         .collection('files')
         .doc(fileId)
-        .update({
-      ...updateData,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+        .update({...updateData, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   /// Deletes a workspace file or folder document.
@@ -474,11 +478,8 @@ class FirestoreService {
 
   /// Fetches legacy files for a user (for migration purposes).
   Future<List<Map<String, dynamic>>> getLegacyUserFiles(String userId) async {
-    final query = await _db
-        .collection('users')
-        .doc(userId)
-        .collection('files')
-        .get();
+    final query =
+        await _db.collection('users').doc(userId).collection('files').get();
     return query.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
   }
 
@@ -509,8 +510,10 @@ class FirestoreService {
         .where('companyId', isEqualTo: companyId)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList(),
+        );
   }
 
   /// Creates a workspace invitation.
@@ -519,10 +522,7 @@ class FirestoreService {
     required String invitationId,
     required Map<String, dynamic> data,
   }) async {
-    await _db
-        .collection('invitations')
-        .doc(invitationId)
-        .set({
+    await _db.collection('invitations').doc(invitationId).set({
       ...data,
       'companyId': companyId,
       'createdAt': FieldValue.serverTimestamp(),
@@ -534,9 +534,6 @@ class FirestoreService {
     required String companyId,
     required String invitationId,
   }) async {
-    await _db
-        .collection('invitations')
-        .doc(invitationId)
-        .delete();
+    await _db.collection('invitations').doc(invitationId).delete();
   }
 }

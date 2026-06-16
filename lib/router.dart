@@ -13,7 +13,6 @@ import 'screens/onboarding/splash_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/login/biometric_lock_screen.dart';
 import 'screens/signup/signup_screen.dart';
-import 'screens/signup/create_business_account_screen.dart';
 import 'screens/forgot_password/forgot_password_screen.dart';
 import 'screens/main_navigation/main_navigation_screen.dart';
 import 'screens/marita_ai/marita_ai_screen.dart';
@@ -33,7 +32,6 @@ class MaritaRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String signup = '/signup';
-  static const String createBusinessAccount = '/create-business-account';
   static const String forgotPassword = '/forgot-password';
   static const String biometricLock = '/biometric-lock';
   static const String home = '/';
@@ -56,7 +54,10 @@ class RouterListenable extends ChangeNotifier {
     _ref.listen(authStateProvider, (prev, next) => notifyListeners());
     _ref.listen(userProfileModelProvider, (prev, next) => notifyListeners());
     _ref.listen(biometricSessionProvider, (prev, next) => notifyListeners());
-    _ref.listen(localBiometricEnabledProvider, (prev, next) => notifyListeners());
+    _ref.listen(
+      localBiometricEnabledProvider,
+      (prev, next) => notifyListeners(),
+    );
   }
 
   void refresh() {
@@ -79,7 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Auth redirect guard
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
-      
+
       // 1. Wait for Auth State to be fully determined
       if (authState.isLoading || authState.isRefreshing) {
         return MaritaRoutes.splash;
@@ -88,7 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final user = authState.value;
       final isLoggedIn = user != null;
       final location = state.matchedLocation;
-      
+
       final isSplash = location == MaritaRoutes.splash;
       final isPublicRoute = MaritaRoutes.publicRoutes.contains(location);
 
@@ -108,7 +109,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 4. Authenticated Guard: If logged in, prevent access to public auth routes
-      if (location == MaritaRoutes.login || location == MaritaRoutes.signup || location == MaritaRoutes.onboarding) {
+      if (location == MaritaRoutes.login ||
+          location == MaritaRoutes.signup ||
+          location == MaritaRoutes.onboarding) {
         return MaritaRoutes.home;
       }
 
@@ -154,10 +157,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: MaritaRoutes.signup,
         builder: (context, state) => const SignupScreen(),
-      ),
-      GoRoute(
-        path: MaritaRoutes.createBusinessAccount,
-        builder: (context, state) => const CreateBusinessAccountScreen(),
       ),
       GoRoute(
         path: MaritaRoutes.forgotPassword,

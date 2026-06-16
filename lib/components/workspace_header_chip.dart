@@ -17,13 +17,26 @@ class WorkspaceHeaderChip extends ConsumerWidget {
     final typography = context.maritaTypography;
 
     final hasActiveWorkspace = activeWorkspace != null;
-    final displayName = hasActiveWorkspace ? activeWorkspace.name : 'No Workspace';
+    
+    String limitWords(String text, int maxWords) {
+      final trimmed = text.trim();
+      if (trimmed.isEmpty) return text;
+      final words = trimmed.split(RegExp(r'\s+'));
+      if (words.length > maxWords) {
+        return '${words.take(maxWords).join(' ')}....';
+      }
+      return text;
+    }
+
+    final displayName = hasActiveWorkspace
+        ? limitWords(activeWorkspace.name, 3)
+        : 'No Workspace';
 
     return Semantics(
       label: 'Select Workspace',
       button: true,
       child: InkWell(
-        onTap: () => WorkspaceSwitcherSheet.show(context),
+        onTap: () => WorkspaceSwitcherSheet.show(context, showCreateButton: false),
         borderRadius: MaritaRadius.borderFull,
         child: Container(
           padding: const EdgeInsets.symmetric(
@@ -31,14 +44,16 @@ class WorkspaceHeaderChip extends ConsumerWidget {
             vertical: MaritaSpacing.xs + 2,
           ),
           decoration: BoxDecoration(
-            color: hasActiveWorkspace
-                ? colors.interactivePrimary.withValues(alpha: 0.06)
-                : colors.backgroundSecondary,
+            color:
+                hasActiveWorkspace
+                    ? colors.interactivePrimary.withValues(alpha: 0.06)
+                    : colors.backgroundSecondary,
             borderRadius: MaritaRadius.borderFull,
             border: Border.all(
-              color: hasActiveWorkspace
-                  ? colors.interactivePrimary.withValues(alpha: 0.3)
-                  : colors.borderSecondary,
+              color:
+                  hasActiveWorkspace
+                      ? colors.interactivePrimary.withValues(alpha: 0.3)
+                      : colors.borderSecondary,
               width: 1.0,
             ),
           ),
@@ -46,9 +61,15 @@ class WorkspaceHeaderChip extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               MaritaIcon(
-                icon: hasActiveWorkspace ? MaritaIcons.buildingsActive : MaritaIcons.buildings,
+                icon:
+                    hasActiveWorkspace
+                        ? MaritaIcons.buildingsActive
+                        : MaritaIcons.buildings,
                 size: MaritaIconSize.small,
-                color: hasActiveWorkspace ? colors.interactivePrimary : colors.contentTertiary,
+                color:
+                    hasActiveWorkspace
+                        ? colors.interactivePrimary
+                        : colors.contentTertiary,
               ),
               const SizedBox(width: MaritaSpacing.xs + 2),
               Flexible(
@@ -57,7 +78,10 @@ class WorkspaceHeaderChip extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: typography.bodyDefaultBold.copyWith(
-                    color: hasActiveWorkspace ? colors.interactivePrimary : colors.contentSecondary,
+                    color:
+                        hasActiveWorkspace
+                            ? colors.interactivePrimary
+                            : colors.contentSecondary,
                   ),
                 ),
               ),
@@ -65,7 +89,10 @@ class WorkspaceHeaderChip extends ConsumerWidget {
               MaritaIcon(
                 icon: MaritaIcons.arrowDown,
                 size: MaritaIconSize.extraSmall,
-                color: hasActiveWorkspace ? colors.interactivePrimary : colors.contentTertiary,
+                color:
+                    hasActiveWorkspace
+                        ? colors.interactivePrimary
+                        : colors.contentTertiary,
               ),
             ],
           ),

@@ -13,10 +13,15 @@ import 'marita_select_field.dart';
 
 /// A bottom sheet that allows users to switch between their workspaces.
 class WorkspaceSwitcherSheet extends ConsumerWidget {
-  const WorkspaceSwitcherSheet({super.key});
+  final bool showCreateButton;
+
+  const WorkspaceSwitcherSheet({
+    super.key,
+    this.showCreateButton = true,
+  });
 
   /// Displays the workspace switcher bottom sheet.
-  static void show(BuildContext context) {
+  static void show(BuildContext context, {bool showCreateButton = true}) {
     final colors = context.maritaColors;
     showModalBottomSheet(
       context: context,
@@ -26,13 +31,16 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return const WorkspaceSwitcherSheet();
+        return WorkspaceSwitcherSheet(showCreateButton: showCreateButton);
       },
     );
   }
 
   /// Displays the role selector bottom sheet.
-  static void showRoleSelector(BuildContext context, ValueChanged<WorkspaceRole> onRoleSelected) {
+  static void showRoleSelector(
+    BuildContext context,
+    ValueChanged<WorkspaceRole> onRoleSelected,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
@@ -52,14 +60,26 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
               children: [
                 Text(
                   'Select Your Role',
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
                 const SizedBox(height: MaritaSpacing.md),
                 ...WorkspaceRole.values.map((role) {
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(role.label, style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary)),
-                    subtitle: Text(role.description, style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+                    title: Text(
+                      role.label,
+                      style: typography.bodyDefaultBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      role.description,
+                      style: typography.bodyDefault.copyWith(
+                        color: colors.contentSecondary,
+                      ),
+                    ),
                     trailing: MaritaIcon(
                       icon: MaritaIcons.arrowRight,
                       size: MaritaIconSize.small,
@@ -99,14 +119,16 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final isFormValid = nameController.text.trim().isNotEmpty && selectedRole != null;
+            final isFormValid =
+                nameController.text.trim().isNotEmpty && selectedRole != null;
 
             return Padding(
               padding: EdgeInsets.only(
                 left: MaritaSpacing.lg,
                 right: MaritaSpacing.lg,
                 top: MaritaSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + MaritaSpacing.lg,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -127,7 +149,9 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Create Business Account',
-                      style: typography.titleLarge.copyWith(color: colors.contentPrimary),
+                      style: typography.titleLarge.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.lg),
                     MaritaTextInput(
@@ -163,17 +187,26 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                     const SizedBox(height: MaritaSpacing.xl),
                     MaritaPrimaryButton(
                       label: 'Create Account',
-                      onPressed: isFormValid
-                          ? () async {
-                              Navigator.pop(context);
-                              await ref.read(workspaceOpsProvider.notifier).createWorkspace(
-                                    name: nameController.text.trim(),
-                                    role: selectedRole!.toJsonString(),
-                                    address: addressController.text.trim().isEmpty ? null : addressController.text.trim(),
-                                    taxId: taxIdController.text.trim().isEmpty ? null : taxIdController.text.trim(),
-                                  );
-                            }
-                          : null,
+                      onPressed:
+                          isFormValid
+                              ? () async {
+                                Navigator.pop(context);
+                                await ref
+                                    .read(workspaceOpsProvider.notifier)
+                                    .createWorkspace(
+                                      name: nameController.text.trim(),
+                                      role: selectedRole!.toJsonString(),
+                                      address:
+                                          addressController.text.trim().isEmpty
+                                              ? null
+                                              : addressController.text.trim(),
+                                      taxId:
+                                          taxIdController.text.trim().isEmpty
+                                              ? null
+                                              : taxIdController.text.trim(),
+                                    );
+                              }
+                              : null,
                     ),
                   ],
                 ),
@@ -224,31 +257,38 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
               const SizedBox(height: MaritaSpacing.lg),
               Text(
                 'Switch Workspace',
-                style: typography.titleMedium.copyWith(color: colors.contentPrimary),
+                style: typography.titleMedium.copyWith(
+                  color: colors.contentPrimary,
+                ),
               ),
               const SizedBox(height: MaritaSpacing.lg),
               Expanded(
                 child: workspacesResult.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (err, stack) => Center(
-                    child: Text(
-                      'Failed to load workspaces',
-                      style: typography.bodyDefault.copyWith(color: colors.error),
-                    ),
-                  ),
+                  loading:
+                      () => const Center(child: CircularProgressIndicator()),
+                  error:
+                      (err, stack) => Center(
+                        child: Text(
+                          'Failed to load workspaces',
+                          style: typography.bodyDefault.copyWith(
+                            color: colors.error,
+                          ),
+                        ),
+                      ),
                   data: (result) {
                     if (result is Failure<List<Workspace>>) {
                       return Center(
                         child: Text(
                           result.error.message,
-                          style: typography.bodyDefault.copyWith(color: colors.error),
+                          style: typography.bodyDefault.copyWith(
+                            color: colors.error,
+                          ),
                         ),
                       );
                     }
 
-                    final workspaces = (result as Success<List<Workspace>>).data;
+                    final workspaces =
+                        (result as Success<List<Workspace>>).data;
                     if (workspaces.isEmpty) {
                       return Center(
                         child: Column(
@@ -256,12 +296,16 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                           children: [
                             Text(
                               'No Workspaces Found',
-                              style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                              style: typography.bodyLargeBold.copyWith(
+                                color: colors.contentPrimary,
+                              ),
                             ),
                             const SizedBox(height: MaritaSpacing.sm),
                             Text(
                               'Create a new workspace to get started.',
-                              style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                              style: typography.bodyDefault.copyWith(
+                                color: colors.contentSecondary,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -270,8 +314,14 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                     }
 
                     final currentUid = currentUser?.uid ?? '';
-                    final createdWorkspaces = workspaces.where((w) => w.ownerId == currentUid).toList();
-                    final joinedWorkspaces = workspaces.where((w) => w.ownerId != currentUid).toList();
+                    final createdWorkspaces =
+                        workspaces
+                            .where((w) => w.ownerId == currentUid)
+                            .toList();
+                    final joinedWorkspaces =
+                        workspaces
+                            .where((w) => w.ownerId != currentUid)
+                            .toList();
 
                     return ListView(
                       controller: scrollController,
@@ -279,24 +329,48 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                       children: [
                         if (createdWorkspaces.isNotEmpty) ...[
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.sm),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: MaritaSpacing.sm,
+                            ),
                             child: Text(
                               'Created Workspaces',
-                              style: typography.bodyDefaultBold.copyWith(color: colors.contentSecondary),
+                              style: typography.bodyDefaultBold.copyWith(
+                                color: colors.contentSecondary,
+                              ),
                             ),
                           ),
-                          ...createdWorkspaces.map((w) => _buildWorkspaceItem(context, ref, w, activeWorkspace, currentUid)),
+                          ...createdWorkspaces.map(
+                            (w) => _buildWorkspaceItem(
+                              context,
+                              ref,
+                              w,
+                              activeWorkspace,
+                              currentUid,
+                            ),
+                          ),
                           const SizedBox(height: MaritaSpacing.md),
                         ],
                         if (joinedWorkspaces.isNotEmpty) ...[
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.sm),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: MaritaSpacing.sm,
+                            ),
                             child: Text(
                               'Joined Workspaces',
-                              style: typography.bodyDefaultBold.copyWith(color: colors.contentSecondary),
+                              style: typography.bodyDefaultBold.copyWith(
+                                color: colors.contentSecondary,
+                              ),
                             ),
                           ),
-                          ...joinedWorkspaces.map((w) => _buildWorkspaceItem(context, ref, w, activeWorkspace, currentUid)),
+                          ...joinedWorkspaces.map(
+                            (w) => _buildWorkspaceItem(
+                              context,
+                              ref,
+                              w,
+                              activeWorkspace,
+                              currentUid,
+                            ),
+                          ),
                           const SizedBox(height: MaritaSpacing.md),
                         ],
                       ],
@@ -304,17 +378,20 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                   },
                 ),
               ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.lg),
-                child: MaritaPrimaryButton(
-                  label: 'Create New Workspace',
-                  onPressed: () {
-                    Navigator.pop(context);
-                    showCreateWorkspaceSheet(context, ref);
-                  },
+              if (showCreateButton) ...[
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.lg),
+                  child: MaritaPrimaryButton(
+                    label: 'Create New Workspace',
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showCreateWorkspaceSheet(context, ref);
+                    },
+                  ),
                 ),
-              ),
+              ] else
+                const SizedBox(height: MaritaSpacing.lg),
             ],
           ),
         );
@@ -335,7 +412,8 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
     final isOwner = workspace.ownerId == currentUid;
 
     final memberDetail = workspace.memberDetails[currentUid];
-    final accessLabel = memberDetail?.access.label ?? (isOwner ? 'Owner' : 'can view');
+    final accessLabel =
+        memberDetail?.access.label ?? (isOwner ? 'Owner' : 'can view');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: MaritaSpacing.sm),
@@ -347,12 +425,14 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
         borderRadius: MaritaRadius.borderMedium,
         child: Ink(
           decoration: BoxDecoration(
-            color: isActive 
-                ? colors.interactivePrimary.withValues(alpha: 0.08) 
-                : colors.backgroundPrimary,
+            color:
+                isActive
+                    ? colors.interactivePrimary.withValues(alpha: 0.08)
+                    : colors.backgroundPrimary,
             borderRadius: MaritaRadius.borderMedium,
             border: Border.all(
-              color: isActive ? colors.interactivePrimary : colors.borderSecondary,
+              color:
+                  isActive ? colors.interactivePrimary : colors.borderSecondary,
               width: isActive ? 1.5 : 1.0,
             ),
           ),
@@ -363,15 +443,22 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(MaritaSpacing.sm),
                   decoration: BoxDecoration(
-                    color: isActive 
-                        ? colors.interactivePrimary.withValues(alpha: 0.12)
-                        : colors.backgroundSecondary,
+                    color:
+                        isActive
+                            ? colors.interactivePrimary.withValues(alpha: 0.12)
+                            : colors.backgroundSecondary,
                     shape: BoxShape.circle,
                   ),
                   child: MaritaIcon(
-                    icon: isActive ? MaritaIcons.buildingsActive : MaritaIcons.buildings,
+                    icon:
+                        isActive
+                            ? MaritaIcons.buildingsActive
+                            : MaritaIcons.buildings,
                     size: MaritaIconSize.small,
-                    color: isActive ? colors.interactivePrimary : colors.contentSecondary,
+                    color:
+                        isActive
+                            ? colors.interactivePrimary
+                            : colors.contentSecondary,
                   ),
                 ),
                 const SizedBox(width: MaritaSpacing.md),
@@ -382,7 +469,10 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                       Text(
                         workspace.name,
                         style: typography.bodyLargeBold.copyWith(
-                          color: isActive ? colors.interactivePrimary : colors.contentPrimary,
+                          color:
+                              isActive
+                                  ? colors.interactivePrimary
+                                  : colors.contentPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -404,7 +494,10 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
                           Text(
                             isOwner ? 'Owner' : accessLabel,
                             style: typography.bodySmall.copyWith(
-                              color: isOwner ? colors.interactivePrimary : colors.contentSecondary,
+                              color:
+                                  isOwner
+                                      ? colors.interactivePrimary
+                                      : colors.contentSecondary,
                             ),
                           ),
                         ],

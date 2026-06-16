@@ -120,9 +120,10 @@ class WorkspaceMember {
       name: map['name'] ?? '',
       role: WorkspaceRole.fromString(map['role'] ?? ''),
       access: MemberAccess.fromString(map['access'] ?? ''),
-      joinedAt: map['joinedAt'] is Timestamp
-          ? (map['joinedAt'] as Timestamp).toDate()
-          : map['joinedAt'] != null
+      joinedAt:
+          map['joinedAt'] is Timestamp
+              ? (map['joinedAt'] as Timestamp).toDate()
+              : map['joinedAt'] != null
               ? DateTime.parse(map['joinedAt'].toString())
               : DateTime.now(),
     );
@@ -179,14 +180,16 @@ class Workspace {
       memberDetails: memberDetails,
       address: map['address'],
       taxId: map['taxId'],
-      createdAt: map['createdAt'] is Timestamp
-          ? (map['createdAt'] as Timestamp).toDate()
-          : map['createdAt'] != null
+      createdAt:
+          map['createdAt'] is Timestamp
+              ? (map['createdAt'] as Timestamp).toDate()
+              : map['createdAt'] != null
               ? DateTime.parse(map['createdAt'].toString())
               : DateTime.now(),
-      updatedAt: map['updatedAt'] is Timestamp
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : map['updatedAt'] != null
+      updatedAt:
+          map['updatedAt'] is Timestamp
+              ? (map['updatedAt'] as Timestamp).toDate()
+              : map['updatedAt'] != null
               ? DateTime.parse(map['updatedAt'].toString())
               : null,
     );
@@ -197,7 +200,9 @@ class Workspace {
       'name': name,
       'ownerId': ownerId,
       'members': members,
-      'memberDetails': memberDetails.map((uid, detail) => MapEntry(uid, detail.toMap())),
+      'memberDetails': memberDetails.map(
+        (uid, detail) => MapEntry(uid, detail.toMap()),
+      ),
       'address': address,
       'taxId': taxId,
       'createdAt': Timestamp.fromDate(createdAt),

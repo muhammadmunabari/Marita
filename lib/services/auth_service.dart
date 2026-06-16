@@ -22,9 +22,10 @@ class AuthService {
   // 1. Sign Up (Email/Password + Phone)
   // ---------------------------------------------------------------------------
   Future<UserCredential> signUpWithEmail({
+    required String name,
     required String email,
     required String password,
-    required String phoneNumber,
+    String? phoneNumber,
   }) async {
     // 1. Create User in Firebase Auth
     final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -33,12 +34,20 @@ class AuthService {
     );
 
     // 2. Save User Data to Firestore
-    await _firestore.collection('users').doc(userCredential.user!.uid).set({
+    final Map<String, dynamic> userData = {
+      'name': name.trim(),
       'email': email.trim(),
-      'phoneNumber': phoneNumber.trim(),
       'hasBusinessAccount': false,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (phoneNumber != null) {
+      userData['phoneNumber'] = phoneNumber.trim();
+    }
+
+    await _firestore
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set(userData);
 
     return userCredential;
   }
@@ -133,8 +142,10 @@ class AuthService {
     // In v7+, authenticate() might throw if cancelled or return a non-null object.
 
     final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-    final authorizedUser = await googleUser.authorizationClient.authorizeScopes([]);
-    
+    final authorizedUser = await googleUser.authorizationClient.authorizeScopes(
+      [],
+    );
+
     final OAuthCredential credential = GoogleAuthProvider.credential(
       accessToken: authorizedUser.accessToken,
       idToken: googleAuth.idToken,

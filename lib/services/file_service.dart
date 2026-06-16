@@ -21,15 +21,16 @@ class FileService {
     required FirestoreService firestoreService,
     FirebaseStorage? storage,
     DocumentChunkerService? chunker,
-  })  : _firestoreService = firestoreService,
-        _storage = storage ?? FirebaseStorage.instance,
-        _chunker = chunker ?? DocumentChunkerService();
+  }) : _firestoreService = firestoreService,
+       _storage = storage ?? FirebaseStorage.instance,
+       _chunker = chunker ?? DocumentChunkerService();
 
   /// Stream user files & folders
   Stream<Result<List<FileItem>>> watchUserFiles(String userId) {
     return _firestoreService.watchUserFiles(userId).map((list) {
       try {
-        final items = list.map((map) => FileItem.fromMap(map['id'], map)).toList();
+        final items =
+            list.map((map) => FileItem.fromMap(map['id'], map)).toList();
         return Success(items);
       } catch (e, stack) {
         return Failure(ErrorMapper.map(e, stack));
@@ -75,9 +76,10 @@ class FileService {
   }) async {
     try {
       final id = _uuid.v4();
-      final extension = p.extension(originalName).replaceAll('.', '').toLowerCase();
+      final extension =
+          p.extension(originalName).replaceAll('.', '').toLowerCase();
       final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-      
+
       // Determine standardized type
       String type = 'doc';
       if (['png', 'jpg', 'jpeg', 'webp', 'gif'].contains(extension)) {
@@ -98,10 +100,7 @@ class FileService {
         file,
         SettableMetadata(
           contentType: mimeType,
-          customMetadata: {
-            'originalName': originalName,
-            'type': type,
-          },
+          customMetadata: {'originalName': originalName, 'type': type},
         ),
       );
       final downloadUrl = await uploadTask.ref.getDownloadURL();
@@ -141,9 +140,7 @@ class FileService {
       await _firestoreService.updateUserFile(
         userId: userId,
         fileId: fileId,
-        updateData: {
-          'name': newName,
-        },
+        updateData: {'name': newName},
       );
       return const Success(null);
     } catch (e, stack) {
@@ -167,11 +164,8 @@ class FileService {
           // If storage delete fails (e.g. file doesn't exist), proceed with firestore delete
         }
       }
-      
-      await _firestoreService.deleteUserFile(
-        userId: userId,
-        fileId: item.id,
-      );
+
+      await _firestoreService.deleteUserFile(userId: userId, fileId: item.id);
       return const Success(null);
     } catch (e, stack) {
       return Failure(ErrorMapper.map(e, stack));
@@ -193,10 +187,7 @@ class FileService {
           final attachmentsList = msg['attachments'] as List? ?? [];
           for (final attach in attachmentsList) {
             if (attach is Map<String, dynamic> && attach['url'] != null) {
-              attachments.add({
-                ...attach,
-                'chatId': chat['id'],
-              });
+              attachments.add({...attach, 'chatId': chat['id']});
             }
           }
         }
@@ -205,17 +196,24 @@ class FileService {
       if (attachments.isEmpty) return const Success(null);
 
       // Get current user files to find or create "Chat Attachments" folder
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('files')
-          .get();
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('files')
+              .get();
 
-      final existingFiles = querySnapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-      
+      final existingFiles =
+          querySnapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+
       // Look for folder named "Chat Attachments" at root
       var chatFolder = existingFiles.firstWhere(
-        (f) => f['name'] == 'Chat Attachments' && f['parentId'] == null && (f['isFolder'] == true),
+        (f) =>
+            f['name'] == 'Chat Attachments' &&
+            f['parentId'] == null &&
+            (f['isFolder'] == true),
         orElse: () => {},
       );
 
@@ -244,22 +242,23 @@ class FileService {
       for (final attach in attachments) {
         final attachId = attach['id'] ?? _uuid.v4();
         final alreadySaved = existingFiles.any((f) => f['id'] == attachId);
-        
+
         if (!alreadySaved) {
           final type = attach['type'] ?? 'doc';
-          
+
           final fileItem = FileItem(
             id: attachId,
             name: attach['name'] ?? 'Attachment',
             type: type,
             url: attach['url'],
-            size: attach['size'] is num ? (attach['size'] as num).toInt() : null,
+            size:
+                attach['size'] is num ? (attach['size'] as num).toInt() : null,
             parentId: folderId,
             isFolder: false,
             chatId: attach['chatId'],
             createdAt: DateTime.now(),
           );
-          
+
           await _firestoreService.saveUserFile(
             userId: userId,
             fileId: attachId,
@@ -282,7 +281,8 @@ class FileService {
   Stream<Result<List<FileItem>>> watchWorkspaceFiles(String companyId) {
     return _firestoreService.watchWorkspaceFiles(companyId).map((list) {
       try {
-        final items = list.map((map) => FileItem.fromMap(map['id'], map)).toList();
+        final items =
+            list.map((map) => FileItem.fromMap(map['id'], map)).toList();
         return Success(items);
       } catch (e, stack) {
         return Failure(ErrorMapper.map(e, stack));
@@ -328,9 +328,10 @@ class FileService {
   }) async {
     try {
       final id = _uuid.v4();
-      final extension = p.extension(originalName).replaceAll('.', '').toLowerCase();
+      final extension =
+          p.extension(originalName).replaceAll('.', '').toLowerCase();
       final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-      
+
       // Determine standardized type
       String type = 'doc';
       if (['png', 'jpg', 'jpeg', 'webp', 'gif'].contains(extension)) {
@@ -346,15 +347,14 @@ class FileService {
       }
 
       // Upload to Firebase Storage
-      final ref = _storage.ref().child('companies/$companyId/files/$id.$extension');
+      final ref = _storage.ref().child(
+        'companies/$companyId/files/$id.$extension',
+      );
       final uploadTask = await ref.putFile(
         file,
         SettableMetadata(
           contentType: mimeType,
-          customMetadata: {
-            'originalName': originalName,
-            'type': type,
-          },
+          customMetadata: {'originalName': originalName, 'type': type},
         ),
       );
       final downloadUrl = await uploadTask.ref.getDownloadURL();
@@ -405,9 +405,7 @@ class FileService {
       await _firestoreService.updateWorkspaceFile(
         companyId: companyId,
         fileId: fileId,
-        updateData: {
-          'name': newName,
-        },
+        updateData: {'name': newName},
       );
       return const Success(null);
     } catch (e, stack) {
@@ -429,7 +427,7 @@ class FileService {
           // If storage delete fails, proceed with firestore delete
         }
       }
-      
+
       await _firestoreService.deleteWorkspaceFile(
         companyId: companyId,
         fileId: item.id,
@@ -455,10 +453,7 @@ class FileService {
           final attachmentsList = msg['attachments'] as List? ?? [];
           for (final attach in attachmentsList) {
             if (attach is Map<String, dynamic> && attach['url'] != null) {
-              attachments.add({
-                ...attach,
-                'chatId': chat['id'],
-              });
+              attachments.add({...attach, 'chatId': chat['id']});
             }
           }
         }
@@ -467,17 +462,24 @@ class FileService {
       if (attachments.isEmpty) return const Success(null);
 
       // Get current workspace files to find or create "Chat Attachments" folder
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('companies')
-          .doc(companyId)
-          .collection('files')
-          .get();
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('companies')
+              .doc(companyId)
+              .collection('files')
+              .get();
 
-      final existingFiles = querySnapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-      
+      final existingFiles =
+          querySnapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+
       // Look for folder named "Chat Attachments" at root
       var chatFolder = existingFiles.firstWhere(
-        (f) => f['name'] == 'Chat Attachments' && f['parentId'] == null && (f['isFolder'] == true),
+        (f) =>
+            f['name'] == 'Chat Attachments' &&
+            f['parentId'] == null &&
+            (f['isFolder'] == true),
         orElse: () => {},
       );
 
@@ -506,22 +508,23 @@ class FileService {
       for (final attach in attachments) {
         final attachId = attach['id'] ?? _uuid.v4();
         final alreadySaved = existingFiles.any((f) => f['id'] == attachId);
-        
+
         if (!alreadySaved) {
           final type = attach['type'] ?? 'doc';
-          
+
           final fileItem = FileItem(
             id: attachId,
             name: attach['name'] ?? 'Attachment',
             type: type,
             url: attach['url'],
-            size: attach['size'] is num ? (attach['size'] as num).toInt() : null,
+            size:
+                attach['size'] is num ? (attach['size'] as num).toInt() : null,
             parentId: folderId,
             isFolder: false,
             chatId: attach['chatId'],
             createdAt: DateTime.now(),
           );
-          
+
           await _firestoreService.saveWorkspaceFile(
             companyId: companyId,
             fileId: attachId,
@@ -541,8 +544,17 @@ class FileService {
   // ---------------------------------------------------------------------------
 
   static const _indexableExtensions = {
-    'pdf', 'txt', 'md', 'csv', 'xls', 'xlsx', 'docx', 'doc',
-    'json', 'xml', 'sql',
+    'pdf',
+    'txt',
+    'md',
+    'csv',
+    'xls',
+    'xlsx',
+    'docx',
+    'doc',
+    'json',
+    'xml',
+    'sql',
   };
 
   /// Runs document chunking in the background for indexable file types.
@@ -556,14 +568,18 @@ class FileService {
     required String extension,
   }) {
     if (!_indexableExtensions.contains(extension)) {
-      debugPrint('[FileService] Skipping chunking for non-text file: $fileName');
+      debugPrint(
+        '[FileService] Skipping chunking for non-text file: $fileName',
+      );
       return;
     }
 
     // Fire-and-forget — intentionally unawaited.
     () async {
       try {
-        debugPrint('[FileService] Starting background chunking for "$fileName"…');
+        debugPrint(
+          '[FileService] Starting background chunking for "$fileName"…',
+        );
         final count = await _chunker.processAndChunk(
           companyId: companyId,
           fileId: fileId,

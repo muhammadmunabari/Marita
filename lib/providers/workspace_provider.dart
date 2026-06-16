@@ -61,34 +61,42 @@ class ActiveWorkspaceNotifier extends Notifier<Workspace?> {
   }
 }
 
-final activeWorkspaceProvider = NotifierProvider<ActiveWorkspaceNotifier, Workspace?>(ActiveWorkspaceNotifier.new);
+final activeWorkspaceProvider =
+    NotifierProvider<ActiveWorkspaceNotifier, Workspace?>(
+      ActiveWorkspaceNotifier.new,
+    );
 
 /// Stream of invitations for a specific workspace
-final workspaceInvitationsProvider = StreamProvider.family<Result<List<Map<String, dynamic>>>, String>((ref, workspaceId) {
-  return ref.watch(workspaceServiceProvider).watchInvitations(workspaceId);
-});
+final workspaceInvitationsProvider =
+    StreamProvider.family<Result<List<Map<String, dynamic>>>, String>((
+      ref,
+      workspaceId,
+    ) {
+      return ref.watch(workspaceServiceProvider).watchInvitations(workspaceId);
+    });
 
 /// Stream of all pending invitations for the logged-in user
-final userInvitationsProvider = StreamProvider<Result<List<Map<String, dynamic>>>>((ref) {
-  final user = ref.watch(authStateProvider).value;
-  if (user == null) {
-    return Stream.value(Success(<Map<String, dynamic>>[]));
-  }
-  
-  String? email = user.email;
-  if (email == null) {
-    final profile = ref.watch(userProfileProvider).value;
-    if (profile != null) {
-      email = profile['email'] as String?;
-    }
-  }
-  
-  if (email == null) {
-    return Stream.value(Success(<Map<String, dynamic>>[]));
-  }
-  
-  return ref.watch(workspaceServiceProvider).watchUserInvitations(email);
-});
+final userInvitationsProvider =
+    StreamProvider<Result<List<Map<String, dynamic>>>>((ref) {
+      final user = ref.watch(authStateProvider).value;
+      if (user == null) {
+        return Stream.value(Success(<Map<String, dynamic>>[]));
+      }
+
+      String? email = user.email;
+      if (email == null) {
+        final profile = ref.watch(userProfileProvider).value;
+        if (profile != null) {
+          email = profile['email'] as String?;
+        }
+      }
+
+      if (email == null) {
+        return Stream.value(Success(<Map<String, dynamic>>[]));
+      }
+
+      return ref.watch(workspaceServiceProvider).watchUserInvitations(email);
+    });
 
 /// State tracking workspace asynchronous operations
 class WorkspaceOpsState {
@@ -137,7 +145,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (id) {
-        state = const WorkspaceOpsState(successMessage: 'Workspace created successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Workspace created successfully',
+        );
         return true;
       },
       (error) {
@@ -163,7 +173,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Workspace updated successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Workspace updated successfully',
+        );
         // Update active workspace locally if needed
         final active = ref.read(activeWorkspaceProvider);
         if (active != null && active.id == workspaceId) {
@@ -189,7 +201,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Workspace deleted successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Workspace deleted successfully',
+        );
         final active = ref.read(activeWorkspaceProvider);
         if (active != null && active.id == workspaceId) {
           ref.read(activeWorkspaceProvider.notifier).state = null;
@@ -217,7 +231,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Invitation sent successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Invitation sent successfully',
+        );
         return true;
       },
       (error) {
@@ -239,7 +255,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Invitation cancelled successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Invitation cancelled successfully',
+        );
         return true;
       },
       (error) {
@@ -263,7 +281,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Member access updated successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Member access updated successfully',
+        );
         return true;
       },
       (error) {
@@ -285,7 +305,9 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
 
     return result.fold(
       (_) {
-        state = const WorkspaceOpsState(successMessage: 'Member removed successfully');
+        state = const WorkspaceOpsState(
+          successMessage: 'Member removed successfully',
+        );
         return true;
       },
       (error) {
@@ -340,7 +362,10 @@ class WorkspaceOpsNotifier extends Notifier<WorkspaceOpsState> {
   }
 }
 
-final workspaceOpsProvider = NotifierProvider<WorkspaceOpsNotifier, WorkspaceOpsState>(WorkspaceOpsNotifier.new);
+final workspaceOpsProvider =
+    NotifierProvider<WorkspaceOpsNotifier, WorkspaceOpsState>(
+      WorkspaceOpsNotifier.new,
+    );
 
 /// Provider for the active user's access level in the current workspace
 final activeWorkspaceAccessProvider = Provider<MemberAccess?>((ref) {

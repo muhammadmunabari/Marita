@@ -35,9 +35,7 @@ void main() {
         'name': 'Test Company',
         'ownerId': 'owner123',
         'members': ['owner123', 'uid123'],
-        'memberDetails': {
-          'uid123': mockMemberMap,
-        },
+        'memberDetails': {'uid123': mockMemberMap},
         'address': '123 Test St',
         'taxId': 'TIN-456',
         'createdAt': mockCreatedAt,

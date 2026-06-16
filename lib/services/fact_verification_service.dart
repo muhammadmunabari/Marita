@@ -4,8 +4,10 @@ import 'package:marita/models/chunk_model.dart';
 enum ClaimCategory {
   /// Jawaban sesuai sepenuhnya dengan data sumber.
   fullCorrect,
+
   /// Nilai numerik benar tetapi kesalahan pada satuan (e.g. ribu vs juta) atau pembulatan.
   semiCorrect,
+
   /// Jawaban tidak sesuai atau merupakan numerical hallucination.
   incorrect,
 }
@@ -15,6 +17,7 @@ class AssessmentResult {
   final int fullCorrectCount;
   final int semiCorrectCount;
   final int incorrectCount;
+
   /// Precision = Correct / (Correct + Incorrect) × 100%
   final double precisionPercent;
 
@@ -29,9 +32,10 @@ class AssessmentResult {
 class VerificationResult {
   final bool isValid;
   final double confidenceScore; // 0.0 to 1.0
-  final double evidenceScore;   // 0.0 to 1.0
+  final double evidenceScore; // 0.0 to 1.0
   final List<String> feedback;
   final List<String> validatedCitations;
+
   /// Assessment Criteria breakdown (null when no chunks to verify against).
   final AssessmentResult? assessment;
 
@@ -68,7 +72,9 @@ class FactVerificationService {
 
     // 1. Numeric/Financial Claim Extraction & Cross-Referencing (Verification Layer)
     // Extract numbers, percentages, currency formats (e.g. $1,200, 15.5%, Rp1.200)
-    final RegExp numRegExp = RegExp(r'\b\d+(?:[.,]\d+)*(?:\s*(?:ribu|juta|miliar|triliun|%|M|B|K))?\b');
+    final RegExp numRegExp = RegExp(
+      r'\b\d+(?:[.,]\d+)*(?:\s*(?:ribu|juta|miliar|triliun|%|M|B|K))?\b',
+    );
     final matches = numRegExp.allMatches(draftResponse);
 
     // Assessment Criteria counters
@@ -78,7 +84,8 @@ class FactVerificationService {
 
     for (final match in matches) {
       final value = match.group(0)?.trim();
-      if (value == null || value.length < 2) continue; // Ignore trivial single digits
+      if (value == null || value.length < 2)
+        continue; // Ignore trivial single digits
 
       totalClaims++;
       bool exactMatch = false;
@@ -99,7 +106,9 @@ class FactVerificationService {
           break;
         }
         // Approximate match: same bare number appears but context differs (unit mismatch)
-        if (!approxMatch && bareNum.length >= 3 && chunkLower.contains(bareNum)) {
+        if (!approxMatch &&
+            bareNum.length >= 3 &&
+            chunkLower.contains(bareNum)) {
           approxMatch = true;
           final docName = chunk.metadata['fileName'] ?? 'Document';
           final citation = '$docName (Page ${chunk.pageNumber})';
@@ -117,20 +126,25 @@ class FactVerificationService {
         // Semi-Correct: nilai numerik benar tetapi kesalahan satuan/pembulatan
         semiCorrectCount++;
         matchedClaims += 0.5; // Partial credit for semi-correct
-        feedback.add('Semi-correct value "$value" — digits matched but unit/rounding may differ.');
+        feedback.add(
+          'Semi-correct value "$value" — digits matched but unit/rounding may differ.',
+        );
       } else {
         // Incorrect: numerical hallucination — no match in source
         incorrectCount++;
-        feedback.add('Unverified numerical value "$value" — no source match found.');
+        feedback.add(
+          'Unverified numerical value "$value" — no source match found.',
+        );
       }
     }
 
     // --- Precision Metric (Assessment Criteria) ---
     // Precision = Correct / (Correct + Incorrect) × 100%
     final int denominator = fullCorrectCount + incorrectCount;
-    final double precisionPercent = denominator > 0
-        ? (fullCorrectCount / denominator) * 100.0
-        : (totalClaims == 0 ? 100.0 : 0.0);
+    final double precisionPercent =
+        denominator > 0
+            ? (fullCorrectCount / denominator) * 100.0
+            : (totalClaims == 0 ? 100.0 : 0.0);
 
     final assessment = AssessmentResult(
       fullCorrectCount: fullCorrectCount,
@@ -141,7 +155,8 @@ class FactVerificationService {
 
     // Calculate scores
     double evidenceScore = retrievedChunks.isNotEmpty ? 1.0 : 0.0;
-    double confidenceScore = totalClaims > 0 ? (matchedClaims / totalClaims) : 1.0;
+    double confidenceScore =
+        totalClaims > 0 ? (matchedClaims / totalClaims) : 1.0;
 
     // SelfCheck Layer check
     bool isValid = confidenceScore >= 0.85;

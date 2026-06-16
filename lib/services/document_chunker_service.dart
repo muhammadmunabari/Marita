@@ -15,14 +15,14 @@ import 'document_extraction_service.dart';
 /// [MigrationService.reindexWorkspaceFiles] can re-chunk without re-downloading
 /// from Firebase Storage.
 class DocumentChunkerService {
-  static const int _chunkSize = 2000;    // characters per chunk
+  static const int _chunkSize = 2000; // characters per chunk
   static const int _chunkOverlap = 200; // overlap between consecutive chunks
 
   final FirebaseFirestore _db;
   final _uuid = const Uuid();
 
   DocumentChunkerService({FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance;
+    : _db = db ?? FirebaseFirestore.instance;
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -41,7 +41,10 @@ class DocumentChunkerService {
   }) async {
     try {
       debugPrint('[Chunker] Extracting text from "$fileName"…');
-      final pages = await DocumentExtractionService.extractText(file.path, fileName);
+      final pages = await DocumentExtractionService.extractText(
+        file.path,
+        fileName,
+      );
 
       if (pages.isEmpty) {
         debugPrint('[Chunker] No text extracted from "$fileName", skipping.');
@@ -58,7 +61,11 @@ class DocumentChunkerService {
       }
 
       debugPrint('[Chunker] Saving ${chunks.length} chunks for "$fileName"…');
-      await saveChunksDirectly(companyId: companyId, fileId: fileId, chunks: chunks);
+      await saveChunksDirectly(
+        companyId: companyId,
+        fileId: fileId,
+        chunks: chunks,
+      );
 
       // Persist raw extracted text on the file doc so reindex can avoid
       // re-downloading from Storage (Option B)
@@ -71,7 +78,9 @@ class DocumentChunkerService {
             .update({'extractedText': rawText});
       } catch (e) {
         // Non-fatal — chunking succeeded, text storage is best-effort
-        debugPrint('[Chunker] Could not persist extractedText for "$fileName": $e');
+        debugPrint(
+          '[Chunker] Could not persist extractedText for "$fileName": $e',
+        );
       }
 
       debugPrint('[Chunker] ✓ Saved ${chunks.length} chunks for "$fileName".');
@@ -106,19 +115,18 @@ class DocumentChunkerService {
       final excerpt = text.substring(start, end).trim();
 
       if (excerpt.isNotEmpty) {
-        chunks.add(DocumentChunk(
-          id: _uuid.v4(),
-          fileId: fileId,
-          fileName: fileName,
-          content: excerpt,
-          pageNumber: 1, // page-level detail not available from raw text
-          chunkIndex: chunkIndex,
-          embedding: [],
-          metadata: {
-            'startChar': start,
-            'endChar': end,
-          },
-        ));
+        chunks.add(
+          DocumentChunk(
+            id: _uuid.v4(),
+            fileId: fileId,
+            fileName: fileName,
+            content: excerpt,
+            pageNumber: 1, // page-level detail not available from raw text
+            chunkIndex: chunkIndex,
+            embedding: [],
+            metadata: {'startChar': start, 'endChar': end},
+          ),
+        );
         chunkIndex++;
       }
 
@@ -150,10 +158,7 @@ class DocumentChunkerService {
 
     for (int i = 0; i < chunks.length; i += batchLimit) {
       final batch = _db.batch();
-      final slice = chunks.sublist(
-        i,
-        (i + batchLimit).clamp(0, chunks.length),
-      );
+      final slice = chunks.sublist(i, (i + batchLimit).clamp(0, chunks.length));
 
       for (final chunk in slice) {
         final docRef = collectionRef.doc(chunk.id);
@@ -175,13 +180,14 @@ class DocumentChunkerService {
     required String companyId,
     required String fileId,
   }) async {
-    final snapshot = await _db
-        .collection('companies')
-        .doc(companyId)
-        .collection('files')
-        .doc(fileId)
-        .collection('chunks')
-        .get();
+    final snapshot =
+        await _db
+            .collection('companies')
+            .doc(companyId)
+            .collection('files')
+            .doc(fileId)
+            .collection('chunks')
+            .get();
 
     if (snapshot.docs.isEmpty) return;
 
@@ -198,6 +204,8 @@ class DocumentChunkerService {
       await batch.commit();
     }
 
-    debugPrint('[Chunker] Deleted ${snapshot.docs.length} existing chunks for file $fileId.');
+    debugPrint(
+      '[Chunker] Deleted ${snapshot.docs.length} existing chunks for file $fileId.',
+    );
   }
 }

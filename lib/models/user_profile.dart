@@ -31,7 +31,8 @@ class UserProfile {
       photoUrl: map['photoUrl'],
       hasBusinessAccount: map['hasBusinessAccount'] ?? false,
       isBiometricEnabled: map['isBiometricEnabled'] ?? false,
-      createdAt: createdTimestamp != null ? createdTimestamp.toDate() : DateTime.now(),
+      createdAt:
+          createdTimestamp != null ? createdTimestamp.toDate() : DateTime.now(),
     );
   }
 

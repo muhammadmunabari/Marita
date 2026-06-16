@@ -31,11 +31,15 @@ class SupervisedTuningService {
   /// Exports the logged training datasets in Vertex AI JSONL format.
   Future<String> exportToJsonlFormat({required String domain}) async {
     try {
-      final snap = await _firestore
-          .collection('supervised_tuning_dataset')
-          .where('domain', isEqualTo: domain)
-          .where('rating', isGreaterThanOrEqualTo: 0.5) // Export positive reviews
-          .get();
+      final snap =
+          await _firestore
+              .collection('supervised_tuning_dataset')
+              .where('domain', isEqualTo: domain)
+              .where(
+                'rating',
+                isGreaterThanOrEqualTo: 0.5,
+              ) // Export positive reviews
+              .get();
 
       final sb = StringBuffer();
       for (final doc in snap.docs) {
@@ -45,16 +49,19 @@ class SupervisedTuningService {
             {
               'role': 'user',
               'parts': [
-                {'text': 'Context:\n${data['context']}\n\nQuestion: ${data['prompt']}'}
-              ]
+                {
+                  'text':
+                      'Context:\n${data['context']}\n\nQuestion: ${data['prompt']}',
+                },
+              ],
             },
             {
               'role': 'model',
               'parts': [
-                {'text': data['response']}
-              ]
-            }
-          ]
+                {'text': data['response']},
+              ],
+            },
+          ],
         };
         sb.writeln(jsonEncode(example));
       }

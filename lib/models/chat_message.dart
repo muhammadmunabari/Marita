@@ -39,10 +39,7 @@ class ChatAttachment {
     );
   }
 
-  ChatAttachment copyWith({
-    String? url,
-    int? size,
-  }) {
+  ChatAttachment copyWith({String? url, int? size}) {
     return ChatAttachment(
       id: id,
       name: name,
@@ -99,7 +96,10 @@ class ChatMessage {
       'text': text,
       'role': role.name,
       'attachments': attachments.map((a) => a.toMap()).toList(),
-      'createdAt': createdAt != null ? createdAt!.toIso8601String() : DateTime.now().toIso8601String(),
+      'createdAt':
+          createdAt != null
+              ? createdAt!.toIso8601String()
+              : DateTime.now().toIso8601String(),
       'queryType': queryType,
       'confidenceScore': confidenceScore,
       'citations': citations,
@@ -118,10 +118,12 @@ class ChatMessage {
       id: map['id'] ?? '',
       text: map['text'] ?? '',
       role: map['role'] == 'ai' ? MessageRole.ai : MessageRole.user,
-      attachments: (map['attachments'] as List? ?? [])
-          .map((a) => ChatAttachment.fromMap(a as Map<String, dynamic>))
-          .toList(),
-      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+      attachments:
+          (map['attachments'] as List? ?? [])
+              .map((a) => ChatAttachment.fromMap(a as Map<String, dynamic>))
+              .toList(),
+      createdAt:
+          map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
       queryType: map['queryType'],
       confidenceScore: (map['confidenceScore'] as num?)?.toDouble(),
       citations: List<String>.from(map['citations'] ?? []),
@@ -131,9 +133,10 @@ class ChatMessage {
       incorrectCount: map['incorrectCount'] as int?,
       precisionPercent: (map['precisionPercent'] as num?)?.toDouble(),
       retrievedChunksCount: map['retrievedChunksCount'] as int?,
-      retrievedChunksInfo: (map['retrievedChunksInfo'] as List? ?? [])
-          .map((c) => Map<String, dynamic>.from(c as Map))
-          .toList(),
+      retrievedChunksInfo:
+          (map['retrievedChunksInfo'] as List? ?? [])
+              .map((c) => Map<String, dynamic>.from(c as Map))
+              .toList(),
     );
   }
 
@@ -172,4 +175,3 @@ class ChatMessage {
     );
   }
 }
-

@@ -57,10 +57,13 @@ class FileItem {
       chatId: map['chatId'],
       tags: List<String>.from(map['tags'] ?? []),
       createdAt: parseDateTime(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? parseDateTime(map['updatedAt']) : null,
+      updatedAt:
+          map['updatedAt'] != null ? parseDateTime(map['updatedAt']) : null,
       isIndexed: map['isIndexed'] ?? false,
-      indexedAt: map['indexedAt'] != null ? parseDateTime(map['indexedAt']) : null,
-      chunkCount: map['chunkCount'] is num ? (map['chunkCount'] as num).toInt() : null,
+      indexedAt:
+          map['indexedAt'] != null ? parseDateTime(map['indexedAt']) : null,
+      chunkCount:
+          map['chunkCount'] is num ? (map['chunkCount'] as num).toInt() : null,
     );
   }
 

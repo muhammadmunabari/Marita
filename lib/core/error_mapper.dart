@@ -11,7 +11,7 @@ class ErrorMapper {
         stackTrace: stackTrace,
       );
     }
-    
+
     return AppError(
       code: 'unknown',
       message: exception.toString(),

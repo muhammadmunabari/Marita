@@ -18,7 +18,9 @@ final settingsServiceProvider = Provider<SettingsService>((ref) {
 });
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in main()');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main()',
+  );
 });
 
 final localBiometricEnabledProvider = Provider<bool>((ref) {
@@ -39,21 +41,26 @@ final localBiometricEnabledProvider = Provider<bool>((ref) {
 final userProfileModelProvider = StreamProvider<UserProfile?>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(null);
-  
-  return ref.watch(userProfileProvider).when(
-    data: (data) {
-      if (data == null) return Stream.value(null);
-      final profile = UserProfile.fromMap(user.uid, data);
-      
-      // Cache in SharedPreferences
-      final prefs = ref.read(sharedPreferencesProvider);
-      prefs.setBool('biometric_enabled_${user.uid}', profile.isBiometricEnabled);
-      
-      return Stream.value(profile);
-    },
-    loading: () => const Stream.empty(),
-    error: (err, stack) => Stream.value(null),
-  );
+
+  return ref
+      .watch(userProfileProvider)
+      .when(
+        data: (data) {
+          if (data == null) return Stream.value(null);
+          final profile = UserProfile.fromMap(user.uid, data);
+
+          // Cache in SharedPreferences
+          final prefs = ref.read(sharedPreferencesProvider);
+          prefs.setBool(
+            'biometric_enabled_${user.uid}',
+            profile.isBiometricEnabled,
+          );
+
+          return Stream.value(profile);
+        },
+        loading: () => const Stream.empty(),
+        error: (err, stack) => Stream.value(null),
+      );
 });
 
 // Settings UI State
@@ -62,11 +69,7 @@ class SettingsState {
   final AppError? error;
   final String? successMessage;
 
-  SettingsState({
-    this.isLoading = false,
-    this.error,
-    this.successMessage,
-  });
+  SettingsState({this.isLoading = false, this.error, this.successMessage});
 
   SettingsState copyWith({
     bool? isLoading,
@@ -92,6 +95,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
     String? name,
     String? phoneNumber,
     String? photoUrl,
+    String? email,
+    String? password,
   }) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
@@ -102,6 +107,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
       name: name,
       phoneNumber: phoneNumber,
       photoUrl: photoUrl,
+      email: email,
+      password: password,
     );
 
     result.fold(
@@ -119,14 +126,22 @@ class SettingsNotifier extends Notifier<SettingsState> {
     if (user == null) return;
 
     state = state.copyWith(isLoading: true);
-    final uploadResult = await _settingsService.uploadProfilePhoto(user.uid, file);
+    final uploadResult = await _settingsService.uploadProfilePhoto(
+      user.uid,
+      file,
+    );
 
     await uploadResult.fold(
       (photoUrl) async {
-        final updateResult = await _settingsService.updateProfile(user.uid, photoUrl: photoUrl);
+        final updateResult = await _settingsService.updateProfile(
+          user.uid,
+          photoUrl: photoUrl,
+        );
         updateResult.fold(
           (data) {
-            state = SettingsState(successMessage: 'Profile picture updated successfully.');
+            state = SettingsState(
+              successMessage: 'Profile picture updated successfully.',
+            );
           },
           (error) {
             state = SettingsState(error: error);
@@ -154,15 +169,21 @@ class SettingsNotifier extends Notifier<SettingsState> {
       }
     }
 
-    final result = await _settingsService.updateBiometricPreference(user.uid, enabled);
+    final result = await _settingsService.updateBiometricPreference(
+      user.uid,
+      enabled,
+    );
     result.fold(
       (data) {
         // Also save to SharedPreferences
         final prefs = ref.read(sharedPreferencesProvider);
         prefs.setBool('biometric_enabled_${user.uid}', enabled);
-        
+
         state = SettingsState(
-          successMessage: enabled ? 'Biometrics enabled successfully.' : 'Biometrics disabled.',
+          successMessage:
+              enabled
+                  ? 'Biometrics enabled successfully.'
+                  : 'Biometrics disabled.',
         );
       },
       (error) {
@@ -178,7 +199,10 @@ class SettingsNotifier extends Notifier<SettingsState> {
       state = SettingsState();
     } catch (e) {
       state = SettingsState(
-        error: AppError(code: 'logout-failed', message: 'Failed to log out: $e'),
+        error: AppError(
+          code: 'logout-failed',
+          message: 'Failed to log out: $e',
+        ),
       );
     }
   }
@@ -200,7 +224,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
   }
 }
 
-final settingsNotifierProvider = NotifierProvider<SettingsNotifier, SettingsState>(SettingsNotifier.new);
+final settingsNotifierProvider =
+    NotifierProvider<SettingsNotifier, SettingsState>(SettingsNotifier.new);
 
 /// Provider to track if the user has verified biometrics during the current app session.
 class BiometricSessionNotifier extends Notifier<bool> {
@@ -219,6 +244,7 @@ class BiometricSessionNotifier extends Notifier<bool> {
   set state(bool value) => super.state = value;
 }
 
-final biometricSessionProvider = NotifierProvider<BiometricSessionNotifier, bool>(BiometricSessionNotifier.new);
-
-
+final biometricSessionProvider =
+    NotifierProvider<BiometricSessionNotifier, bool>(
+      BiometricSessionNotifier.new,
+    );

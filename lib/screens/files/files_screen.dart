@@ -51,7 +51,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    
+
     final currentFolderId = ref.watch(currentFolderIdProvider);
     final files = ref.watch(currentFolderFilesProvider);
     final breadcrumbs = ref.watch(folderBreadcrumbsProvider);
@@ -64,14 +64,21 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.error!.message, style: const TextStyle(color: Colors.white)),
+            content: Text(
+              next.error!.message,
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: colors.error,
           ),
         );
-      } else if (next.successMessage != null && next.successMessage != previous?.successMessage) {
+      } else if (next.successMessage != null &&
+          next.successMessage != previous?.successMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.successMessage!, style: const TextStyle(color: Colors.white)),
+            content: Text(
+              next.successMessage!,
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: colors.success,
           ),
         );
@@ -79,10 +86,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     });
 
     // Filter files by search query
-    final filteredFiles = files.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      return item.name.toLowerCase().contains(_searchQuery);
-    }).toList();
+    final filteredFiles =
+        files.where((item) {
+          if (_searchQuery.isEmpty) return true;
+          return item.name.toLowerCase().contains(_searchQuery);
+        }).toList();
 
     // Sort: Folders first, then alphabetical by name
     filteredFiles.sort((a, b) {
@@ -106,12 +114,23 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                 if (_isSearching) _buildSearchBar(context),
 
                 // Breadcrumbs & Toggle
-                _buildBreadcrumbsAndActions(context, breadcrumbs, currentFolderId, isGrid),
+                _buildBreadcrumbsAndActions(
+                  context,
+                  breadcrumbs,
+                  currentFolderId,
+                  isGrid,
+                ),
 
                 if (!canWrite)
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: MaritaSpacing.lg, vertical: MaritaSpacing.xs),
-                    padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.md, vertical: MaritaSpacing.sm),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: MaritaSpacing.lg,
+                      vertical: MaritaSpacing.xs,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MaritaSpacing.md,
+                      vertical: MaritaSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
                       color: colors.backgroundSecondary,
                       borderRadius: BorderRadius.circular(8),
@@ -119,12 +138,18 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.visibility, color: colors.contentTertiary, size: 16),
+                        Icon(
+                          Icons.visibility,
+                          color: colors.contentTertiary,
+                          size: 16,
+                        ),
                         const SizedBox(width: MaritaSpacing.xs),
                         Expanded(
                           child: Text(
                             'View Only — you cannot upload, rename, or delete files',
-                            style: typography.bodySmall.copyWith(color: colors.contentTertiary),
+                            style: typography.bodySmall.copyWith(
+                              color: colors.contentTertiary,
+                            ),
                           ),
                         ),
                       ],
@@ -133,11 +158,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
                 // Main Content
                 Expanded(
-                  child: filteredFiles.isEmpty
-                      ? _buildEmptyState(context)
-                      : (isGrid
-                          ? _buildGridView(context, filteredFiles)
-                          : _buildListView(context, filteredFiles)),
+                  child:
+                      filteredFiles.isEmpty
+                          ? _buildEmptyState(context)
+                          : (isGrid
+                              ? _buildGridView(context, filteredFiles)
+                              : _buildListView(context, filteredFiles)),
                 ),
               ],
             ),
@@ -150,12 +176,16 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(colors.interactivePrimary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.interactivePrimary,
+                      ),
                     ),
                     const SizedBox(height: MaritaSpacing.md),
                     Text(
                       'Processing...',
-                      style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                      style: typography.bodyDefault.copyWith(
+                        color: colors.contentSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -163,14 +193,15 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             ),
         ],
       ),
-      floatingActionButton: canWrite
-          ? FloatingActionButton(
-              onPressed: () => _showAddOptions(context),
-              backgroundColor: colors.interactivePrimary,
-              shape: const CircleBorder(),
-              child: Icon(Icons.add, color: colors.contentInverse, size: 28),
-            )
-          : null,
+      floatingActionButton:
+          canWrite
+              ? FloatingActionButton(
+                onPressed: () => _showAddOptions(context),
+                backgroundColor: colors.interactivePrimary,
+                shape: const CircleBorder(),
+                child: Icon(Icons.add, color: colors.contentInverse, size: 28),
+              )
+              : null,
     );
   }
 
@@ -179,7 +210,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final typography = context.maritaTypography;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.lg, vertical: MaritaSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: MaritaSpacing.lg,
+        vertical: MaritaSpacing.md,
+      ),
       child: Row(
         children: [
           Text(
@@ -209,11 +243,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             },
           ),
           IconButton(
-            icon: Icon(
-              Icons.sync,
-              color: colors.contentPrimary,
-              size: 22,
-            ),
+            icon: Icon(Icons.sync, color: colors.contentPrimary, size: 22),
             onPressed: () async {
               await ref.read(fileOpsProvider.notifier).syncChatFiles();
             },
@@ -228,17 +258,29 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final typography = context.maritaTypography;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.lg, vertical: MaritaSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: MaritaSpacing.lg,
+        vertical: MaritaSpacing.xs,
+      ),
       child: TextField(
         controller: _searchController,
         style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
         decoration: InputDecoration(
           hintText: 'Search files and folders...',
-          hintStyle: typography.bodyDefault.copyWith(color: colors.contentTertiary),
-          prefixIcon: Icon(MaritaIcons.search, color: colors.contentTertiary, size: 20),
+          hintStyle: typography.bodyDefault.copyWith(
+            color: colors.contentTertiary,
+          ),
+          prefixIcon: Icon(
+            MaritaIcons.search,
+            color: colors.contentTertiary,
+            size: 20,
+          ),
           fillColor: colors.backgroundSecondary,
           filled: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: MaritaSpacing.md),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 0,
+            horizontal: MaritaSpacing.md,
+          ),
           border: OutlineInputBorder(
             borderRadius: MaritaRadius.borderMedium,
             borderSide: BorderSide(color: colors.borderPrimary),
@@ -262,7 +304,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final typography = context.maritaTypography;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.lg, vertical: MaritaSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: MaritaSpacing.lg,
+        vertical: MaritaSpacing.sm,
+      ),
       child: Row(
         children: [
           // Breadcrumbs
@@ -278,25 +323,42 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                     child: Text(
                       'Root',
                       style: typography.bodySmall.copyWith(
-                        color: currentFolderId == null ? colors.interactivePrimary : colors.contentSecondary,
-                        fontWeight: currentFolderId == null ? FontWeight.bold : FontWeight.normal,
+                        color:
+                            currentFolderId == null
+                                ? colors.interactivePrimary
+                                : colors.contentSecondary,
+                        fontWeight:
+                            currentFolderId == null
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                       ),
                     ),
                   ),
                   for (final crumb in breadcrumbs) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Icon(Icons.chevron_right, size: 14, color: colors.contentTertiary),
+                      child: Icon(
+                        Icons.chevron_right,
+                        size: 14,
+                        color: colors.contentTertiary,
+                      ),
                     ),
                     GestureDetector(
                       onTap: () {
-                        ref.read(currentFolderIdProvider.notifier).state = crumb.id;
+                        ref.read(currentFolderIdProvider.notifier).state =
+                            crumb.id;
                       },
                       child: Text(
                         crumb.name,
                         style: typography.bodySmall.copyWith(
-                          color: crumb.id == currentFolderId ? colors.interactivePrimary : colors.contentSecondary,
-                          fontWeight: crumb.id == currentFolderId ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              crumb.id == currentFolderId
+                                  ? colors.interactivePrimary
+                                  : colors.contentSecondary,
+                          fontWeight:
+                              crumb.id == currentFolderId
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -339,8 +401,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             ),
             const SizedBox(height: MaritaSpacing.lg),
             Text(
-              _searchQuery.isNotEmpty ? 'No files match "$_searchQuery"' : 'This folder is empty',
-              style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+              _searchQuery.isNotEmpty
+                  ? 'No files match "$_searchQuery"'
+                  : 'This folder is empty',
+              style: typography.bodyLargeBold.copyWith(
+                color: colors.contentPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: MaritaSpacing.xs),
@@ -348,7 +414,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               _searchQuery.isNotEmpty
                   ? 'Try searching for something else or clear filter.'
                   : 'Tap the "+" button below to upload files or create folders.',
-              style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+              style: typography.bodyDefault.copyWith(
+                color: colors.contentSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -391,7 +459,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final typography = context.maritaTypography;
 
     return MaritaCard(
-      padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.md, vertical: MaritaSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: MaritaSpacing.md,
+        vertical: MaritaSpacing.sm,
+      ),
       onTap: () => _handleItemTap(item),
       child: Row(
         children: [
@@ -406,19 +477,29 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   item.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyLargeBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  item.isFolder ? 'Folder' : '${_formatSize(item.size)} • ${_formatDate(item.createdAt)}',
-                  style: typography.bodySmall.copyWith(color: colors.contentTertiary),
+                  item.isFolder
+                      ? 'Folder'
+                      : '${_formatSize(item.size)} • ${_formatDate(item.createdAt)}',
+                  style: typography.bodySmall.copyWith(
+                    color: colors.contentTertiary,
+                  ),
                 ),
               ],
             ),
           ),
           if (ref.watch(canWriteProvider))
             IconButton(
-              icon: Icon(MaritaIcons.more, color: colors.contentSecondary, size: 20),
+              icon: Icon(
+                MaritaIcons.more,
+                color: colors.contentSecondary,
+                size: 20,
+              ),
               onPressed: () => _showItemOptions(context, item),
             ),
         ],
@@ -442,20 +523,26 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                 _buildTypeIcon(item, size: 44),
                 const SizedBox(height: MaritaSpacing.sm),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.xs),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MaritaSpacing.xs,
+                  ),
                   child: Text(
                     item.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.contentPrimary,
+                    ),
                   ),
                 ),
                 if (!item.isFolder) ...[
                   const SizedBox(height: 2),
                   Text(
                     _formatSize(item.size),
-                    style: typography.bodySmall.copyWith(color: colors.contentTertiary),
+                    style: typography.bodySmall.copyWith(
+                      color: colors.contentTertiary,
+                    ),
                   ),
                 ],
               ],
@@ -466,7 +553,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               top: -6,
               right: -6,
               child: IconButton(
-                icon: Icon(MaritaIcons.more, color: colors.contentSecondary, size: 18),
+                icon: Icon(
+                  MaritaIcons.more,
+                  color: colors.contentSecondary,
+                  size: 18,
+                ),
                 onPressed: () => _showItemOptions(context, item),
               ),
             ),
@@ -479,7 +570,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final colors = context.maritaColors;
 
     if (item.isFolder) {
-      return Icon(MaritaIcons.folder, color: colors.interactivePrimary, size: size);
+      return Icon(
+        MaritaIcons.folder,
+        color: colors.interactivePrimary,
+        size: size,
+      );
     }
 
     IconData icon;
@@ -544,7 +639,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   Expanded(
                     child: Text(
                       item.name,
-                      style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary),
+                      style: typography.bodyLargeBold.copyWith(
+                        color: colors.contentPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -552,7 +649,11 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               const Divider(height: MaritaSpacing.xl),
               _buildDetailRow('Type', item.type.toUpperCase(), context),
               _buildDetailRow('Size', _formatSize(item.size), context),
-              _buildDetailRow('Created At', _formatDate(item.createdAt), context),
+              _buildDetailRow(
+                'Created At',
+                _formatDate(item.createdAt),
+                context,
+              ),
               if (item.chatId != null)
                 _buildDetailRow('Source', 'Chat Attachment', context),
               const SizedBox(height: MaritaSpacing.lg),
@@ -562,21 +663,27 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.interactivePrimary,
-                        padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.md),
-                        shape: RoundedRectangleBorder(borderRadius: MaritaRadius.borderMedium),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: MaritaSpacing.md,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: MaritaRadius.borderMedium,
+                        ),
                       ),
                       onPressed: () {
                         Navigator.pop(context);
                         if (item.url != null) {
                           SharePlus.instance.share(
-                            ShareParams(
-                              text: item.url!,
-                              subject: item.name,
-                            ),
+                            ShareParams(text: item.url!, subject: item.name),
                           );
                         }
                       },
-                      child: Text('Share Link', style: typography.bodyDefaultBold.copyWith(color: colors.contentInverse)),
+                      child: Text(
+                        'Share Link',
+                        style: typography.bodyDefaultBold.copyWith(
+                          color: colors.contentInverse,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -597,8 +704,18 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
-          Text(value, style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary)),
+          Text(
+            label,
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: typography.bodyDefaultBold.copyWith(
+              color: colors.contentPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -621,7 +738,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             children: [
               ListTile(
                 leading: Icon(MaritaIcons.edit, color: colors.contentPrimary),
-                title: Text('Rename', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                title: Text(
+                  'Rename',
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _showRenameDialog(context, item);
@@ -629,7 +751,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ),
               ListTile(
                 leading: Icon(MaritaIcons.trash, color: colors.error),
-                title: Text('Delete', style: typography.bodyDefault.copyWith(color: colors.error)),
+                title: Text(
+                  'Delete',
+                  style: typography.bodyDefault.copyWith(color: colors.error),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDelete(context, item);
@@ -652,30 +777,51 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('Rename', style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary)),
+          title: Text(
+            'Rename',
+            style: typography.bodyLargeBold.copyWith(
+              color: colors.contentPrimary,
+            ),
+          ),
           content: TextField(
             controller: controller,
-            style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentPrimary,
+            ),
             decoration: InputDecoration(
               fillColor: colors.backgroundPrimary,
               filled: true,
-              border: OutlineInputBorder(borderRadius: MaritaRadius.borderMedium),
+              border: OutlineInputBorder(
+                borderRadius: MaritaRadius.borderMedium,
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 final newName = controller.text.trim();
                 if (newName.isNotEmpty && newName != item.name) {
                   Navigator.pop(context);
-                  await ref.read(fileOpsProvider.notifier).rename(item, newName);
+                  await ref
+                      .read(fileOpsProvider.notifier)
+                      .rename(item, newName);
                 }
               },
-              child: Text('Rename', style: typography.bodyDefaultBold.copyWith(color: colors.interactivePrimary)),
+              child: Text(
+                'Rename',
+                style: typography.bodyDefaultBold.copyWith(
+                  color: colors.interactivePrimary,
+                ),
+              ),
             ),
           ],
         );
@@ -692,22 +838,37 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('Delete', style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary)),
+          title: Text(
+            'Delete',
+            style: typography.bodyLargeBold.copyWith(
+              color: colors.contentPrimary,
+            ),
+          ),
           content: Text(
             'Are you sure you want to delete "${item.name}"? This action cannot be undone.',
-            style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentSecondary,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
                 await ref.read(fileOpsProvider.notifier).delete(item);
               },
-              child: Text('Delete', style: typography.bodyDefaultBold.copyWith(color: colors.error)),
+              child: Text(
+                'Delete',
+                style: typography.bodyDefaultBold.copyWith(color: colors.error),
+              ),
             ),
           ],
         );
@@ -731,24 +892,48 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(MaritaIcons.folderAdd, color: colors.interactivePrimary),
-                title: Text('Create Folder', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                leading: Icon(
+                  MaritaIcons.folderAdd,
+                  color: colors.interactivePrimary,
+                ),
+                title: Text(
+                  'Create Folder',
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _showCreateFolderDialog(context);
                 },
               ),
               ListTile(
-                leading: Icon(MaritaIcons.document, color: colors.contentPrimary),
-                title: Text('Upload Document', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                leading: Icon(
+                  MaritaIcons.document,
+                  color: colors.contentPrimary,
+                ),
+                title: Text(
+                  'Upload Document',
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _handleUploadDocument();
                 },
               ),
               ListTile(
-                leading: Icon(MaritaIcons.gallery, color: colors.contentPrimary),
-                title: Text('Upload Photo / Image', style: typography.bodyDefault.copyWith(color: colors.contentPrimary)),
+                leading: Icon(
+                  MaritaIcons.gallery,
+                  color: colors.contentPrimary,
+                ),
+                title: Text(
+                  'Upload Photo / Image',
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _handleUploadImage();
@@ -771,22 +956,38 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('New Folder', style: typography.bodyLargeBold.copyWith(color: colors.contentPrimary)),
+          title: Text(
+            'New Folder',
+            style: typography.bodyLargeBold.copyWith(
+              color: colors.contentPrimary,
+            ),
+          ),
           content: TextField(
             controller: controller,
-            style: typography.bodyDefault.copyWith(color: colors.contentPrimary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentPrimary,
+            ),
             decoration: InputDecoration(
               hintText: 'Folder Name',
-              hintStyle: typography.bodyDefault.copyWith(color: colors.contentTertiary),
+              hintStyle: typography.bodyDefault.copyWith(
+                color: colors.contentTertiary,
+              ),
               fillColor: colors.backgroundPrimary,
               filled: true,
-              border: OutlineInputBorder(borderRadius: MaritaRadius.borderMedium),
+              border: OutlineInputBorder(
+                borderRadius: MaritaRadius.borderMedium,
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -796,7 +997,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   await ref.read(fileOpsProvider.notifier).createFolder(name);
                 }
               },
-              child: Text('Create', style: typography.bodyDefaultBold.copyWith(color: colors.interactivePrimary)),
+              child: Text(
+                'Create',
+                style: typography.bodyDefaultBold.copyWith(
+                  color: colors.interactivePrimary,
+                ),
+              ),
             ),
           ],
         );
@@ -816,10 +1022,12 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
         // We have local file, upload it
         final file = File(attach.path);
         final parentId = ref.read(currentFolderIdProvider);
-        
+
         // Show loading state manually if wanted, or let service/ops notifier handle it.
         // Let's create an action on OpsNotifier or call it directly.
-        await ref.read(fileOpsProvider.notifier).uploadFile(file, attach.name, parentId);
+        await ref
+            .read(fileOpsProvider.notifier)
+            .uploadFile(file, attach.name, parentId);
       }
     }
   }
@@ -833,7 +1041,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
     final file = File(picked.path);
     final parentId = ref.read(currentFolderIdProvider);
-    await ref.read(fileOpsProvider.notifier).uploadFile(file, picked.name, parentId);
+    await ref
+        .read(fileOpsProvider.notifier)
+        .uploadFile(file, picked.name, parentId);
   }
 
   String _formatSize(int? sizeBytes) {

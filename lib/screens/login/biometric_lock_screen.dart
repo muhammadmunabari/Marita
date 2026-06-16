@@ -12,7 +12,8 @@ class BiometricLockScreen extends ConsumerStatefulWidget {
   const BiometricLockScreen({super.key});
 
   @override
-  ConsumerState<BiometricLockScreen> createState() => _BiometricLockScreenState();
+  ConsumerState<BiometricLockScreen> createState() =>
+      _BiometricLockScreenState();
 }
 
 class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
@@ -35,7 +36,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
     try {
       final biometricService = ref.read(biometricServiceProvider);
       final result = await biometricService.authenticate();
-      
+
       if (result.isSuccess && result.dataOrNull == true) {
         // Set the session state to true
         ref.read(biometricSessionProvider.notifier).state = true;
@@ -100,7 +101,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(flex: 2),
-              
+
               // Logo
               Center(
                 child: Image.asset(
@@ -110,7 +111,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                 ),
               ),
               const SizedBox(height: MaritaSpacing.xl),
-              
+
               // Lock Status Title
               Center(
                 child: Text(
@@ -121,7 +122,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                 ),
               ),
               const SizedBox(height: MaritaSpacing.xs),
-              
+
               // Lock Status Subtitle
               Center(
                 child: Text(
@@ -132,9 +133,9 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              
+
               const Spacer(),
-              
+
               // Fingerprint Icon / Scanning visual
               Center(
                 child: GestureDetector(
@@ -152,24 +153,28 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                     child: MaritaIcon(
                       icon: MaritaIcons.fingerScan,
                       size: 64,
-                      color: _isAuthenticating
-                          ? context.maritaColors.interactivePrimary
-                          : context.maritaColors.contentPrimary,
+                      color:
+                          _isAuthenticating
+                              ? context.maritaColors.interactivePrimary
+                              : context.maritaColors.contentPrimary,
                     ),
                   ),
                 ),
               ),
-              
+
               const Spacer(flex: 2),
-              
+
               // Buttons
               MaritaPrimaryButton(
-                label: _isAuthenticating ? 'Verifying...' : 'Unlock with Biometrics',
+                label:
+                    _isAuthenticating
+                        ? 'Verifying...'
+                        : 'Unlock with Biometrics',
                 onPressed: _authenticate,
               ),
-              
+
               const SizedBox(height: MaritaSpacing.md),
-              
+
               TextButton(
                 onPressed: _handleLogout,
                 child: Text(
@@ -180,7 +185,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: MaritaSpacing.xl),
             ],
           ),

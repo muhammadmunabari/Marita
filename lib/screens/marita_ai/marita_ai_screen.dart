@@ -30,9 +30,19 @@ class ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
 
-  ChatState({this.chatId, this.title, this.messages = const [], this.isLoading = false});
+  ChatState({
+    this.chatId,
+    this.title,
+    this.messages = const [],
+    this.isLoading = false,
+  });
 
-  ChatState copyWith({String? chatId, String? title, List<ChatMessage>? messages, bool? isLoading}) {
+  ChatState copyWith({
+    String? chatId,
+    String? title,
+    List<ChatMessage>? messages,
+    bool? isLoading,
+  }) {
     return ChatState(
       chatId: chatId ?? this.chatId,
       title: title ?? this.title,
@@ -102,6 +112,7 @@ class ChatNotifier extends Notifier<ChatState> {
         }
         return limitedWords.isEmpty ? 'New chat' : limitedWords;
       }
+
       final newTitle = generateTitle(text);
 
       currentChatId = await firestoreService.createWorkspaceChat(
@@ -120,7 +131,10 @@ class ChatNotifier extends Notifier<ChatState> {
     if (attachments != null && attachments.isNotEmpty) {
       List<ChatAttachment> results = [];
       for (var attachment in attachments) {
-        final url = await AttachmentService.uploadAttachment(attachment, userId);
+        final url = await AttachmentService.uploadAttachment(
+          attachment,
+          userId,
+        );
         if (url != null) {
           results.add(attachment.copyWith(url: url));
         } else {
@@ -128,12 +142,15 @@ class ChatNotifier extends Notifier<ChatState> {
         }
       }
       uploadedAttachments = results;
-      
+
       // Update user message with uploaded URLs
       state = state.copyWith(
         messages: [
           for (final msg in state.messages)
-            if (msg.id == tempId) msg.copyWith(attachments: uploadedAttachments) else msg,
+            if (msg.id == tempId)
+              msg.copyWith(attachments: uploadedAttachments)
+            else
+              msg,
         ],
       );
     }
@@ -158,7 +175,7 @@ class ChatNotifier extends Notifier<ChatState> {
   void regenerateMessage(ChatMessage aiMessage) async {
     final index = state.messages.indexOf(aiMessage);
     if (index <= 0) return;
-    
+
     final userMessage = state.messages[index - 1];
     if (userMessage.role != MessageRole.user) return;
 
@@ -177,18 +194,33 @@ class ChatNotifier extends Notifier<ChatState> {
     state = state.copyWith(messages: [...state.messages, aiMsg]);
 
     // Re-trigger Gemini using the same content
-    await _processGeminiStream(aiId, userMessage.text, userMessage.attachments, state.chatId);
+    await _processGeminiStream(
+      aiId,
+      userMessage.text,
+      userMessage.attachments,
+      state.chatId,
+    );
   }
 
-  Future<void> _processGeminiStream(String aiId, String text, List<ChatAttachment> attachments, String? chatId) async {
+  Future<void> _processGeminiStream(
+    String aiId,
+    String text,
+    List<ChatAttachment> attachments,
+    String? chatId,
+  ) async {
     final firestoreService = ref.read(firestoreServiceProvider);
     try {
-      var historyList = state.messages
-          .where((m) => m.id != aiId && !m.isStreaming) // Don't include current or other streaming messages in history
-          .toList();
-          
+      var historyList =
+          state.messages
+              .where(
+                (m) => m.id != aiId && !m.isStreaming,
+              ) // Don't include current or other streaming messages in history
+              .toList();
+
       // Exclude the very last user message because it's passed as the `text` (prompt)
-      if (historyList.isNotEmpty && historyList.last.role == MessageRole.user && historyList.last.text == text) {
+      if (historyList.isNotEmpty &&
+          historyList.last.role == MessageRole.user &&
+          historyList.last.text == text) {
         historyList = historyList.sublist(0, historyList.length - 1);
       }
 
@@ -196,22 +228,31 @@ class ChatNotifier extends Notifier<ChatState> {
       final workspaceId = workspace?.id ?? 'default';
 
       final pipelineService = AIPipelineService();
-      
+
       // Stage 1 & 2: Static Analysis and RAG Retrieval
       final retrievedChunks = await pipelineService.retrieveContext(
         query: text,
         workspaceId: workspaceId,
-        queryEmbedding: const [], // Using empty vector to trigger keyword fallback search
+        queryEmbedding:
+            const [], // Using empty vector to trigger keyword fallback search
       );
 
       // Stage 3: Build Augmented Prompt
       final queryType = PromptRouter.route(text);
-      final augmentedPrompt = pipelineService.buildAugmentedPrompt(text, queryType, retrievedChunks);
+      final augmentedPrompt = pipelineService.buildAugmentedPrompt(
+        text,
+        queryType,
+        retrievedChunks,
+      );
 
       // Stage 4: Generative Execution Stream
-      print("======================================================================");
+      print(
+        "======================================================================",
+      );
       print("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
-      print("======================================================================");
+      print(
+        "======================================================================",
+      );
       print("  ├─ Model Target: gemini-2.5-pro");
       print("  └─ Status: Stream started...");
 
@@ -233,7 +274,9 @@ class ChatNotifier extends Notifier<ChatState> {
       }
 
       print("  └─ Status: Stream generation complete.");
-      print("======================================================================\n");
+      print(
+        "======================================================================\n",
+      );
 
       // Stage 5 & 6: Fact Verification and Response Validation
       final pipelineResult = await pipelineService.verifyAndValidate(
@@ -263,7 +306,7 @@ class ChatNotifier extends Notifier<ChatState> {
         retrievedChunksCount: pipelineResult.retrievedChunksCount,
         retrievedChunksInfo: pipelineResult.retrievedChunksInfo,
       );
-      
+
       state = state.copyWith(
         messages: [
           for (final msg in state.messages)
@@ -297,7 +340,7 @@ class ChatNotifier extends Notifier<ChatState> {
             if (msg.id == aiId) errorMsg else msg,
         ],
       );
-      
+
       if (chatId != null) {
         final workspace = ref.read(activeWorkspaceProvider);
         if (workspace != null) {
@@ -312,9 +355,13 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 }
 
-final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
+final chatProvider = NotifierProvider<ChatNotifier, ChatState>(
+  ChatNotifier.new,
+);
 
-final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final workspace = ref.watch(activeWorkspaceProvider);
   if (workspace == null) return [];
   final firestoreService = ref.watch(firestoreServiceProvider);
@@ -417,7 +464,9 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
                     bottom: MaritaSpacing.lg,
                     child: _MaritaAIInputArea(
                       onSend: (text, attachments) {
-                        ref.read(chatProvider.notifier).sendMessage(text, attachments: attachments);
+                        ref
+                            .read(chatProvider.notifier)
+                            .sendMessage(text, attachments: attachments);
                         _scrollToBottom();
                       },
                     ),
@@ -458,7 +507,9 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 40), // Balance the menu button for centered title
+          const SizedBox(
+            width: 40,
+          ), // Balance the menu button for centered title
         ],
       ),
     );
@@ -591,7 +642,9 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: MaritaSpacing.xl),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: MaritaSpacing.xl,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -603,7 +656,10 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                     ),
                     if (ref.watch(canWriteProvider))
                       IconButton(
-                        icon: const MaritaIcon(icon: IconsaxPlusLinear.add, size: MaritaIconSize.small),
+                        icon: const MaritaIcon(
+                          icon: IconsaxPlusLinear.add,
+                          size: MaritaIconSize.small,
+                        ),
                         onPressed: () {
                           ref.read(chatProvider.notifier).createNewChat();
                           Navigator.pop(context);
@@ -634,14 +690,20 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                         final id = chat['id'] as String;
                         final title = chat['title'] as String?;
                         final lastMsg = chat['lastMessage'] as String? ?? '';
-                        final displayTitle = title?.isNotEmpty == true ? title! : (lastMsg.isNotEmpty ? lastMsg : 'New chat');
+                        final displayTitle =
+                            title?.isNotEmpty == true
+                                ? title!
+                                : (lastMsg.isNotEmpty ? lastMsg : 'New chat');
                         final isSelected = id == currentChatId;
 
                         String dateText = '';
                         if (chat['updatedAt'] != null) {
                           try {
-                            DateTime date = (chat['updatedAt'] as Timestamp).toDate();
-                            dateText = DateFormat('dd MMM yyyy, HH:mm').format(date);
+                            DateTime date =
+                                (chat['updatedAt'] as Timestamp).toDate();
+                            dateText = DateFormat(
+                              'dd MMM yyyy, HH:mm',
+                            ).format(date);
                           } catch (e) {
                             // Fallback if parsing fails
                           }
@@ -657,65 +719,101 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: typography.bodyDefault.copyWith(
-                              color: isSelected ? colors.interactivePrimary : colors.contentPrimary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  isSelected
+                                      ? colors.interactivePrimary
+                                      : colors.contentPrimary,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                             ),
                           ),
-                          subtitle: dateText.isNotEmpty ? Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(
-                              dateText,
-                              style: typography.bodyDefault.copyWith(
-                                color: colors.contentTertiary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ) : null,
+                          subtitle:
+                              dateText.isNotEmpty
+                                  ? Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      dateText,
+                                      style: typography.bodyDefault.copyWith(
+                                        color: colors.contentTertiary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  )
+                                  : null,
                           onTap: () {
-                            final messagesList = (chat['messages'] as List? ?? [])
-                                .map((m) => ChatMessage.fromMap(m as Map<String, dynamic>))
-                                .toList();
-                            ref.read(chatProvider.notifier).loadChat(id, displayTitle, messagesList);
+                            final messagesList =
+                                (chat['messages'] as List? ?? [])
+                                    .map(
+                                      (m) => ChatMessage.fromMap(
+                                        m as Map<String, dynamic>,
+                                      ),
+                                    )
+                                    .toList();
+                            ref
+                                .read(chatProvider.notifier)
+                                .loadChat(id, displayTitle, messagesList);
                             Navigator.pop(context);
                           },
-                          trailing: ref.watch(canWriteProvider) ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: MaritaIcon(
-                                  icon: IconsaxPlusLinear.edit_2,
-                                  size: MaritaIconSize.small,
-                                  color: colors.contentTertiary,
-                                ),
-                                onPressed: () {
-                                  _showRenameDialog(context, ref, id, displayTitle);
-                                },
-                              ),
-                              IconButton(
-                                icon: MaritaIcon(
-                                  icon: IconsaxPlusLinear.trash,
-                                  size: MaritaIconSize.small,
-                                  color: colors.contentTertiary,
-                                ),
-                                onPressed: () async {
-                                  final workspace = ref.read(activeWorkspaceProvider);
-                                  if (workspace != null) {
-                                    await ref.read(firestoreServiceProvider).deleteWorkspaceChat(workspace.id, id);
-                                    ref.invalidate(chatHistoryProvider);
-                                    if (isSelected) {
-                                      ref.read(chatProvider.notifier).createNewChat();
-                                    }
-                                  }
-                                },
-                              ),
-                            ],
-                          ) : null,
+                          trailing:
+                              ref.watch(canWriteProvider)
+                                  ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: MaritaIcon(
+                                          icon: IconsaxPlusLinear.edit_2,
+                                          size: MaritaIconSize.small,
+                                          color: colors.contentTertiary,
+                                        ),
+                                        onPressed: () {
+                                          _showRenameDialog(
+                                            context,
+                                            ref,
+                                            id,
+                                            displayTitle,
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: MaritaIcon(
+                                          icon: IconsaxPlusLinear.trash,
+                                          size: MaritaIconSize.small,
+                                          color: colors.contentTertiary,
+                                        ),
+                                        onPressed: () async {
+                                          final workspace = ref.read(
+                                            activeWorkspaceProvider,
+                                          );
+                                          if (workspace != null) {
+                                            await ref
+                                                .read(firestoreServiceProvider)
+                                                .deleteWorkspaceChat(
+                                                  workspace.id,
+                                                  id,
+                                                );
+                                            ref.invalidate(chatHistoryProvider);
+                                            if (isSelected) {
+                                              ref
+                                                  .read(chatProvider.notifier)
+                                                  .createNewChat();
+                                            }
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                  : null,
                         );
                       },
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Center(child: Text('Error loading history: $e')),
+                  loading:
+                      () => const Center(child: CircularProgressIndicator()),
+                  error:
+                      (e, st) =>
+                          Center(child: Text('Error loading history: $e')),
                 ),
               ),
             ],
@@ -725,7 +823,12 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
     );
   }
 
-  void _showRenameDialog(BuildContext context, WidgetRef ref, String chatId, String currentTitle) {
+  void _showRenameDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String chatId,
+    String currentTitle,
+  ) {
     final controller = TextEditingController(text: currentTitle);
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
@@ -735,13 +838,20 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor: colors.backgroundSecondary,
-          title: Text('Rename Chat', style: typography.titleMedium.copyWith(color: colors.contentPrimary)),
+          title: Text(
+            'Rename Chat',
+            style: typography.titleMedium.copyWith(
+              color: colors.contentPrimary,
+            ),
+          ),
           content: TextField(
             controller: controller,
             style: typography.bodyLarge.copyWith(color: colors.contentPrimary),
             decoration: InputDecoration(
               hintText: 'Enter new title',
-              hintStyle: typography.bodyLarge.copyWith(color: colors.contentTertiary),
+              hintStyle: typography.bodyLarge.copyWith(
+                color: colors.contentTertiary,
+              ),
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: colors.borderPrimary),
               ),
@@ -754,7 +864,12 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: typography.bodyDefault.copyWith(color: colors.contentSecondary)),
+              child: Text(
+                'Cancel',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -762,7 +877,13 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                 if (newTitle.isNotEmpty && newTitle != currentTitle) {
                   final workspace = ref.read(activeWorkspaceProvider);
                   if (workspace != null) {
-                    await ref.read(firestoreServiceProvider).updateWorkspaceChatTitle(workspace.id, chatId, newTitle);
+                    await ref
+                        .read(firestoreServiceProvider)
+                        .updateWorkspaceChatTitle(
+                          workspace.id,
+                          chatId,
+                          newTitle,
+                        );
                     ref.invalidate(chatHistoryProvider);
                     if (ref.read(chatProvider).chatId == chatId) {
                       ref.read(chatProvider.notifier).updateTitle(newTitle);
@@ -771,7 +892,12 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                 }
                 if (context.mounted) Navigator.pop(context);
               },
-              child: Text('Save', style: typography.bodyDefault.copyWith(color: colors.interactivePrimary)),
+              child: Text(
+                'Save',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.interactivePrimary,
+                ),
+              ),
             ),
           ],
         );
@@ -832,18 +958,23 @@ class _MessageBubble extends ConsumerWidget {
                             ? Border.all(color: colors.borderPrimary)
                             : null,
                   ),
-                                    child: Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (message.attachments.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: MaritaSpacing.md),
+                          padding: const EdgeInsets.only(
+                            bottom: MaritaSpacing.md,
+                          ),
                           child: Wrap(
                             spacing: MaritaSpacing.sm,
                             runSpacing: MaritaSpacing.sm,
-                            children: message.attachments.map((attachment) {
-                              return _AttachmentPreviewBubble(attachment: attachment);
-                            }).toList(),
+                            children:
+                                message.attachments.map((attachment) {
+                                  return _AttachmentPreviewBubble(
+                                    attachment: attachment,
+                                  );
+                                }).toList(),
                           ),
                         ),
                       isUser
@@ -897,7 +1028,9 @@ class _MessageBubble extends ConsumerWidget {
                     _AIActionIcon(
                       icon: IconsaxPlusLinear.refresh,
                       onTap: () {
-                        ref.read(chatProvider.notifier).regenerateMessage(message);
+                        ref
+                            .read(chatProvider.notifier)
+                            .regenerateMessage(message);
                       },
                     ),
                     const SizedBox(width: MaritaSpacing.md),
@@ -951,7 +1084,9 @@ class _MessageBubble extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     'Best for sharing analysis',
-                    style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -966,7 +1101,9 @@ class _MessageBubble extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     'Best for spreadsheet records',
-                    style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -1025,7 +1162,8 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
 
   void _updateState() {
     final text = _controller.text;
-    final isMultiLine = text.contains('\n') || text.length > 35 || _attachments.isNotEmpty;
+    final isMultiLine =
+        text.contains('\n') || text.length > 35 || _attachments.isNotEmpty;
     if (isMultiLine != _isMultiLine) {
       setState(() {
         _isMultiLine = isMultiLine;
@@ -1050,13 +1188,79 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
   }
 
   void _handleTakePhoto() async {
-    final photo = await AttachmentService.takePhoto();
-    if (photo != null) {
-      setState(() {
-        _attachments = [..._attachments, photo];
-        _updateState();
-      });
-    }
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.backgroundSecondary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(MaritaSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Image Source',
+                  style: typography.titleMedium.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
+                const SizedBox(height: MaritaSpacing.xl),
+                ListTile(
+                  leading: const MaritaIcon(icon: MaritaIcons.camera),
+                  title: Text('Take Photo', style: typography.bodyLarge),
+                  subtitle: Text(
+                    'Use camera to snap a picture',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final photo = await AttachmentService.takePhoto();
+                    if (photo != null) {
+                      setState(() {
+                        _attachments = [..._attachments, photo];
+                        _updateState();
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const MaritaIcon(icon: MaritaIcons.gallery),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: typography.bodyLarge,
+                  ),
+                  subtitle: Text(
+                    'Upload an image from your library',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final image = await AttachmentService.pickImage();
+                    if (image != null) {
+                      setState(() {
+                        _attachments = [..._attachments, image];
+                        _updateState();
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showTemplatesSheet() async {
@@ -1077,7 +1281,6 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
       }
     }
   }
-
 
   void _showPlusMenu() async {
     final RenderBox renderBox =
@@ -1105,7 +1308,7 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
             children: [
               MaritaIcon(icon: MaritaIcons.camera, size: MaritaIconSize.small),
               const SizedBox(width: MaritaSpacing.md),
-              Text('Take Photo', style: typography.bodyDefault),
+              Text('Upload Image', style: typography.bodyDefault),
             ],
           ),
         ),
@@ -1178,11 +1381,17 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            MaritaIcon(icon: IconsaxPlusLinear.eye, color: colors.contentTertiary, size: MaritaIconSize.small),
+            MaritaIcon(
+              icon: IconsaxPlusLinear.eye,
+              color: colors.contentTertiary,
+              size: MaritaIconSize.small,
+            ),
             const SizedBox(width: MaritaSpacing.sm),
             Text(
-              'View Only — you cannot send messages in this workspace',
-              style: typography.bodyDefault.copyWith(color: colors.contentTertiary),
+              'View Only — you cannot send messages',
+              style: typography.bodyDefault.copyWith(
+                color: colors.contentTertiary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1218,8 +1427,9 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                     itemBuilder: (context, index) {
                       final attachment = _attachments[index];
                       final isImage = attachment.type == 'image';
-                      final extension = attachment.name.split('.').last.toUpperCase();
-                      
+                      final extension =
+                          attachment.name.split('.').last.toUpperCase();
+
                       String fileSizeStr = '';
                       try {
                         final file = File(attachment.path);
@@ -1228,19 +1438,23 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                           if (bytes < 1024) {
                             fileSizeStr = '${bytes}B';
                           } else if (bytes < 1024 * 1024) {
-                            fileSizeStr = '${(bytes / 1024).toStringAsFixed(2)}KB';
+                            fileSizeStr =
+                                '${(bytes / 1024).toStringAsFixed(2)}KB';
                           } else {
-                            fileSizeStr = '${(bytes / (1024 * 1024)).toStringAsFixed(2)}MB';
+                            fileSizeStr =
+                                '${(bytes / (1024 * 1024)).toStringAsFixed(2)}MB';
                           }
                         }
                       } catch (_) {}
-                      
+
                       return Container(
                         margin: const EdgeInsets.only(right: MaritaSpacing.sm),
                         padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
                         decoration: BoxDecoration(
                           color: colors.backgroundSecondary, // Dark capsule
-                          borderRadius: BorderRadius.circular(100), // Pill shape
+                          borderRadius: BorderRadius.circular(
+                            100,
+                          ), // Pill shape
                           border: Border.all(color: colors.borderPrimary),
                         ),
                         child: Row(
@@ -1251,25 +1465,31 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: extension == 'CSV' || extension == 'XLS' || extension == 'XLSX' 
-                                    ? const Color(0xFF107C41) 
-                                    : colors.interactivePrimary,
+                                color:
+                                    extension == 'CSV' ||
+                                            extension == 'XLS' ||
+                                            extension == 'XLSX'
+                                        ? const Color(0xFF107C41)
+                                        : colors.interactivePrimary,
                                 shape: BoxShape.circle,
                               ),
-                              child: isImage
-                                  ? ClipOval(
-                                      child: Image.file(
-                                        File(attachment.path),
-                                        fit: BoxFit.cover,
+                              child:
+                                  isImage
+                                      ? ClipOval(
+                                        child: Image.file(
+                                          File(attachment.path),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                      : Center(
+                                        child: MaritaIcon(
+                                          icon: _getAttachmentIcon(
+                                            attachment.type,
+                                          ),
+                                          size: MaritaIconSize.small,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    )
-                                  : Center(
-                                      child: MaritaIcon(
-                                        icon: _getAttachmentIcon(attachment.type),
-                                        size: MaritaIconSize.small,
-                                        color: Colors.white,
-                                      ),
-                                    ),
                             ),
                             const SizedBox(width: MaritaSpacing.sm),
                             // Text Info
@@ -1284,12 +1504,16 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: typography.bodyDefaultBold.copyWith(
-                                      color: colors.interactivePrimary, // Blue text
+                                      color:
+                                          colors
+                                              .interactivePrimary, // Blue text
                                     ),
                                   ),
                                 ),
                                 Text(
-                                  fileSizeStr.isNotEmpty ? '$extension $fileSizeStr' : extension,
+                                  fileSizeStr.isNotEmpty
+                                      ? '$extension $fileSizeStr'
+                                      : extension,
                                   style: typography.bodySmall.copyWith(
                                     color: colors.contentSecondary,
                                     fontSize: 10,
@@ -1312,7 +1536,9 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                                 decoration: BoxDecoration(
                                   color: colors.backgroundPrimary,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: colors.borderPrimary),
+                                  border: Border.all(
+                                    color: colors.borderPrimary,
+                                  ),
                                 ),
                                 child: Icon(
                                   Icons.close,
@@ -1352,7 +1578,11 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
-                              icon: Icon(Icons.delete_sweep_rounded, color: colors.error, size: 20),
+                              icon: Icon(
+                                Icons.delete_sweep_rounded,
+                                color: colors.error,
+                                size: 20,
+                              ),
                               onPressed: () {
                                 setState(() {
                                   _attachments = [];
@@ -1392,7 +1622,9 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                   decoration: InputDecoration(
                     isCollapsed: true, // Remove all default internal padding
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8), // (32px container - 16px text) / 2 = 8px
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                    ), // (32px container - 16px text) / 2 = 8px
                     hintText: 'Ask Marita...',
                     hintStyle: typography.bodyLarge.copyWith(
                       color: colors.contentTertiary,
@@ -1410,7 +1642,8 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                 iconPath: 'assets/icons/iconsax-send.svg',
                 iconData: IconsaxPlusLinear.send_1,
                 onTap: () {
-                  if (_controller.text.trim().isEmpty && _attachments.isEmpty) return;
+                  if (_controller.text.trim().isEmpty && _attachments.isEmpty)
+                    return;
                   widget.onSend(_controller.text, _attachments);
                   _controller.clear();
                   setState(() {
@@ -1575,15 +1808,24 @@ class _TemplateCard extends StatelessWidget {
                       if (template.isCustom) ...[
                         const SizedBox(width: MaritaSpacing.xs),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: colors.interactivePrimary.withValues(alpha: 0.1),
+                            color: colors.interactivePrimary.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: MaritaRadius.borderSmall,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.person, size: 10, color: colors.interactivePrimary),
+                              Icon(
+                                Icons.person,
+                                size: 10,
+                                color: colors.interactivePrimary,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 'YOU',
@@ -1741,25 +1983,36 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
   void _deleteTemplate(PromptTemplate template) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.maritaColors.backgroundPrimary,
-        title: Text('Delete Template', style: context.maritaTypography.h4),
-        content: Text(
-          'Are you sure you want to delete "${template.title}"?',
-          style: context.maritaTypography.bodyDefault,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: context.maritaColors.contentSecondary)),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: context.maritaColors.backgroundPrimary,
+            title: Text('Delete Template', style: context.maritaTypography.h4),
+            content: Text(
+              'Are you sure you want to delete "${template.title}"?',
+              style: context.maritaTypography.bodyDefault,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: context.maritaColors.contentSecondary,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: context.maritaColors.error,
+                ),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: context.maritaColors.error),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -1784,17 +2037,17 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
-    final staticTemplates = TemplateService.getStaticTemplates().where((t) {
-      final query = _searchQuery.toLowerCase();
-      return t.title.toLowerCase().contains(query) ||
-          t.description.toLowerCase().contains(query);
-    }).toList();
+    final staticTemplates =
+        TemplateService.getStaticTemplates().where((t) {
+          final query = _searchQuery.toLowerCase();
+          return t.title.toLowerCase().contains(query) ||
+              t.description.toLowerCase().contains(query);
+        }).toList();
 
     final customTemplatesAsync = ref.watch(customTemplatesProvider);
 
@@ -1832,12 +2085,16 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                 children: [
                   Text(
                     'Prompt Templates',
-                    style: typography.titleMedium.copyWith(color: colors.contentPrimary),
+                    style: typography.titleMedium.copyWith(
+                      color: colors.contentPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Analyze your data faster with pre-built prompts.',
-                    style: typography.bodySmall.copyWith(color: colors.contentSecondary),
+                    style: typography.bodySmall.copyWith(
+                      color: colors.contentSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -1869,8 +2126,11 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
             ),
             child: Row(
               children: [
-                Icon(IconsaxPlusLinear.search_normal_1, 
-                     size: 18, color: colors.contentTertiary),
+                Icon(
+                  IconsaxPlusLinear.search_normal_1,
+                  size: 18,
+                  color: colors.contentTertiary,
+                ),
                 const SizedBox(width: MaritaSpacing.md),
                 Expanded(
                   child: TextField(
@@ -1879,7 +2139,9 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                     style: typography.bodyDefault,
                     decoration: InputDecoration(
                       hintText: 'Search templates...',
-                      hintStyle: typography.bodyDefault.copyWith(color: colors.contentTertiary),
+                      hintStyle: typography.bodyDefault.copyWith(
+                        color: colors.contentTertiary,
+                      ),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -1894,7 +2156,11 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                       _searchController.clear();
                       setState(() => _searchQuery = '');
                     },
-                    child: Icon(Icons.close, size: 18, color: colors.contentTertiary),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: colors.contentTertiary,
+                    ),
                   ),
               ],
             ),
@@ -1914,13 +2180,15 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                   ],
                   customTemplatesAsync.when(
                     data: (customTemplates) {
-                      final filteredCustom = customTemplates.where((t) {
-                        final query = _searchQuery.toLowerCase();
-                        return t.title.toLowerCase().contains(query) ||
-                            t.description.toLowerCase().contains(query);
-                      }).toList();
+                      final filteredCustom =
+                          customTemplates.where((t) {
+                            final query = _searchQuery.toLowerCase();
+                            return t.title.toLowerCase().contains(query) ||
+                                t.description.toLowerCase().contains(query);
+                          }).toList();
 
-                      if (filteredCustom.isEmpty) return const SizedBox.shrink();
+                      if (filteredCustom.isEmpty)
+                        return const SizedBox.shrink();
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1931,21 +2199,29 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                         ],
                       );
                     },
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: MaritaSpacing.md),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                    error: (err, stack) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.md),
-                      child: Text(
-                        'Error loading templates: $err',
-                        style: typography.bodySmall.copyWith(color: colors.error),
-                      ),
-                    ),
+                    loading:
+                        () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: MaritaSpacing.md,
+                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    error:
+                        (err, stack) => Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: MaritaSpacing.md,
+                          ),
+                          child: Text(
+                            'Error loading templates: $err',
+                            style: typography.bodySmall.copyWith(
+                              color: colors.error,
+                            ),
+                          ),
+                        ),
                   ),
-                  if (staticTemplates.isEmpty && 
+                  if (staticTemplates.isEmpty &&
                       (customTemplatesAsync.value ?? []).where((t) {
                         final query = _searchQuery.toLowerCase();
                         return t.title.toLowerCase().contains(query) ||
@@ -1956,13 +2232,18 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                         padding: const EdgeInsets.all(MaritaSpacing.xxl),
                         child: Column(
                           children: [
-                            Icon(IconsaxPlusLinear.search_status, 
-                                 size: 48, color: colors.contentTertiary),
+                            Icon(
+                              IconsaxPlusLinear.search_status,
+                              size: 48,
+                              color: colors.contentTertiary,
+                            ),
                             const SizedBox(height: MaritaSpacing.md),
                             Text(
                               'No templates found for "$_searchQuery"',
                               textAlign: TextAlign.center,
-                              style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                              style: typography.bodyDefault.copyWith(
+                                color: colors.contentSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -1993,7 +2274,8 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
       padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: templates.length,
-      separatorBuilder: (context, index) => const SizedBox(height: MaritaSpacing.md),
+      separatorBuilder:
+          (context, index) => const SizedBox(height: MaritaSpacing.md),
       itemBuilder: (context, index) {
         final template = templates[index];
         return _TemplateCard(
@@ -2018,10 +2300,10 @@ class _AttachmentPreviewBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    
+
     final isImage = attachment.type == 'image';
     final extension = attachment.name.split('.').last.toUpperCase();
-    
+
     String fileSizeStr = '';
     if (attachment.size != null) {
       final bytes = attachment.size!;
@@ -2049,44 +2331,55 @@ class _AttachmentPreviewBubble extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: extension == 'CSV' || extension == 'XLS' || extension == 'XLSX' 
-                  ? const Color(0xFF107C41) 
-                  : colors.interactivePrimary,
+              color:
+                  extension == 'CSV' ||
+                          extension == 'XLS' ||
+                          extension == 'XLSX'
+                      ? const Color(0xFF107C41)
+                      : colors.interactivePrimary,
               shape: BoxShape.circle,
             ),
-            child: isImage
-                ? ClipOval(
-                    child: (attachment.url != null && attachment.url!.isNotEmpty)
-                        ? Image.network(
-                            attachment.url!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Center(
-                              child: MaritaIcon(
-                                icon: _getAttachmentIcon(attachment.type),
-                                size: MaritaIconSize.extraSmall,
-                                color: Colors.white,
+            child:
+                isImage
+                    ? ClipOval(
+                      child:
+                          (attachment.url != null && attachment.url!.isNotEmpty)
+                              ? Image.network(
+                                attachment.url!,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Center(
+                                      child: MaritaIcon(
+                                        icon: _getAttachmentIcon(
+                                          attachment.type,
+                                        ),
+                                        size: MaritaIconSize.extraSmall,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                              )
+                              : Image.file(
+                                File(attachment.path),
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Center(
+                                      child: MaritaIcon(
+                                        icon: _getAttachmentIcon(
+                                          attachment.type,
+                                        ),
+                                        size: MaritaIconSize.extraSmall,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                               ),
-                            ),
-                          )
-                        : Image.file(
-                            File(attachment.path),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Center(
-                              child: MaritaIcon(
-                                icon: _getAttachmentIcon(attachment.type),
-                                size: MaritaIconSize.extraSmall,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                  )
-                : Center(
-                    child: MaritaIcon(
-                      icon: _getAttachmentIcon(attachment.type),
-                      size: MaritaIconSize.extraSmall,
-                      color: Colors.white,
+                    )
+                    : Center(
+                      child: MaritaIcon(
+                        icon: _getAttachmentIcon(attachment.type),
+                        size: MaritaIconSize.extraSmall,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
           ),
           const SizedBox(width: MaritaSpacing.sm),
           // Text Info
@@ -2119,8 +2412,6 @@ class _AttachmentPreviewBubble extends StatelessWidget {
     );
   }
 }
-
-
 
 class _CreateTemplateDialog extends StatefulWidget {
   final PromptTemplate? template;
@@ -2186,13 +2477,17 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.template == null ? 'New Template' : 'Edit Template',
+                            widget.template == null
+                                ? 'New Template'
+                                : 'Edit Template',
                             style: typography.h4,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Create a reusable prompt for your analysis.',
-                            style: typography.bodySmall.copyWith(color: colors.contentTertiary),
+                            style: typography.bodySmall.copyWith(
+                              color: colors.contentTertiary,
+                            ),
                           ),
                         ],
                       ),
@@ -2204,12 +2499,14 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                   ],
                 ),
                 const SizedBox(height: MaritaSpacing.xl),
-                
+
                 TextFormField(
                   controller: _titleController,
                   style: typography.bodyDefault,
                   maxLength: 50,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Title is required' : null,
+                  validator:
+                      (v) =>
+                          (v == null || v.isEmpty) ? 'Title is required' : null,
                   decoration: InputDecoration(
                     labelText: 'Template Title',
                     hintText: 'e.g., Financial Report Analysis',
@@ -2225,7 +2522,10 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: MaritaRadius.borderSmall,
-                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: colors.interactivePrimary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -2249,7 +2549,10 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: MaritaRadius.borderSmall,
-                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: colors.interactivePrimary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -2259,7 +2562,11 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                   maxLines: 6,
                   maxLength: 1000,
                   style: typography.bodyDefault,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Prompt is required' : null,
+                  validator:
+                      (v) =>
+                          (v == null || v.isEmpty)
+                              ? 'Prompt is required'
+                              : null,
                   decoration: InputDecoration(
                     labelText: 'Prompt',
                     hintText: 'Write your instructions here...',
@@ -2276,7 +2583,10 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: MaritaRadius.borderSmall,
-                      borderSide: BorderSide(color: colors.interactivePrimary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: colors.interactivePrimary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -2307,8 +2617,12 @@ class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
                       ),
                     ),
                     child: Text(
-                      widget.template == null ? 'Create Template' : 'Save Changes',
-                      style: typography.bodyDefaultBold.copyWith(color: colors.backgroundPrimary),
+                      widget.template == null
+                          ? 'Create Template'
+                          : 'Save Changes',
+                      style: typography.bodyDefaultBold.copyWith(
+                        color: colors.backgroundPrimary,
+                      ),
                     ),
                   ),
                 ),

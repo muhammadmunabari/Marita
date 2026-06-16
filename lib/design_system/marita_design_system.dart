@@ -428,6 +428,7 @@ class MaritaElevation {
 /// ```
 class MaritaTheme {
   MaritaTheme._();
+
   /// Builds the dark-mode [ThemeData] aligned with Marita brand.
   static ThemeData dark() {
     const palette = MaritaColorPalette(
@@ -685,8 +686,10 @@ class MaritaTypographyAccessor {
   TextStyle get bodyLarge => MaritaTypography.bodyLarge;
   TextStyle get bodyDefaultBold => MaritaTypography.bodyDefaultBold;
   TextStyle get bodyDefault => MaritaTypography.bodyDefault;
-  TextStyle get bodySmallBold => MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12);
-  TextStyle get bodySmall => MaritaTypography.bodyDefault.copyWith(fontSize: 12);
+  TextStyle get bodySmallBold =>
+      MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12);
+  TextStyle get bodySmall =>
+      MaritaTypography.bodyDefault.copyWith(fontSize: 12);
   TextStyle get bodyDisabled => MaritaTypography.bodyDefault.copyWith(
     color: context.maritaColors.contentDisabled,
   );

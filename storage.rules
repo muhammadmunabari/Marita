@@ -1,0 +1,43 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if the request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if the user is access owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper functions for checking workspace access in Firestore
+    function getCompanyData(companyId) {
+      return firestore.get(/databases/(default)/documents/companies/$(companyId)).data;
+    }
+
+    function isWorkspaceMember(companyId) {
+      return isAuthenticated() && request.auth.uid in getCompanyData(companyId).members;
+    }
+
+    function isWorkspaceMemberWithWriteAccess(companyId) {
+      return isAuthenticated() && (
+        getCompanyData(companyId).ownerId == request.auth.uid ||
+        (request.auth.uid in getCompanyData(companyId).memberDetails &&
+         getCompanyData(companyId).memberDetails[request.auth.uid].access == 'can_edit')
+      );
+    }
+
+    // 1. User profile and personal storage rules
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 2. Company/Workspace files rules
+    match /companies/{companyId}/files/{fileName} {
+      allow read: if isWorkspaceMember(companyId);
+      allow write: if isWorkspaceMemberWithWriteAccess(companyId);
+    }
+  }
+}

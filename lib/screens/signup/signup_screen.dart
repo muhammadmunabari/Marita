@@ -18,7 +18,6 @@ class SignupScreen extends ConsumerStatefulWidget {
 class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -27,141 +26,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _hasSubmitted = false;
   bool _isLoading = false;
 
-  // Dropdown state
-  final LayerLink _phoneLayerLink = LayerLink();
-  final GlobalKey _phoneInputKey = GlobalKey();
-  bool _isDropdownOpen = false;
-  OverlayEntry? _dropdownOverlay;
-  String _selectedCountryCode = '+62';
-  final List<Map<String, String>> _countries = [
-    {'code': '+1', 'name': 'United States'},
-    {'code': '+62', 'name': 'Indonesia'},
-  ];
-
-  void _toggleDropdown() {
-    if (_isDropdownOpen) {
-      _closeDropdown();
-    } else {
-      _showDropdown();
-    }
-  }
-
-  void _closeDropdown() {
-    _dropdownOverlay?.remove();
-    _dropdownOverlay = null;
-    if (mounted) {
-      setState(() {
-        _isDropdownOpen = false;
-      });
-    }
-  }
-
-  void _showDropdown() {
-    final RenderBox? renderBox =
-        _phoneInputKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final size = renderBox.size;
-
-    _dropdownOverlay = OverlayEntry(
-      builder: (context) {
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _closeDropdown,
-                child: Container(),
-              ),
-            ),
-            CompositedTransformFollower(
-              link: _phoneLayerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0, size.height + 4),
-              child: Material(
-                color: Colors.transparent,
-                child: SizedBox(
-                  width: size.width,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children:
-                        _countries.map((country) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedCountryCode = country['code']!;
-                                });
-                                _closeDropdown();
-                              },
-                              child: Container(
-                                height: 56,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: MaritaSpacing.lg,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.maritaColors.backgroundPrimary,
-                                  borderRadius: MaritaRadius.borderMedium,
-                                  border: Border.all(
-                                    color: context.maritaColors.borderPrimary,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 40,
-                                      child: Text(
-                                        country['code']!,
-                                        style: context
-                                            .maritaTypography
-                                            .bodyLarge
-                                            .copyWith(
-                                              color:
-                                                  context
-                                                      .maritaColors
-                                                      .contentPrimary,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: MaritaSpacing.sm),
-                                    Text(
-                                      country['name']!,
-                                      style: context.maritaTypography.bodyLarge
-                                          .copyWith(
-                                            color:
-                                                context
-                                                    .maritaColors
-                                                    .contentPrimary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    Overlay.of(context).insert(_dropdownOverlay!);
-    setState(() {
-      _isDropdownOpen = true;
-    });
-  }
-
   @override
   void dispose() {
-    _closeDropdown();
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -177,17 +45,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      // Construct phone number
-      String phone = _phoneController.text.trim();
-      if (phone.startsWith('0')) {
-        phone = phone.substring(1);
-      }
-      final phoneWithPrefix = '$_selectedCountryCode$phone';
 
       await authService.signUpWithEmail(
+        name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
-        phoneNumber: phoneWithPrefix,
       );
 
       // We rely on GoRouter's redirect to automatically navigate us
@@ -231,7 +93,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool get _isFormValid {
     return _nameController.text.trim().isNotEmpty &&
         _isEmailValid &&
-        _phoneController.text.trim().isNotEmpty &&
         _isPasswordValid;
   }
 
@@ -306,7 +167,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     const SizedBox(height: 24), // 24px spacing
                     // Title
                     Text(
-                      'Setting up your account',
+                      'Create new account',
                       style: context.maritaTypography.titleMedium.copyWith(
                         color: context.maritaColors.contentPrimary,
                       ),
@@ -336,36 +197,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-
-                    CompositedTransformTarget(
-                      link: _phoneLayerLink,
-                      child: Container(
-                        key: _phoneInputKey,
-                        child: MaritaTextInput(
-                          hint: '812 3456 7890',
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          onChanged: (val) {
-                            if (val.startsWith('0')) {
-                              final cleanedText = val.replaceFirst(
-                                RegExp(r'^0+'),
-                                '',
-                              );
-                              _phoneController.value = TextEditingValue(
-                                text: cleanedText,
-                                selection: TextSelection.collapsed(
-                                  offset: cleanedText.length,
-                                ),
-                              );
-                            }
-                            setState(() {});
-                          },
-                          prefixWidget: _buildCountryPrefix(context),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
                     MaritaTextInput(
                       hint: 'Password*',
                       controller: _passwordController,
@@ -400,34 +231,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 onPressed:
                     (_isLoading || !_isFormValid) ? null : _validateAndSubmit,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCountryPrefix(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleDropdown,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _selectedCountryCode,
-              style: context.maritaTypography.bodyLarge.copyWith(
-                color: context.maritaColors.contentPrimary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            MaritaIcon(
-              icon:
-                  _isDropdownOpen ? MaritaIcons.arrowUp : MaritaIcons.arrowDown,
-              size: MaritaIconSize.medium,
-              color: context.maritaColors.contentPrimary,
             ),
           ],
         ),

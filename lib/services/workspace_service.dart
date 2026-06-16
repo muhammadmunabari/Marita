@@ -14,34 +14,41 @@ class WorkspaceService {
     FirestoreService? firestoreService,
     FirebaseFirestore? db,
     FirebaseAuth? auth,
-  })  : _firestoreService = firestoreService ?? FirestoreService(),
-        _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  }) : _firestoreService = firestoreService ?? FirestoreService(),
+       _db = db ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance;
 
   /// Stream of workspaces the user is part of.
   Stream<Result<List<Workspace>>> watchUserWorkspaces(String userId) {
     try {
       return _firestoreService.watchUserCompanies(userId).map((list) {
         try {
-          final workspaces = list.map((map) {
-            final id = map['id'] as String;
-            return Workspace.fromMap(id, map);
-          }).toList();
+          final workspaces =
+              list.map((map) {
+                final id = map['id'] as String;
+                return Workspace.fromMap(id, map);
+              }).toList();
           return Success(workspaces);
         } catch (e, stack) {
-          return Failure(AppError(
-            code: 'parse-error',
-            message: 'Failed to parse workspaces: $e',
-            stackTrace: stack,
-          ));
+          return Failure(
+            AppError(
+              code: 'parse-error',
+              message: 'Failed to parse workspaces: $e',
+              stackTrace: stack,
+            ),
+          );
         }
       });
     } catch (e, stack) {
-      return Stream.value(Failure(AppError(
-        code: 'stream-error',
-        message: 'Failed to watch workspaces: $e',
-        stackTrace: stack,
-      )));
+      return Stream.value(
+        Failure(
+          AppError(
+            code: 'stream-error',
+            message: 'Failed to watch workspaces: $e',
+            stackTrace: stack,
+          ),
+        ),
+      );
     }
   }
 
@@ -55,10 +62,12 @@ class WorkspaceService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        return const Failure(AppError(
-          code: 'unauthenticated',
-          message: 'No authenticated user found.',
-        ));
+        return const Failure(
+          AppError(
+            code: 'unauthenticated',
+            message: 'No authenticated user found.',
+          ),
+        );
       }
 
       // Fetch user profile to get name and email
@@ -106,17 +115,19 @@ class WorkspaceService {
           'address': address,
           'taxId': taxId,
           'updatedAt': FieldValue.serverTimestamp(),
-        }
+        },
       }, SetOptions(merge: true));
 
       await batch.commit();
       return Success(workspaceId);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'create-failed',
-        message: 'Failed to create workspace: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'create-failed',
+          message: 'Failed to create workspace: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -130,19 +141,17 @@ class WorkspaceService {
     try {
       await _firestoreService.updateCompanyDetails(
         companyId: workspaceId,
-        updateData: {
-          'name': name,
-          'address': address,
-          'taxId': taxId,
-        },
+        updateData: {'name': name, 'address': address, 'taxId': taxId},
       );
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'update-failed',
-        message: 'Failed to update workspace: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'update-failed',
+          message: 'Failed to update workspace: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -153,26 +162,34 @@ class WorkspaceService {
       await _firestoreService.deleteCompany(workspaceId);
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'delete-failed',
-        message: 'Failed to delete workspace: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'delete-failed',
+          message: 'Failed to delete workspace: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
   /// Streams pending invitations for a workspace.
-  Stream<Result<List<Map<String, dynamic>>>> watchInvitations(String workspaceId) {
+  Stream<Result<List<Map<String, dynamic>>>> watchInvitations(
+    String workspaceId,
+  ) {
     try {
       return _firestoreService.watchCompanyInvitations(workspaceId).map((list) {
         return Success(list);
       });
     } catch (e, stack) {
-      return Stream.value(Failure(AppError(
-        code: 'invitations-stream-failed',
-        message: 'Failed to watch invitations: $e',
-        stackTrace: stack,
-      )));
+      return Stream.value(
+        Failure(
+          AppError(
+            code: 'invitations-stream-failed',
+            message: 'Failed to watch invitations: $e',
+            stackTrace: stack,
+          ),
+        ),
+      );
     }
   }
 
@@ -185,22 +202,23 @@ class WorkspaceService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        return const Failure(AppError(
-          code: 'unauthenticated',
-          message: 'No authenticated user found.',
-        ));
+        return const Failure(
+          AppError(
+            code: 'unauthenticated',
+            message: 'No authenticated user found.',
+          ),
+        );
       }
 
-      final companyDoc = await _db.collection('companies').doc(workspaceId).get();
+      final companyDoc =
+          await _db.collection('companies').doc(workspaceId).get();
       final companyName = companyDoc.data()?['name'] ?? 'Workspace';
 
       final userDoc = await _db.collection('users').doc(user.uid).get();
-      final invitedByName = userDoc.data()?['name'] ?? user.displayName ?? 'User';
+      final invitedByName =
+          userDoc.data()?['name'] ?? user.displayName ?? 'User';
 
-      final invitationId = _db
-          .collection('invitations')
-          .doc()
-          .id;
+      final invitationId = _db.collection('invitations').doc().id;
 
       await _firestoreService.createWorkspaceInvitation(
         companyId: workspaceId,
@@ -217,16 +235,20 @@ class WorkspaceService {
 
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'invite-failed',
-        message: 'Failed to send invitation: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'invite-failed',
+          message: 'Failed to send invitation: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
   /// Watch all invitations across all workspaces sent to this user's email.
-  Stream<Result<List<Map<String, dynamic>>>> watchUserInvitations(String email) {
+  Stream<Result<List<Map<String, dynamic>>>> watchUserInvitations(
+    String email,
+  ) {
     try {
       final emailLower = email.trim().toLowerCase();
       return _db
@@ -235,33 +257,36 @@ class WorkspaceService {
           .snapshots()
           .map((snap) {
             try {
-              final list = snap.docs
-                  .map((doc) {
-                    final data = doc.data();
-                    final companyId = data['companyId'] ?? '';
-                    return {
-                      'id': doc.id,
-                      'companyId': companyId,
-                      ...data,
-                    };
-                  })
-                  .where((item) => item['status'] == 'pending')
-                  .toList();
+              final list =
+                  snap.docs
+                      .map((doc) {
+                        final data = doc.data();
+                        final companyId = data['companyId'] ?? '';
+                        return {'id': doc.id, 'companyId': companyId, ...data};
+                      })
+                      .where((item) => item['status'] == 'pending')
+                      .toList();
               return Success(list);
             } catch (e, stack) {
-              return Failure(AppError(
-                code: 'parse-invitations-failed',
-                message: 'Failed to parse invitations: $e',
-                stackTrace: stack,
-              ));
+              return Failure(
+                AppError(
+                  code: 'parse-invitations-failed',
+                  message: 'Failed to parse invitations: $e',
+                  stackTrace: stack,
+                ),
+              );
             }
           });
     } catch (e, stack) {
-      return Stream.value(Failure(AppError(
-        code: 'watch-user-invitations-failed',
-        message: 'Failed to watch user invitations: $e',
-        stackTrace: stack,
-      )));
+      return Stream.value(
+        Failure(
+          AppError(
+            code: 'watch-user-invitations-failed',
+            message: 'Failed to watch user invitations: $e',
+            stackTrace: stack,
+          ),
+        ),
+      );
     }
   }
 
@@ -273,31 +298,32 @@ class WorkspaceService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        return const Failure(AppError(
-          code: 'unauthenticated',
-          message: 'No authenticated user found.',
-        ));
+        return const Failure(
+          AppError(
+            code: 'unauthenticated',
+            message: 'No authenticated user found.',
+          ),
+        );
       }
 
       final userDoc = await _db.collection('users').doc(user.uid).get();
       final userName = userDoc.data()?['name'] ?? user.displayName ?? 'User';
 
-      await _db
-          .collection('invitations')
-          .doc(invitationId)
-          .update({
-            'status': 'accepted',
-            'acceptedByUid': user.uid,
-            'acceptedByName': userName,
-          });
+      await _db.collection('invitations').doc(invitationId).update({
+        'status': 'accepted',
+        'acceptedByUid': user.uid,
+        'acceptedByName': userName,
+      });
 
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'accept-failed',
-        message: 'Failed to accept invitation: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'accept-failed',
+          message: 'Failed to accept invitation: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -307,18 +333,17 @@ class WorkspaceService {
     required String invitationId,
   }) async {
     try {
-      await _db
-          .collection('invitations')
-          .doc(invitationId)
-          .delete();
+      await _db.collection('invitations').doc(invitationId).delete();
 
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'decline-failed',
-        message: 'Failed to decline invitation: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'decline-failed',
+          message: 'Failed to decline invitation: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -334,11 +359,13 @@ class WorkspaceService {
       );
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'remove-invite-failed',
-        message: 'Failed to remove invitation: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'remove-invite-failed',
+          message: 'Failed to remove invitation: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -354,11 +381,13 @@ class WorkspaceService {
       });
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'update-member-failed',
-        message: 'Failed to update member access: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'update-member-failed',
+          message: 'Failed to update member access: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
@@ -383,11 +412,13 @@ class WorkspaceService {
       await batch.commit();
       return const Success(null);
     } catch (e, stack) {
-      return Failure(AppError(
-        code: 'remove-member-failed',
-        message: 'Failed to remove member: $e',
-        stackTrace: stack,
-      ));
+      return Failure(
+        AppError(
+          code: 'remove-member-failed',
+          message: 'Failed to remove member: $e',
+          stackTrace: stack,
+        ),
+      );
     }
   }
 }

@@ -93,8 +93,11 @@ class _MaritaPinInputState extends State<MaritaPinInput> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(widget.length, (index) {
                   final textLength = _controller.text.length;
-                  final isFocused = _focusNode.hasFocus &&
-                      (index == textLength || (index == widget.length - 1 && textLength == widget.length));
+                  final isFocused =
+                      _focusNode.hasFocus &&
+                      (index == textLength ||
+                          (index == widget.length - 1 &&
+                              textLength == widget.length));
                   final hasValue = index < textLength;
                   final char = hasValue ? _controller.text[index] : '';
 
@@ -106,9 +109,10 @@ class _MaritaPinInputState extends State<MaritaPinInput> {
                       color: context.maritaColors.backgroundPrimary,
                       borderRadius: MaritaRadius.borderMedium,
                       border: Border.all(
-                        color: isFocused
-                            ? context.maritaColors.interactivePrimary
-                            : context.maritaColors.borderPrimary,
+                        color:
+                            isFocused
+                                ? context.maritaColors.interactivePrimary
+                                : context.maritaColors.borderPrimary,
                         width: isFocused ? 2 : 1,
                       ),
                     ),

@@ -3,8 +3,13 @@ import 'package:marita/models/chunk_model.dart';
 
 class VectorSearchService {
   /// Calculates the cosine similarity between two vectors.
-  static double calculateCosineSimilarity(List<double> vectorA, List<double> vectorB) {
-    if (vectorA.isEmpty || vectorB.isEmpty || vectorA.length != vectorB.length) {
+  static double calculateCosineSimilarity(
+    List<double> vectorA,
+    List<double> vectorB,
+  ) {
+    if (vectorA.isEmpty ||
+        vectorB.isEmpty ||
+        vectorA.length != vectorB.length) {
       return 0.0;
     }
 
@@ -35,7 +40,10 @@ class VectorSearchService {
     final results = <MapEntry<DocumentChunk, double>>[];
 
     for (final chunk in candidates) {
-      final similarity = calculateCosineSimilarity(queryVector, chunk.embedding);
+      final similarity = calculateCosineSimilarity(
+        queryVector,
+        chunk.embedding,
+      );
       if (similarity >= threshold) {
         results.add(MapEntry(chunk, similarity));
       }

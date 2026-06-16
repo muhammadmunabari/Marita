@@ -7,6 +7,7 @@ import '../../components/marita_text_input.dart';
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import '../../providers/auth_provider.dart';
+import '../../router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,7 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -64,27 +64,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _handleGoogleLogin() async {
-    setState(() => _isGoogleLoading = true);
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      await authService.signInWithGoogle();
-
-      // Router handles navigation automatically
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isGoogleLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
-            backgroundColor: context.maritaColors.error,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: () => context.go(MaritaRoutes.onboarding),
                       child: MaritaIcon(
                         icon: MaritaIcons.arrowLeft,
                         size: MaritaIconSize.medium,
@@ -194,79 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Login Button
                     MaritaPrimaryButton(
                       label: _isLoading ? 'Logging in...' : 'Log in',
-                      onPressed:
-                          (_isLoading || _isGoogleLoading)
-                              ? null
-                              : _handleLogin,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: context.maritaColors.borderPrimary,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'Or',
-                            style: context.maritaTypography.bodyDefault
-                                .copyWith(
-                                  color: context.maritaColors.contentTertiary,
-                                ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: context.maritaColors.borderPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Google Login Button
-                    OutlinedButton.icon(
-                      onPressed:
-                          (_isLoading || _isGoogleLoading)
-                              ? null
-                              : _handleGoogleLogin,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(
-                          color: context.maritaColors.borderPrimary,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: MaritaRadius.borderFull,
-                        ),
-                        foregroundColor: context.maritaColors.contentPrimary,
-                        textStyle: context.maritaTypography.bodyLargeBold,
-                      ),
-                      icon:
-                          _isGoogleLoading
-                              ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : Image.asset(
-                                'assets/images/google_logo.png',
-                                width: 24,
-                                height: 24,
-                                errorBuilder:
-                                    (context, error, stackTrace) =>
-                                        const Icon(Icons.g_mobiledata),
-                              ),
-                      label: const Text('Continue with Google'),
+                      onPressed: _isLoading ? null : _handleLogin,
                     ),
 
                     const SizedBox(height: 24),

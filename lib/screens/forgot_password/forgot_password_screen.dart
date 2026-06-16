@@ -17,31 +17,22 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  final _inputController = TextEditingController();
-  final _otpController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-
+  final _emailController = TextEditingController();
   bool _isLoading = false;
-  bool _isObscure = true;
-  String?
-  _verificationId; // Null means we are on step 1: enter email/phone. Non-null means step 2: enter OTP
-  bool _isPhoneMode = false;
 
   @override
   void dispose() {
-    _inputController.dispose();
-    _otpController.dispose();
-    _newPasswordController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleContinue() async {
-    final input = _inputController.text.trim();
+  Future<void> _handleResetPassword() async {
+    final email = _emailController.text.trim();
 
-    if (input.isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter an email or phone number.'),
+          content: const Text('Please enter your email address.'),
           backgroundColor: context.maritaColors.error,
         ),
       );
@@ -52,115 +43,34 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-
-      // Determine if it's an email or phone number
-      if (input.contains('@')) {
-        // Handle Email Reset
-        _isPhoneMode = false;
-        await authService.sendPasswordResetEmail(email: input);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Password reset link sent to your email.'),
-              backgroundColor: context.maritaColors.success,
-            ),
-          );
-          context.pop(); // Go back to login
-        }
-      } else {
-        // Handle Phone Reset
-        _isPhoneMode = true;
-        await authService.verifyPhoneForPasswordReset(
-          phoneNumber: input.startsWith('+') ? input : '+$input',
-          codeSent: (verificationId) {
-            if (mounted) {
-              setState(() {
-                _verificationId = verificationId;
-                _isLoading = false;
-              });
-            }
-          },
-          verificationFailed: (error) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Verification failed: ${error.message}'),
-                  backgroundColor: context.maritaColors.error,
-                ),
-              );
-            }
-          },
+      await authService.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Password reset link sent to your email.'),
+            backgroundColor: context.maritaColors.success,
+          ),
         );
-        return; // Wait for codeSent callback
+        context.pop(); // Go back to login
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed: ${e.toString()}'),
+            content: Text('Failed to send reset link: ${e.toString()}'),
             backgroundColor: context.maritaColors.error,
           ),
         );
       }
     } finally {
-      if (mounted && !_isPhoneMode) {
+      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
-  Future<void> _handleVerifyAndReset() async {
-    final otp = _otpController.text.trim();
-    final newPassword = _newPasswordController.text;
-
-    if (otp.isEmpty || newPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please fill in all fields.'),
-          backgroundColor: context.maritaColors.error,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      await authService.resetPasswordWithPhoneOTP(
-        verificationId: _verificationId!,
-        smsCode: otp,
-        newPassword: newPassword,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Password successfully updated.'),
-            backgroundColor: context.maritaColors.success,
-          ),
-        );
-        context.go('/'); // Navigate to home since they are now signed in
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update password: ${e.toString()}'),
-            backgroundColor: context.maritaColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isStepTwo = _verificationId != null;
-
     return Scaffold(
       backgroundColor: context.maritaColors.backgroundPrimary,
       body: SafeArea(
@@ -179,17 +89,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
-                      onTap: () {
-                        if (isStepTwo) {
-                          setState(() {
-                            _verificationId = null;
-                            _otpController.clear();
-                            _newPasswordController.clear();
-                          });
-                        } else {
-                          context.pop();
-                        }
-                      },
+                      onTap: () => context.pop(),
                       child: MaritaIcon(
                         icon: MaritaIcons.arrowLeft,
                         size: MaritaIconSize.medium,
@@ -218,7 +118,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                     // Title
                     Text(
-                      isStepTwo ? 'Reset Password' : 'Forgot Password',
+                      'Forgot Password',
                       style: context.maritaTypography.displaySmall.copyWith(
                         color: context.maritaColors.contentPrimary,
                       ),
@@ -227,53 +127,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                     // Subtitle
                     Text(
-                      isStepTwo
-                          ? 'Enter the 6-digit verification code sent to your phone and your new password.'
-                          : 'Enter your registered email or phone number (e.g. +628123...) to receive a password reset link or verification code.',
+                      'Enter your registered email address to receive a password reset link.',
                       style: context.maritaTypography.bodyDefault.copyWith(
                         color: context.maritaColors.contentSecondary,
                       ),
                     ),
                     const SizedBox(height: 32),
 
-                    if (!isStepTwo) ...[
-                      // Step 1: Input Email/Phone
-                      MaritaTextInput(
-                        hint: 'Email or Phone Number',
-                        controller: _inputController,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 32),
-                      MaritaPrimaryButton(
-                        label: _isLoading ? 'Sending...' : 'Continue',
-                        onPressed: _isLoading ? null : _handleContinue,
-                      ),
-                    ] else ...[
-                      // Step 2: Input OTP & New Password
-                      MaritaTextInput(
-                        hint: '6-digit SMS Code',
-                        controller: _otpController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 16),
-                      MaritaTextInput(
-                        hint: 'New Password',
-                        controller: _newPasswordController,
-                        obscureText: _isObscure,
-                        suffixIcon:
-                            _isObscure ? MaritaIcons.eyeSlash : MaritaIcons.eye,
-                        onSuffixIconTap: () {
-                          setState(() {
-                            _isObscure = !_isObscure;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      MaritaPrimaryButton(
-                        label: _isLoading ? 'Updating...' : 'Update Password',
-                        onPressed: _isLoading ? null : _handleVerifyAndReset,
-                      ),
-                    ],
+                    // Input Email
+                    MaritaTextInput(
+                      hint: 'Email',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 32),
+                    MaritaPrimaryButton(
+                      label: _isLoading ? 'Sending...' : 'Send Reset Link',
+                      onPressed: _isLoading ? null : _handleResetPassword,
+                    ),
                   ],
                 ),
               ),

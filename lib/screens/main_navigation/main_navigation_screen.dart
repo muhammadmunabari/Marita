@@ -14,11 +14,11 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key, required this.navigationShell});
 
   @override
-  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
-
   void _onTap(int index) {
     widget.navigationShell.goBranch(
       index,
@@ -33,10 +33,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       if (workspace != null) {
         final user = ref.read(authStateProvider).value;
         if (user != null) {
-          ref.read(migrationServiceProvider).runMigrationIfNeeded(
-                userId: user.uid,
-                companyId: workspace.id,
-              );
+          ref
+              .read(migrationServiceProvider)
+              .runMigrationIfNeeded(userId: user.uid, companyId: workspace.id);
         }
         // Retroactively index any un-indexed files (fire-and-forget)
         ref.read(migrationServiceProvider).reindexWorkspaceFiles(workspace.id);
@@ -57,7 +56,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 }
-
 
 class _MaritaBottomBar extends StatelessWidget {
   final int currentIndex;

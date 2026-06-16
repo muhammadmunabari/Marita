@@ -18,12 +18,14 @@ class DocumentExtractionService {
   static final _vertexAI = FirebaseAI.vertexAI(location: 'us-central1');
   static const _modelName = 'gemini-2.5-pro';
 
-  static GenerativeModel get _model => _vertexAI.generativeModel(
-    model: _modelName,
-  );
+  static GenerativeModel get _model =>
+      _vertexAI.generativeModel(model: _modelName);
 
   /// Extracts text from a file path based on its extension/mimeType.
-  static Future<List<ExtractedPage>> extractText(String filePath, String fileName) async {
+  static Future<List<ExtractedPage>> extractText(
+    String filePath,
+    String fileName,
+  ) async {
     final file = File(filePath);
     if (!await file.exists()) {
       throw Exception('File does not exist: $filePath');
@@ -67,15 +69,18 @@ class DocumentExtractionService {
     final document = PdfDocument(inputBytes: bytes);
     final extractor = PdfTextExtractor(document);
     final List<ExtractedPage> pages = [];
-    
+
     StringBuffer allText = StringBuffer();
 
     for (int i = 0; i < document.pages.count; i++) {
-      final pageText = extractor.extractText(startPageIndex: i, endPageIndex: i);
+      final pageText = extractor.extractText(
+        startPageIndex: i,
+        endPageIndex: i,
+      );
       pages.add(ExtractedPage(pageNumber: i + 1, text: pageText));
       allText.write(pageText);
     }
-    
+
     document.dispose();
 
     // Check if the PDF has virtually no text (OCR/scanned PDF detection)
@@ -90,12 +95,13 @@ class DocumentExtractionService {
 
   static Future<String> _extractPdfOCR(List<int> bytes) async {
     try {
-      final prompt = 'Extract all readable text from this scanned PDF document. Maintain formatting where appropriate. Output only the extracted text.';
+      final prompt =
+          'Extract all readable text from this scanned PDF document. Maintain formatting where appropriate. Output only the extracted text.';
       final response = await _model.generateContent([
         Content.multi([
           TextPart(prompt),
           InlineDataPart('application/pdf', Uint8List.fromList(bytes)),
-        ])
+        ]),
       ]);
       return response.text ?? '';
     } catch (e) {
@@ -108,12 +114,10 @@ class DocumentExtractionService {
     try {
       final bytes = await file.readAsBytes();
       final mimeType = _getMimeType(ext);
-      final prompt = 'Extract all readable text from this image. Output only the extracted text. Maintain formatting where appropriate.';
+      final prompt =
+          'Extract all readable text from this image. Output only the extracted text. Maintain formatting where appropriate.';
       final response = await _model.generateContent([
-        Content.multi([
-          TextPart(prompt),
-          InlineDataPart(mimeType, bytes),
-        ])
+        Content.multi([TextPart(prompt), InlineDataPart(mimeType, bytes)]),
       ]);
       return response.text ?? '';
     } catch (e) {
