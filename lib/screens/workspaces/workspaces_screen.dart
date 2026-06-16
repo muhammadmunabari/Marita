@@ -79,15 +79,6 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Spacer(),
-                      IconButton(
-                        icon: MaritaIcon(
-                          icon: MaritaIcons.add,
-                          color: colors.contentPrimary,
-                          size: MaritaIconSize.medium,
-                        ),
-                        onPressed: () => _showCreateWorkspaceSheet(context),
-                      ),
                     ],
                   ),
                 ),
@@ -268,6 +259,12 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
               ),
             ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateWorkspaceSheet(context),
+        backgroundColor: colors.interactivePrimary,
+        shape: const CircleBorder(),
+        child: Icon(Icons.add, color: colors.contentInverse, size: 28),
       ),
     );
   }
