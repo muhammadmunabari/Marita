@@ -26,71 +26,76 @@ void main() {
     );
   });
 
-  testWidgets('MaritaApp biometric bypass / lock based on 30-second background duration', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
+  testWidgets(
+    'MaritaApp biometric bypass / lock based on 30-second background duration',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
 
-    // 1. Build our app and trigger a frame.
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const MaritaApp(),
-      ),
-    );
+      // 1. Build our app and trigger a frame.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const MaritaApp(),
+        ),
+      );
 
-    // 2. Find the app state and mock its clock (nowFn)
-    final stateFinder = find.byType(MaritaApp);
-    expect(stateFinder, findsOneWidget);
-    
-    // Retrieve the state of MaritaApp
-    final state = tester.state(stateFinder);
-    final dynamicApp = state as dynamic;
+      // 2. Find the app state and mock its clock (nowFn)
+      final stateFinder = find.byType(MaritaApp);
+      expect(stateFinder, findsOneWidget);
 
-    // Set mock time
-    DateTime mockTime = DateTime(2026, 6, 16, 12, 0, 0);
-    dynamicApp.nowFn = () => mockTime;
+      // Retrieve the state of MaritaApp
+      final state = tester.state(stateFinder);
+      final dynamicApp = state as dynamic;
 
-    // Get the container to set biometric session
-    final container = ProviderScope.containerOf(tester.element(stateFinder));
-    
-    // Set biometricSession to true (already authenticated)
-    container.read(biometricSessionProvider.notifier).state = true;
-    expect(container.read(biometricSessionProvider), isTrue);
+      // Set mock time
+      DateTime mockTime = DateTime(2026, 6, 16, 12, 0, 0);
+      dynamicApp.nowFn = () => mockTime;
 
-    // 3. Simulate leaving the app (inactive -> hidden -> paused)
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump();
+      // Get the container to set biometric session
+      final container = ProviderScope.containerOf(tester.element(stateFinder));
 
-    // 4. Return to the app after 15 seconds (less than 30 seconds)
-    mockTime = mockTime.add(const Duration(seconds: 15));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
+      // Set biometricSession to true (already authenticated)
+      container.read(biometricSessionProvider.notifier).state = true;
+      expect(container.read(biometricSessionProvider), isTrue);
 
-    // Biometric session should STILL be true (bypassed)
-    expect(container.read(biometricSessionProvider), isTrue);
+      // 3. Simulate leaving the app (inactive -> hidden -> paused)
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
 
-    // 5. Simulate leaving the app again
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump();
+      // 4. Return to the app after 15 seconds (less than 30 seconds)
+      mockTime = mockTime.add(const Duration(seconds: 15));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
 
-    // 6. Return to the app after 35 seconds (>= 30 seconds)
-    mockTime = mockTime.add(const Duration(seconds: 35));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
+      // Biometric session should STILL be true (bypassed)
+      expect(container.read(biometricSessionProvider), isTrue);
 
-    // Biometric session should now be false (locked/reset)
-    expect(container.read(biometricSessionProvider), isFalse);
-  });
+      // 5. Simulate leaving the app again
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
 
-  testWidgets('WorkspaceHeaderChip limits workspace name to 3 words', (WidgetTester tester) async {
+      // 6. Return to the app after 35 seconds (>= 30 seconds)
+      mockTime = mockTime.add(const Duration(seconds: 35));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      // Biometric session should now be false (locked/reset)
+      expect(container.read(biometricSessionProvider), isFalse);
+    },
+  );
+
+  testWidgets('WorkspaceHeaderChip limits workspace name to 3 words', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
@@ -98,7 +103,9 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         reindexOnWorkspaceChangeProvider.overrideWithValue(null),
-        activeWorkspaceProvider.overrideWith(() => _MockActiveWorkspaceNotifier()),
+        activeWorkspaceProvider.overrideWith(
+          () => _MockActiveWorkspaceNotifier(),
+        ),
       ],
     );
 
@@ -108,9 +115,7 @@ void main() {
         container: testContainer,
         child: MaterialApp(
           theme: MaritaTheme.dark(),
-          home: const Scaffold(
-            body: WorkspaceHeaderChip(),
-          ),
+          home: const Scaffold(body: WorkspaceHeaderChip()),
         ),
       ),
     );
@@ -152,59 +157,64 @@ void main() {
     expect(find.text('PT Asri....'), findsNothing);
   });
 
-  testWidgets('WorkspaceSwitcherSheet visibility of Create New Workspace button', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
+  testWidgets(
+    'WorkspaceSwitcherSheet visibility of Create New Workspace button',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
 
-    final testContainer = ProviderContainer(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        reindexOnWorkspaceChangeProvider.overrideWithValue(null),
-        userWorkspacesProvider.overrideWith((ref) => Stream.value(Success(<Workspace>[]))),
-        userInvitationsProvider.overrideWith((ref) => Stream.value(Success(<Map<String, dynamic>>[]))),
-        authStateProvider.overrideWith((ref) => Stream.value(null)),
-      ],
-    );
+      final testContainer = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          reindexOnWorkspaceChangeProvider.overrideWithValue(null),
+          userWorkspacesProvider.overrideWith(
+            (ref) => Stream.value(Success(<Workspace>[])),
+          ),
+          userInvitationsProvider.overrideWith(
+            (ref) => Stream.value(Success(<Map<String, dynamic>>[])),
+          ),
+          authStateProvider.overrideWith((ref) => Stream.value(null)),
+        ],
+      );
 
-    // 1. With showCreateButton = true
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: testContainer,
-        child: MaterialApp(
-          theme: MaritaTheme.dark(),
-          home: const Scaffold(
-            body: WorkspaceSwitcherSheet(showCreateButton: true),
+      // 1. With showCreateButton = true
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: testContainer,
+          child: MaterialApp(
+            theme: MaritaTheme.dark(),
+            home: const Scaffold(
+              body: WorkspaceSwitcherSheet(showCreateButton: true),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump(); // Let state streams resolve
+      );
+      await tester.pump(); // Let state streams resolve
 
-    // The 'Create New Workspace' button should be visible
-    expect(find.text('Create New Workspace'), findsOneWidget);
+      // The 'Create New Workspace' button should be visible
+      expect(find.text('Create New Workspace'), findsOneWidget);
 
-    // 2. With showCreateButton = false
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: testContainer,
-        child: MaterialApp(
-          theme: MaritaTheme.dark(),
-          home: const Scaffold(
-            body: WorkspaceSwitcherSheet(showCreateButton: false),
+      // 2. With showCreateButton = false
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: testContainer,
+          child: MaterialApp(
+            theme: MaritaTheme.dark(),
+            home: const Scaffold(
+              body: WorkspaceSwitcherSheet(showCreateButton: false),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump(); // Let state streams resolve
+      );
+      await tester.pump(); // Let state streams resolve
 
-    // The 'Create New Workspace' button should NOT be visible
-    expect(find.text('Create New Workspace'), findsNothing);
-  });
+      // The 'Create New Workspace' button should NOT be visible
+      expect(find.text('Create New Workspace'), findsNothing);
+    },
+  );
 }
 
 class _MockActiveWorkspaceNotifier extends ActiveWorkspaceNotifier {
   @override
   Workspace? build() => null;
 }
-
-

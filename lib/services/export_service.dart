@@ -438,8 +438,9 @@ class ExportService {
     // Parse rows and cells
     final List<List<String>> data = [];
     for (var line in tableLines) {
-      if (line.contains('---') || line.contains(':---'))
+      if (line.contains('---') || line.contains(':---')) {
         continue; // Skip separator line
+      }
       final cells =
           line
               .split('|')
@@ -450,8 +451,9 @@ class ExportService {
 
       // Clean up empty first/last elements if they exist
       if (cells.isNotEmpty && cells.first.trim().isEmpty) cells.removeAt(0);
-      if (cells.isNotEmpty && cells.last.trim().isEmpty)
+      if (cells.isNotEmpty && cells.last.trim().isEmpty) {
         cells.removeAt(cells.length - 1);
+      }
 
       final cleanedCells = cells.map((c) => c.trim()).toList();
       if (cleanedCells.isNotEmpty) data.add(cleanedCells);

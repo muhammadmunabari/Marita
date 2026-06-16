@@ -82,7 +82,8 @@ class _MaritaAppState extends ConsumerState<MaritaApp> {
   }
 
   void _onStateChange(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       // Record the time when the app was paused or became inactive (e.g. due to picker or system dialog overlay)
       _pausedTime ??= nowFn();
     } else if (state == AppLifecycleState.resumed) {

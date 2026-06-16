@@ -180,13 +180,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child:
                       profile.photoUrl == null || profile.photoUrl!.isEmpty
                           ? Text(
-                              initials,
-                              style: typography.titleLarge.copyWith(
-                                color: colors.contentPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                              ),
-                            )
+                            initials,
+                            style: typography.titleLarge.copyWith(
+                              color: colors.contentPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
+                          )
                           : null,
                 ),
                 Positioned(
@@ -255,7 +255,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context: context,
                 leadingIcon: MaritaIcons.user,
                 title: 'Full Name',
-                subtitle: profile.name.isNotEmpty ? profile.name : 'No Name Set',
+                subtitle:
+                    profile.name.isNotEmpty ? profile.name : 'No Name Set',
                 trailing: MaritaIcon(
                   icon: MaritaIcons.arrowRight,
                   color: colors.contentTertiary,
@@ -538,13 +539,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onPressed:
                           isFormValid
                               ? () async {
-                                  Navigator.pop(context);
-                                  await ref
-                                      .read(settingsNotifierProvider.notifier)
-                                      .updateProfile(
-                                        name: nameController.text.trim(),
-                                      );
-                                }
+                                Navigator.pop(context);
+                                await ref
+                                    .read(settingsNotifierProvider.notifier)
+                                    .updateProfile(
+                                      name: nameController.text.trim(),
+                                    );
+                              }
                               : null,
                     ),
                   ],
@@ -665,13 +666,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onPressed:
                           isFormValid
                               ? () async {
-                                  Navigator.pop(context);
-                                  await ref
-                                      .read(settingsNotifierProvider.notifier)
-                                      .updateProfile(
-                                        password: password,
-                                      );
-                                }
+                                Navigator.pop(context);
+                                await ref
+                                    .read(settingsNotifierProvider.notifier)
+                                    .updateProfile(password: password);
+                              }
                               : null,
                     ),
                   ],

@@ -1071,16 +1071,18 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                           // Render pending invitations
                           invitationsStream.when(
                             data: (result) {
-                              if (result is Failure)
+                              if (result is Failure) {
                                 return const SizedBox.shrink();
+                              }
                               final invitations =
                                   (result
                                           as Success<
                                             List<Map<String, dynamic>>
                                           >)
                                       .data;
-                              if (invitations.isEmpty)
+                              if (invitations.isEmpty) {
                                 return const SizedBox.shrink();
+                              }
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

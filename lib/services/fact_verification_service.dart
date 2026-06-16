@@ -84,8 +84,9 @@ class FactVerificationService {
 
     for (final match in matches) {
       final value = match.group(0)?.trim();
-      if (value == null || value.length < 2)
+      if (value == null || value.length < 2) {
         continue; // Ignore trivial single digits
+      }
 
       totalClaims++;
       bool exactMatch = false;

@@ -1642,8 +1642,9 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
                 iconPath: 'assets/icons/iconsax-send.svg',
                 iconData: IconsaxPlusLinear.send_1,
                 onTap: () {
-                  if (_controller.text.trim().isEmpty && _attachments.isEmpty)
+                  if (_controller.text.trim().isEmpty && _attachments.isEmpty) {
                     return;
+                  }
                   widget.onSend(_controller.text, _attachments);
                   _controller.clear();
                   setState(() {
@@ -2187,8 +2188,9 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                                 t.description.toLowerCase().contains(query);
                           }).toList();
 
-                      if (filteredCustom.isEmpty)
+                      if (filteredCustom.isEmpty) {
                         return const SizedBox.shrink();
+                      }
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

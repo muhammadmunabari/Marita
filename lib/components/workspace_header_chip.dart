@@ -17,7 +17,7 @@ class WorkspaceHeaderChip extends ConsumerWidget {
     final typography = context.maritaTypography;
 
     final hasActiveWorkspace = activeWorkspace != null;
-    
+
     String limitWords(String text, int maxWords) {
       final trimmed = text.trim();
       if (trimmed.isEmpty) return text;
@@ -28,15 +28,17 @@ class WorkspaceHeaderChip extends ConsumerWidget {
       return text;
     }
 
-    final displayName = hasActiveWorkspace
-        ? limitWords(activeWorkspace.name, 3)
-        : 'No Workspace';
+    final displayName =
+        hasActiveWorkspace
+            ? limitWords(activeWorkspace.name, 3)
+            : 'No Workspace';
 
     return Semantics(
       label: 'Select Workspace',
       button: true,
       child: InkWell(
-        onTap: () => WorkspaceSwitcherSheet.show(context, showCreateButton: false),
+        onTap:
+            () => WorkspaceSwitcherSheet.show(context, showCreateButton: false),
         borderRadius: MaritaRadius.borderFull,
         child: Container(
           padding: const EdgeInsets.symmetric(

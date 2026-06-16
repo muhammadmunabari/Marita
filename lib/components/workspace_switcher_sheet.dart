@@ -15,10 +15,7 @@ import 'marita_select_field.dart';
 class WorkspaceSwitcherSheet extends ConsumerWidget {
   final bool showCreateButton;
 
-  const WorkspaceSwitcherSheet({
-    super.key,
-    this.showCreateButton = true,
-  });
+  const WorkspaceSwitcherSheet({super.key, this.showCreateButton = true});
 
   /// Displays the workspace switcher bottom sheet.
   static void show(BuildContext context, {bool showCreateButton = true}) {
@@ -381,7 +378,9 @@ class WorkspaceSwitcherSheet extends ConsumerWidget {
               if (showCreateButton) ...[
                 const Divider(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: MaritaSpacing.lg,
+                  ),
                   child: MaritaPrimaryButton(
                     label: 'Create New Workspace',
                     onPressed: () {
