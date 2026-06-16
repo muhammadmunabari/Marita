@@ -5,9 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'design_system/marita_design_system.dart';
 import 'router.dart';
+import 'providers/settings_provider.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -15,6 +17,9 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -47,15 +52,53 @@ Future<void> main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: MaritaApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MaritaApp(),
+    ),
+  );
 }
 
 /// Root application widget.
-class MaritaApp extends ConsumerWidget {
+class MaritaApp extends ConsumerStatefulWidget {
   const MaritaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MaritaApp> createState() => _MaritaAppState();
+}
+
+class _MaritaAppState extends ConsumerState<MaritaApp> {
+  late final AppLifecycleListener _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _listener = AppLifecycleListener(
+      onStateChange: _onStateChange,
+    );
+  }
+
+  void _onStateChange(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Reset the biometric session verification status to lock the app when it goes to the background
+      ref.read(biometricSessionProvider.notifier).state = false;
+    } else if (state == AppLifecycleState.resumed) {
+      // Trigger a GoRouter redirect evaluation to make sure the app locks immediately on resumption if biometric lock is enabled.
+      ref.read(routerListenableProvider).refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    _listener.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(

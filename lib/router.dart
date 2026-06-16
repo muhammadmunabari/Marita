@@ -7,15 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'providers/auth_provider.dart';
+import 'providers/settings_provider.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/onboarding/splash_screen.dart';
 import 'screens/login/login_screen.dart';
+import 'screens/login/biometric_lock_screen.dart';
 import 'screens/signup/signup_screen.dart';
 import 'screens/signup/create_business_account_screen.dart';
 import 'screens/forgot_password/forgot_password_screen.dart';
 import 'screens/main_navigation/main_navigation_screen.dart';
 import 'screens/marita_ai/marita_ai_screen.dart';
-import 'screens/report/report_screen.dart';
 import 'screens/files/files_screen.dart';
 import 'screens/workspaces/workspaces_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -34,8 +35,8 @@ class MaritaRoutes {
   static const String signup = '/signup';
   static const String createBusinessAccount = '/create-business-account';
   static const String forgotPassword = '/forgot-password';
+  static const String biometricLock = '/biometric-lock';
   static const String home = '/';
-  static const String report = '/report';
   static const String files = '/files';
   static const String workspaces = '/workspaces';
   static const String settings = '/settings';
@@ -48,20 +49,37 @@ class MaritaRoutes {
   ];
 }
 
-// =============================================================================
-// ROUTER PROVIDER
-// =============================================================================
+class RouterListenable extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterListenable(this._ref) {
+    _ref.listen(authStateProvider, (prev, next) => notifyListeners());
+    _ref.listen(userProfileModelProvider, (prev, next) => notifyListeners());
+    _ref.listen(biometricSessionProvider, (prev, next) => notifyListeners());
+    _ref.listen(localBiometricEnabledProvider, (prev, next) => notifyListeners());
+  }
+
+  void refresh() {
+    notifyListeners();
+  }
+}
+
+final routerListenableProvider = Provider<RouterListenable>((ref) {
+  return RouterListenable(ref);
+});
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final userProfileState = ref.watch(userProfileProvider);
+  final listenable = ref.watch(routerListenableProvider);
 
   return GoRouter(
     initialLocation: MaritaRoutes.splash,
     debugLogDiagnostics: false,
+    refreshListenable: listenable,
 
     // Auth redirect guard
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+      
       // 1. Wait for Auth State to be fully determined
       if (authState.isLoading || authState.isRefreshing) {
         return MaritaRoutes.splash;
@@ -79,49 +97,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (!isLoggedIn) {
           return MaritaRoutes.onboarding;
         }
-
-        // If logged in, we MUST wait for the profile to decide where to go
-        if (userProfileState.isLoading || userProfileState.isRefreshing) {
-          return MaritaRoutes.splash; 
-        }
-
-        final profile = userProfileState.value;
-        if (profile == null) {
-          return MaritaRoutes.createBusinessAccount;
-        }
-
-        final hasBusiness = profile['hasBusinessAccount'] == true;
-        return hasBusiness ? MaritaRoutes.home : MaritaRoutes.createBusinessAccount;
       }
 
       // 3. Protected Route Guard: If not logged in, only allow public routes
-      if (!isLoggedIn && !isPublicRoute) {
-        return MaritaRoutes.login;
+      if (!isLoggedIn) {
+        if (!isPublicRoute) {
+          return MaritaRoutes.login;
+        }
+        return null;
       }
 
       // 4. Authenticated Guard: If logged in, prevent access to public auth routes
-      if (isLoggedIn && (location == MaritaRoutes.login || location == MaritaRoutes.signup || location == MaritaRoutes.onboarding)) {
-        if (userProfileState.isLoading) return MaritaRoutes.splash;
-
-        final profile = userProfileState.value;
-        final hasBusiness = profile?['hasBusinessAccount'] == true;
-        return hasBusiness ? MaritaRoutes.home : MaritaRoutes.createBusinessAccount;
+      if (location == MaritaRoutes.login || location == MaritaRoutes.signup || location == MaritaRoutes.onboarding) {
+        return MaritaRoutes.home;
       }
 
-      // 5. Business Account Guard: Ensure logged-in users have a business account
-      if (isLoggedIn && 
-          location != MaritaRoutes.createBusinessAccount && 
-          location != MaritaRoutes.splash &&
-          location != MaritaRoutes.settings) { 
-        
-        if (userProfileState.isLoading) return null;
+      // 5. Biometric Lock Guard
+      final isBiometricEnabled = ref.read(localBiometricEnabledProvider);
+      final isBiometricVerified = ref.read(biometricSessionProvider);
 
-        final profile = userProfileState.value;
-        final hasBusiness = profile?['hasBusinessAccount'] == true;
-        
-        if (!hasBusiness) {
-          return MaritaRoutes.createBusinessAccount;
+      if (isBiometricEnabled && !isBiometricVerified) {
+        if (location != MaritaRoutes.biometricLock) {
+          return MaritaRoutes.biometricLock;
         }
+      } else {
+        // If biometric is verified or not enabled, prevent access to biometricLock screen
+        if (location == MaritaRoutes.biometricLock) {
+          return MaritaRoutes.home;
+        }
+      }
+
+      // If we are logged in and just came from Splash (and don't need biometric redirect or already verified)
+      if (isSplash) {
+        return MaritaRoutes.home;
       }
 
       return null; // No redirect
@@ -155,6 +163,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: MaritaRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
+      GoRoute(
+        path: MaritaRoutes.biometricLock,
+        builder: (context, state) => const BiometricLockScreen(),
+      ),
 
       // Main Application Shell
       StatefulShellRoute.indexedStack(
@@ -167,14 +179,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: MaritaRoutes.home,
                 builder: (context, state) => const MaritaAIScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: MaritaRoutes.report,
-                builder: (context, state) => const ReportScreen(),
               ),
             ],
           ),

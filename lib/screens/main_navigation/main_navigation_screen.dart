@@ -1,37 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../design_system/marita_design_system.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/workspace_provider.dart';
+import '../../services/migration_service.dart';
 
-class MainNavigationScreen extends StatelessWidget {
+class MainNavigationScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainNavigationScreen({super.key, required this.navigationShell});
 
+  @override
+  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
+
   void _onTap(int index) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Trigger migration and file re-indexing whenever an active workspace is loaded
+    ref.listen(activeWorkspaceProvider, (prev, workspace) {
+      if (workspace != null) {
+        final user = ref.read(authStateProvider).value;
+        if (user != null) {
+          ref.read(migrationServiceProvider).runMigrationIfNeeded(
+                userId: user.uid,
+                companyId: workspace.id,
+              );
+        }
+        // Retroactively index any un-indexed files (fire-and-forget)
+        ref.read(migrationServiceProvider).reindexWorkspaceFiles(workspace.id);
+      }
+    });
+
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar:
           isKeyboardVisible
               ? null
               : _MaritaBottomBar(
-                currentIndex: navigationShell.currentIndex,
+                currentIndex: widget.navigationShell.currentIndex,
                 onTap: _onTap,
               ),
     );
   }
 }
+
 
 class _MaritaBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -62,28 +88,22 @@ class _MaritaBottomBar extends StatelessWidget {
                 onTap: () => onTap(0),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-chart.svg',
-                label: 'Report',
+                iconPath: 'assets/icons/iconsax-folder.svg',
+                label: 'Files',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-folder.svg',
-                label: 'Files',
+                iconPath: 'assets/icons/iconsax-buildings.svg',
+                label: 'Workspaces',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-buildings.svg',
-                label: 'Workspaces',
-                isSelected: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-              _MaritaNavItem(
                 iconPath: 'assets/icons/iconsax-setting.svg',
                 label: 'Settings',
-                isSelected: currentIndex == 4,
-                onTap: () => onTap(4),
+                isSelected: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),

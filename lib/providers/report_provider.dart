@@ -12,13 +12,7 @@
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../services/firestore_service.dart';
-
-/// Singleton [FirestoreService] instance.
-final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService();
-});
+import 'workspace_provider.dart';
 
 /// Real-time stream of reports for a specific company.
 ///

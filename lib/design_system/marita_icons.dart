@@ -259,6 +259,60 @@ class MaritaIcons {
 
   /// Camera — active (Bold)
   static const IconData cameraActive = IconsaxPlusBold.camera;
+
+  /// Document — default (Linear)
+  static const IconData document = IconsaxPlusLinear.document;
+
+  /// Document — active (Bold)
+  static const IconData documentActive = IconsaxPlusBold.document;
+
+  /// Gallery / Image — default (Linear)
+  static const IconData gallery = IconsaxPlusLinear.gallery;
+
+  /// Gallery / Image — active (Bold)
+  static const IconData galleryActive = IconsaxPlusBold.gallery;
+
+  /// Folder Add — default (Linear)
+  static const IconData folderAdd = IconsaxPlusLinear.folder_add;
+
+  /// Shield / Security — default (Linear)
+  static const IconData shield = IconsaxPlusLinear.shield_security;
+
+  /// Shield / Security — active (Bold)
+  static const IconData shieldActive = IconsaxPlusBold.shield_security;
+
+  /// Finger Scan / Biometric — default (Linear)
+  static const IconData fingerScan = IconsaxPlusLinear.finger_scan;
+
+  /// Profile Edit — default (Linear)
+  static const IconData profileEdit = IconsaxPlusLinear.user_edit;
+
+  /// Copy — default (Linear)
+  static const IconData copy = IconsaxPlusLinear.copy;
+
+  /// Download — default (Linear)
+  static const IconData download = IconsaxPlusLinear.document_download;
+
+  /// Buildings / Workspace — default (Linear)
+  static const IconData buildings = IconsaxPlusLinear.buildings;
+
+  /// Buildings / Workspace — active (Bold)
+  static const IconData buildingsActive = IconsaxPlusBold.buildings;
+
+  /// People / Members — default (Linear)
+  static const IconData people = IconsaxPlusLinear.people;
+
+  /// Crown / Owner — default (Linear)
+  static const IconData crown = IconsaxPlusLinear.crown;
+
+  /// Search — active (Bold)
+  static const IconData searchActive = IconsaxPlusBold.search_normal_1;
+
+  /// Grid layout — default (Linear)
+  static const IconData grid = IconsaxPlusLinear.grid_1;
+
+  /// List layout — default (Linear)
+  static const IconData list = IconsaxPlusLinear.textalign_justifyleft;
 }
 
 // =============================================================================

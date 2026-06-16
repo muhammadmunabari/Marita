@@ -1,18 +1,144 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 5, 18);
+    // Helper function to check if the request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if the authenticated user matches the userId
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to check if the authenticated user is the invited user
+    function isInvitedUser(email) {
+      return isAuthenticated() && (
+        (request.auth.token != null && 'email' in request.auth.token && request.auth.token.email != null && email.lower() == request.auth.token.email.lower()) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         'email' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email != null &&
+         email.lower() == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email.lower())
+      );
+    }
+
+    // Helper function to check if the authenticated user is a workspace member
+    function isWorkspaceMember(companyId) {
+      return isAuthenticated() &&
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(companyId)).data.members;
+    }
+
+    // Helper function to check if the user is workspace owner or member with can_edit access
+    function isWorkspaceMemberWithWriteAccess(companyId) {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid ||
+        (request.auth.uid in get(/databases/$(database)/documents/companies/$(companyId)).data.memberDetails &&
+         get(/databases/$(database)/documents/companies/$(companyId)).data.memberDetails[request.auth.uid].access == 'can_edit')
+      );
+    }
+
+    // USERS collection:
+    // - Authenticated users can read/write their own user profile document and subcollections.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /migrationState/{stateId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /custom_templates/{templateId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // COMPANIES collection:
+    // - Authenticated users can create a company.
+    // - Members of a company can read and update the company document.
+    // - Only the owner can delete the company document.
+    match /companies/{companyId} {
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.members);
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.members);
+      allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+
+      // Sub-collections under companies
+      match /chats/{chatId} {
+        allow read: if isWorkspaceMember(companyId);
+        allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+      }
+
+      match /files/{fileId} {
+        allow read: if isWorkspaceMember(companyId);
+        allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+
+        match /chunks/{chunkId} {
+          allow read: if isWorkspaceMember(companyId);
+          allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+        }
+      }
+
+      match /evaluations/{evaluationId} {
+        allow read: if isWorkspaceMember(companyId);
+        allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+      }
+    }
+
+    // REPORTS collection:
+    // - Authenticated users can create a report if they are the creator.
+    // - A user can read/write a report if they created it or if they belong to the company.
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
+      allow read: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members
+      );
+    }
+
+    // CHATS collection:
+    // - Authenticated users can create, read, update, or delete their own chats.
+    match /chats/{chatId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // USER FILES subcollection:
+    // - Owners can read, write files.
+    match /users/{userId}/files/{fileId} {
+      allow read, write: if isOwner(userId);
+
+      match /chunks/{chunkId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // INVITATIONS collection (top-level):
+    // - Company members or the invited user can read/delete invitations.
+    // - Company members can create invitations.
+    // - Invited user can update status to 'accepted'/'declined'.
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated() && (
+        isInvitedUser(resource.data.email) ||
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members
+      );
+      allow create: if isAuthenticated() &&
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.members;
+      allow update: if isAuthenticated() && (
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members ||
+        (
+          isInvitedUser(resource.data.email) &&
+          request.resource.data.status in ['accepted', 'declined'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedByUid', 'acceptedByName'])
+        )
+      );
+      allow delete: if isAuthenticated() && (
+        request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members ||
+        isInvitedUser(resource.data.email)
+      );
     }
   }
 }

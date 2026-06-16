@@ -17,7 +17,13 @@
 // =============================================================================
 
 const { analyzeReport } = require("./src/analyzeReport");
-const { sendVerificationEmail } = require("./src/auth");
+const { sendVerificationEmail, sendWorkspaceInvitationEmail, onWorkspaceInvitationUpdated } = require("./src/auth");
+const { chunkFile } = require("./src/chunk");
+const { analyzeDocumentIntelligence } = require("./src/document_intelligence");
 
 exports.analyzeReport = analyzeReport;
 exports.sendVerificationEmail = sendVerificationEmail;
+exports.sendWorkspaceInvitationEmail = sendWorkspaceInvitationEmail;
+exports.onWorkspaceInvitationUpdated = onWorkspaceInvitationUpdated;
+exports.chunkFile = chunkFile;
+exports.analyzeDocumentIntelligence = analyzeDocumentIntelligence;

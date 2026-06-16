@@ -15,10 +15,12 @@ import 'package:marita/services/attachment_service.dart';
 import 'package:marita/services/export_service.dart';
 import 'package:marita/services/template_service.dart';
 import 'package:marita/services/gemini_service.dart';
+import 'package:marita/services/ai_pipeline_service.dart';
 import 'package:marita/providers/auth_provider.dart';
 import 'package:marita/providers/template_provider.dart';
-import 'package:marita/providers/report_provider.dart';
+import 'package:marita/providers/workspace_provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../components/workspace_header_chip.dart';
 
 // =============================================================================
 // STATE & NOTIFIER
@@ -86,6 +88,9 @@ class ChatNotifier extends Notifier<ChatState> {
     // 3. Ensure chatId exists
     String? currentChatId = state.chatId;
     if (currentChatId == null && user != null) {
+      final workspace = ref.read(activeWorkspaceProvider);
+      if (workspace == null) return;
+
       String generateTitle(String content) {
         final cleanContent = content.replaceAll('\n', ' ').trim();
         final words = cleanContent.split(RegExp(r'\s+'));
@@ -99,7 +104,8 @@ class ChatNotifier extends Notifier<ChatState> {
       }
       final newTitle = generateTitle(text);
 
-      currentChatId = await firestoreService.createChat(
+      currentChatId = await firestoreService.createWorkspaceChat(
+        companyId: workspace.id,
         userId: user.uid,
         initialMessage: text,
         title: newTitle, // Auto-generate title
@@ -134,11 +140,15 @@ class ChatNotifier extends Notifier<ChatState> {
 
     // 5. Save user message to Firestore
     if (currentChatId != null) {
-      final userMsgToSave = state.messages.firstWhere((m) => m.id == tempId);
-      await firestoreService.addChatMessage(
-        chatId: currentChatId,
-        messageMap: userMsgToSave.toMap(),
-      );
+      final workspace = ref.read(activeWorkspaceProvider);
+      if (workspace != null) {
+        final userMsgToSave = state.messages.firstWhere((m) => m.id == tempId);
+        await firestoreService.addWorkspaceChatMessage(
+          companyId: workspace.id,
+          chatId: currentChatId,
+          messageMap: userMsgToSave.toMap(),
+        );
+      }
     }
 
     // 6. Actual Gemini Stream
@@ -182,8 +192,31 @@ class ChatNotifier extends Notifier<ChatState> {
         historyList = historyList.sublist(0, historyList.length - 1);
       }
 
+      final workspace = ref.read(activeWorkspaceProvider);
+      final workspaceId = workspace?.id ?? 'default';
+
+      final pipelineService = AIPipelineService();
+      
+      // Stage 1 & 2: Static Analysis and RAG Retrieval
+      final retrievedChunks = await pipelineService.retrieveContext(
+        query: text,
+        workspaceId: workspaceId,
+        queryEmbedding: const [], // Using empty vector to trigger keyword fallback search
+      );
+
+      // Stage 3: Build Augmented Prompt
+      final queryType = PromptRouter.route(text);
+      final augmentedPrompt = pipelineService.buildAugmentedPrompt(text, queryType, retrievedChunks);
+
+      // Stage 4: Generative Execution Stream
+      print("======================================================================");
+      print("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
+      print("======================================================================");
+      print("  ├─ Model Target: gemini-2.5-pro");
+      print("  └─ Status: Stream started...");
+
       final stream = GeminiService.sendMessageStream(
-        text,
+        augmentedPrompt,
         attachments: attachments,
         history: historyList,
       );
@@ -199,13 +232,36 @@ class ChatNotifier extends Notifier<ChatState> {
         );
       }
 
-      // Mark streaming as finished
+      print("  └─ Status: Stream generation complete.");
+      print("======================================================================\n");
+
+      // Stage 5 & 6: Fact Verification and Response Validation
+      final pipelineResult = await pipelineService.verifyAndValidate(
+        query: text,
+        queryType: queryType,
+        draftResponse: fullText,
+        retrievedChunks: retrievedChunks,
+      );
+
+      final verifiedResponse = pipelineResult.responseText;
+
+      // Mark streaming as finished with final verified/fallback text
       final finalAiMsg = ChatMessage(
         id: aiId,
-        text: fullText,
+        text: verifiedResponse,
         role: MessageRole.ai,
         isStreaming: false,
         createdAt: DateTime.now(),
+        queryType: pipelineResult.queryType.name,
+        confidenceScore: pipelineResult.confidenceScore,
+        citations: pipelineResult.citations,
+        verificationIssues: pipelineResult.feedback,
+        fullCorrectCount: pipelineResult.fullCorrectCount,
+        semiCorrectCount: pipelineResult.semiCorrectCount,
+        incorrectCount: pipelineResult.incorrectCount,
+        precisionPercent: pipelineResult.precisionPercent,
+        retrievedChunksCount: pipelineResult.retrievedChunksCount,
+        retrievedChunksInfo: pipelineResult.retrievedChunksInfo,
       );
       
       state = state.copyWith(
@@ -217,12 +273,15 @@ class ChatNotifier extends Notifier<ChatState> {
 
       // Save AI message to Firestore
       if (chatId != null) {
-        await firestoreService.addChatMessage(
-          chatId: chatId,
-          messageMap: finalAiMsg.toMap(),
-        );
-        // Refresh history to update last message/timestamp
-        ref.invalidate(chatHistoryProvider);
+        if (workspace != null) {
+          await firestoreService.addWorkspaceChatMessage(
+            companyId: workspace.id,
+            chatId: chatId,
+            messageMap: finalAiMsg.toMap(),
+          );
+          // Refresh history to update last message/timestamp
+          ref.invalidate(chatHistoryProvider);
+        }
       }
     } catch (e) {
       final errorMsg = ChatMessage(
@@ -240,10 +299,14 @@ class ChatNotifier extends Notifier<ChatState> {
       );
       
       if (chatId != null) {
-        await firestoreService.addChatMessage(
-          chatId: chatId,
-          messageMap: errorMsg.toMap(),
-        );
+        final workspace = ref.read(activeWorkspaceProvider);
+        if (workspace != null) {
+          await firestoreService.addWorkspaceChatMessage(
+            companyId: workspace.id,
+            chatId: chatId,
+            messageMap: errorMsg.toMap(),
+          );
+        }
       }
     }
   }
@@ -252,10 +315,10 @@ class ChatNotifier extends Notifier<ChatState> {
 final chatProvider = NotifierProvider<ChatNotifier, ChatState>(ChatNotifier.new);
 
 final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return [];
+  final workspace = ref.watch(activeWorkspaceProvider);
+  if (workspace == null) return [];
   final firestoreService = ref.watch(firestoreServiceProvider);
-  return firestoreService.getUserChats(user.uid);
+  return firestoreService.getWorkspaceChats(workspace.id);
 });
 
 // =============================================================================
@@ -386,8 +449,13 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
             },
           ),
           Expanded(
-            child: Center(
-              child: _DynamicTitle(title: chatState.title ?? 'New chat'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _DynamicTitle(title: chatState.title ?? 'New chat'),
+                const SizedBox(height: MaritaSpacing.xs),
+                const WorkspaceHeaderChip(),
+              ],
             ),
           ),
           const SizedBox(width: 40), // Balance the menu button for centered title
@@ -533,13 +601,14 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                         color: colors.contentPrimary,
                       ),
                     ),
-                    IconButton(
-                      icon: const MaritaIcon(icon: IconsaxPlusLinear.add, size: MaritaIconSize.small),
-                      onPressed: () {
-                        ref.read(chatProvider.notifier).createNewChat();
-                        Navigator.pop(context);
-                      },
-                    ),
+                    if (ref.watch(canWriteProvider))
+                      IconButton(
+                        icon: const MaritaIcon(icon: IconsaxPlusLinear.add, size: MaritaIconSize.small),
+                        onPressed: () {
+                          ref.read(chatProvider.notifier).createNewChat();
+                          Navigator.pop(context);
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -609,7 +678,7 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                             ref.read(chatProvider.notifier).loadChat(id, displayTitle, messagesList);
                             Navigator.pop(context);
                           },
-                          trailing: Row(
+                          trailing: ref.watch(canWriteProvider) ? Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
@@ -629,15 +698,18 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                                   color: colors.contentTertiary,
                                 ),
                                 onPressed: () async {
-                                  await ref.read(firestoreServiceProvider).deleteChat(id);
-                                  ref.invalidate(chatHistoryProvider);
-                                  if (isSelected) {
-                                    ref.read(chatProvider.notifier).createNewChat();
+                                  final workspace = ref.read(activeWorkspaceProvider);
+                                  if (workspace != null) {
+                                    await ref.read(firestoreServiceProvider).deleteWorkspaceChat(workspace.id, id);
+                                    ref.invalidate(chatHistoryProvider);
+                                    if (isSelected) {
+                                      ref.read(chatProvider.notifier).createNewChat();
+                                    }
                                   }
                                 },
                               ),
                             ],
-                          ),
+                          ) : null,
                         );
                       },
                     );
@@ -688,10 +760,13 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
               onPressed: () async {
                 final newTitle = controller.text.trim();
                 if (newTitle.isNotEmpty && newTitle != currentTitle) {
-                  await ref.read(firestoreServiceProvider).updateChatTitle(chatId, newTitle);
-                  ref.invalidate(chatHistoryProvider);
-                  if (ref.read(chatProvider).chatId == chatId) {
-                    ref.read(chatProvider.notifier).updateTitle(newTitle);
+                  final workspace = ref.read(activeWorkspaceProvider);
+                  if (workspace != null) {
+                    await ref.read(firestoreServiceProvider).updateWorkspaceChatTitle(workspace.id, chatId, newTitle);
+                    ref.invalidate(chatHistoryProvider);
+                    if (ref.read(chatProvider).chatId == chatId) {
+                      ref.read(chatProvider.notifier).updateTitle(newTitle);
+                    }
                   }
                 }
                 if (context.mounted) Navigator.pop(context);
@@ -818,13 +893,15 @@ class _MessageBubble extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(width: MaritaSpacing.md),
-                  _AIActionIcon(
-                    icon: IconsaxPlusLinear.refresh,
-                    onTap: () {
-                      ref.read(chatProvider.notifier).regenerateMessage(message);
-                    },
-                  ),
-                  const SizedBox(width: MaritaSpacing.md),
+                  if (ref.watch(canWriteProvider)) ...[
+                    _AIActionIcon(
+                      icon: IconsaxPlusLinear.refresh,
+                      onTap: () {
+                        ref.read(chatProvider.notifier).regenerateMessage(message);
+                      },
+                    ),
+                    const SizedBox(width: MaritaSpacing.md),
+                  ],
                   _AIActionIcon(
                     icon: IconsaxPlusLinear.export,
                     onTap: () {
@@ -1088,6 +1165,30 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
+    final canWrite = ref.watch(canWriteProvider);
+
+    if (!canWrite) {
+      return Container(
+        padding: const EdgeInsets.all(MaritaSpacing.lg),
+        decoration: BoxDecoration(
+          color: colors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.borderPrimary),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            MaritaIcon(icon: IconsaxPlusLinear.eye, color: colors.contentTertiary, size: MaritaIconSize.small),
+            const SizedBox(width: MaritaSpacing.sm),
+            Text(
+              'View Only — you cannot send messages in this workspace',
+              style: typography.bodyDefault.copyWith(color: colors.contentTertiary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -1686,15 +1787,16 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final allTemplates = ref.watch(allTemplatesProvider);
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
-    final staticTemplates = allTemplates.where((t) {
+    final staticTemplates = TemplateService.getStaticTemplates().where((t) {
       final query = _searchQuery.toLowerCase();
       return t.title.toLowerCase().contains(query) ||
           t.description.toLowerCase().contains(query);
     }).toList();
+
+    final customTemplatesAsync = ref.watch(customTemplatesProvider);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -1804,18 +1906,51 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (staticTemplates.any((t) => !t.isCustom)) ...[
+                  if (staticTemplates.isNotEmpty) ...[
                     _buildSectionTitle(context, 'Pre-built Templates'),
                     const SizedBox(height: MaritaSpacing.md),
-                    _buildList(context, staticTemplates.where((t) => !t.isCustom).toList()),
+                    _buildList(context, staticTemplates),
                     const SizedBox(height: MaritaSpacing.xl),
                   ],
-                  if (staticTemplates.any((t) => t.isCustom)) ...[
-                    _buildSectionTitle(context, 'Your Templates'),
-                    const SizedBox(height: MaritaSpacing.md),
-                    _buildList(context, staticTemplates.where((t) => t.isCustom).toList()),
-                  ],
-                  if (staticTemplates.isEmpty)
+                  customTemplatesAsync.when(
+                    data: (customTemplates) {
+                      final filteredCustom = customTemplates.where((t) {
+                        final query = _searchQuery.toLowerCase();
+                        return t.title.toLowerCase().contains(query) ||
+                            t.description.toLowerCase().contains(query);
+                      }).toList();
+
+                      if (filteredCustom.isEmpty) return const SizedBox.shrink();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle(context, 'Your Templates'),
+                          const SizedBox(height: MaritaSpacing.md),
+                          _buildList(context, filteredCustom),
+                        ],
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: MaritaSpacing.md),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (err, stack) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: MaritaSpacing.md),
+                      child: Text(
+                        'Error loading templates: $err',
+                        style: typography.bodySmall.copyWith(color: colors.error),
+                      ),
+                    ),
+                  ),
+                  if (staticTemplates.isEmpty && 
+                      (customTemplatesAsync.value ?? []).where((t) {
+                        final query = _searchQuery.toLowerCase();
+                        return t.title.toLowerCase().contains(query) ||
+                            t.description.toLowerCase().contains(query);
+                      }).isEmpty)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(MaritaSpacing.xxl),
