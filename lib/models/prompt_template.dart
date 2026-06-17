@@ -7,6 +7,8 @@ class PromptTemplate {
   final String prompt;
   final IconData icon;
   final bool isCustom;
+  final String category;
+  final String requiredInput;
 
   const PromptTemplate({
     required this.id,
@@ -15,6 +17,8 @@ class PromptTemplate {
     required this.prompt,
     required this.icon,
     this.isCustom = false,
+    this.category = '',
+    this.requiredInput = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +31,8 @@ class PromptTemplate {
       'iconFontFamily': icon.fontFamily,
       'iconFontPackage': icon.fontPackage,
       'isCustom': isCustom,
+      'category': category,
+      'requiredInput': requiredInput,
     };
   }
 
@@ -42,6 +48,8 @@ class PromptTemplate {
         fontPackage: map['iconFontPackage'],
       ),
       isCustom: map['isCustom'] ?? false,
+      category: map['category'] ?? '',
+      requiredInput: map['requiredInput'] ?? '',
     );
   }
 }

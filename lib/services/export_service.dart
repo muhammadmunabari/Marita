@@ -105,7 +105,7 @@ class ExportService {
                   ),
                 ),
                 pw.Text(
-                  'AI-POWERED FRAUD DETECTION',
+                  'AI-POWERED FINANCIAL ACCOUNTANT',
                   style: const pw.TextStyle(
                     fontSize: 7,
                     color: PdfColors.grey700,
@@ -152,7 +152,7 @@ class ExportService {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'Confidential Forensic Document — Marita AI',
+              'Confidential Document',
               style: const pw.TextStyle(fontSize: 8, color: PdfColors.black),
             ),
             pw.Text(
@@ -167,6 +167,9 @@ class ExportService {
 
   /// Removes AI introductions like "Of course, I can help..."
   static String _cleanAIContent(String content) {
+    const warningString = '[Warning: Some values in this response could not be verified against source documents. Please verify from source files.]';
+    content = content.replaceAll(warningString, '').trim();
+
     // We want to start from the first major header or bolded title line.
     // Sometimes Gemini doesn't use # but uses **Title** at the start.
     final List<String> lines = content.split('\n');
@@ -619,11 +622,14 @@ class ExportService {
       // Header
       rows.add(["Timestamp", "Role", "Message Content"]);
 
+      const warningString = '[Warning: Some values in this response could not be verified against source documents. Please verify from source files.]';
+
       for (var msg in messages) {
+        final cleanText = msg.text.replaceAll(warningString, '').trim();
         rows.add([
           DateTime.now().toIso8601String(),
           msg.role == MessageRole.user ? "User" : "Marita AI",
-          msg.text,
+          cleanText,
         ]);
       }
 

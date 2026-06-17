@@ -93,7 +93,7 @@ void main() {
     },
   );
 
-  testWidgets('WorkspaceHeaderChip limits workspace name to 3 words', (
+  testWidgets('WorkspaceHeaderChip limits workspace name to 8 characters', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -120,7 +120,7 @@ void main() {
       ),
     );
 
-    // Get active workspace notifier and set a long workspace name (5 words)
+    // Get active workspace notifier and set a long workspace name
     final workspaceLong = Workspace(
       id: 'test-id-1',
       name: 'PT Asri Karya Ilmiah Mahasiswa',
@@ -134,11 +134,11 @@ void main() {
     testContainer.read(activeWorkspaceProvider.notifier).state = workspaceLong;
     await tester.pump();
 
-    // It should display the limited words: 'PT Asri Karya....' (3 words plus '....')
-    expect(find.text('PT Asri Karya....'), findsOneWidget);
+    // It should display the limited text: 'PT Asri .....' (8 characters plus '.....')
+    expect(find.text('PT Asri .....'), findsOneWidget);
     expect(find.text('PT Asri Karya Ilmiah Mahasiswa'), findsNothing);
 
-    // Set a short workspace name (2 words)
+    // Set a short workspace name (7 characters)
     final workspaceShort = Workspace(
       id: 'test-id-2',
       name: 'PT Asri',
@@ -154,7 +154,7 @@ void main() {
 
     // It should display 'PT Asri' exactly as is
     expect(find.text('PT Asri'), findsOneWidget);
-    expect(find.text('PT Asri....'), findsNothing);
+    expect(find.text('PT Asri.....'), findsNothing);
   });
 
   testWidgets(

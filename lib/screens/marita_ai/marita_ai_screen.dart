@@ -1796,52 +1796,12 @@ class _TemplateCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          template.title,
-                          style: typography.bodyDefaultBold.copyWith(
-                            color: colors.contentPrimary,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
-                      if (template.isCustom) ...[
-                        const SizedBox(width: MaritaSpacing.xs),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.interactivePrimary.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: MaritaRadius.borderSmall,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.person,
-                                size: 10,
-                                color: colors.interactivePrimary,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                'YOU',
-                                style: typography.bodySmallBold.copyWith(
-                                  fontSize: 8,
-                                  color: colors.interactivePrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    template.title,
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.contentPrimary,
+                      height: 1.1,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1851,6 +1811,23 @@ class _TemplateCard extends StatelessWidget {
                       height: 1.2,
                     ),
                   ),
+                  if (template.requiredInput.isNotEmpty) ...[
+                    const SizedBox(height: MaritaSpacing.md),
+                    Text(
+                      'Required Input',
+                      style: typography.bodySmallBold.copyWith(
+                        color: colors.contentTertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      template.requiredInput,
+                      style: typography.bodySmall.copyWith(
+                        color: colors.contentSecondary,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2052,6 +2029,30 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
               t.description.toLowerCase().contains(query);
         }).toList();
 
+    final categoriesOrder = [
+      'Document Summary',
+      'Fraud Detection',
+      'Investment Analysis',
+      'Business Analysis',
+      'Generate Reports',
+    ];
+
+    final categoryIcons = {
+      'Document Summary': IconsaxPlusLinear.document_text,
+      'Fraud Detection': IconsaxPlusLinear.shield_search,
+      'Investment Analysis': IconsaxPlusLinear.chart_2,
+      'Business Analysis': IconsaxPlusLinear.briefcase,
+      'Generate Reports': IconsaxPlusLinear.document_favorite,
+    };
+
+    final templatesByCategory = <String, List<PromptTemplate>>{};
+    for (final category in categoriesOrder) {
+      final templates = staticTemplates.where((t) => t.category == category).toList();
+      if (templates.isNotEmpty) {
+        templatesByCategory[category] = templates;
+      }
+    }
+
     final customTemplatesAsync = ref.watch(customTemplatesProvider);
 
     return Container(
@@ -2176,10 +2177,17 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (staticTemplates.isNotEmpty) ...[
-                    _buildSectionTitle(context, 'Pre-built Templates'),
-                    const SizedBox(height: MaritaSpacing.md),
-                    _buildList(context, staticTemplates),
-                    const SizedBox(height: MaritaSpacing.xl),
+                    for (final category in categoriesOrder)
+                      if (templatesByCategory.containsKey(category)) ...[
+                        _buildCategoryHeader(
+                          context,
+                          category,
+                          categoryIcons[category] ?? IconsaxPlusLinear.document,
+                        ),
+                        const SizedBox(height: MaritaSpacing.md),
+                        _buildList(context, templatesByCategory[category]!),
+                        const SizedBox(height: MaritaSpacing.xl),
+                      ],
                   ],
                   customTemplatesAsync.when(
                     data: (customTemplates) {
@@ -2269,6 +2277,29 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
         color: context.maritaColors.contentTertiary,
         letterSpacing: 1.2,
       ),
+    );
+  }
+
+  Widget _buildCategoryHeader(BuildContext context, String title, IconData icon) {
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: colors.contentTertiary,
+        ),
+        const SizedBox(width: MaritaSpacing.xs),
+        Text(
+          title.toUpperCase(),
+          style: typography.bodySmallBold.copyWith(
+            color: colors.contentTertiary,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     );
   }
 

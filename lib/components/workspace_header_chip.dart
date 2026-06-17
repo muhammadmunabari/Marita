@@ -18,19 +18,17 @@ class WorkspaceHeaderChip extends ConsumerWidget {
 
     final hasActiveWorkspace = activeWorkspace != null;
 
-    String limitWords(String text, int maxWords) {
+    String limitChars(String text, int maxChars) {
       final trimmed = text.trim();
-      if (trimmed.isEmpty) return text;
-      final words = trimmed.split(RegExp(r'\s+'));
-      if (words.length > maxWords) {
-        return '${words.take(maxWords).join(' ')}....';
+      if (trimmed.length > maxChars) {
+        return '${trimmed.substring(0, maxChars)}.....';
       }
       return text;
     }
 
     final displayName =
         hasActiveWorkspace
-            ? limitWords(activeWorkspace.name, 3)
+            ? limitChars(activeWorkspace.name, 8)
             : 'No Workspace';
 
     return Semantics(

@@ -287,9 +287,7 @@ class AIPipelineService {
 
     String finalResponse = draftResponse;
     if (!verification.isValid && verification.confidenceScore < 0.5) {
-      finalResponse =
-          "$draftResponse\n\n[Warning: Some values in this response could not be verified against source documents. Please verify from source files.]";
-      print("  └─ Action: Fallback appended to response text.");
+      print("  └─ Action: Fallback message suppressed as per user request.");
     } else {
       print("  └─ Action: Response matches validation requirements.");
     }
