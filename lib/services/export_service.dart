@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -19,6 +20,10 @@ class ExportService {
       final italicFont = await PdfGoogleFonts.plusJakartaSansItalic();
       final boldItalicFont = await PdfGoogleFonts.plusJakartaSansBoldItalic();
 
+      // Load local CJK font fallback
+      final cjkFontData = await rootBundle.load('assets/fonts/NotoSansCJK.ttf');
+      final cjkFont = pw.Font.ttf(cjkFontData);
+
       // 1. Clean Content: Remove AI preamble (anything before the first title/header)
       final cleanedContent = _cleanAIContent(content);
 
@@ -31,6 +36,7 @@ class ExportService {
             bold: boldFont,
             italic: italicFont,
             boldItalic: boldItalicFont,
+            fontFallback: [cjkFont],
           ),
           header: (pw.Context context) => _buildHeader(context),
           footer: (pw.Context context) => _buildFooter(context),

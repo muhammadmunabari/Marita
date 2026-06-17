@@ -654,7 +654,7 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                         color: colors.contentPrimary,
                       ),
                     ),
-                    if (ref.watch(canWriteProvider))
+                    if (ref.watch(canWriteRobustProvider))
                       IconButton(
                         icon: const MaritaIcon(
                           icon: IconsaxPlusLinear.add,
@@ -757,7 +757,7 @@ class _MaritaSidebarDrawer extends ConsumerWidget {
                             Navigator.pop(context);
                           },
                           trailing:
-                              ref.watch(canWriteProvider)
+                              ref.watch(canWriteRobustProvider)
                                   ? Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -1024,7 +1024,7 @@ class _MessageBubble extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(width: MaritaSpacing.md),
-                  if (ref.watch(canWriteProvider)) ...[
+                  if (ref.watch(canWriteRobustProvider)) ...[
                     _AIActionIcon(
                       icon: IconsaxPlusLinear.refresh,
                       onTap: () {
@@ -1368,7 +1368,7 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final canWrite = ref.watch(canWriteProvider);
+    final canWrite = ref.watch(canWriteRobustProvider);
 
     if (!canWrite) {
       return Container(
@@ -1387,12 +1387,14 @@ class _MaritaAIInputAreaState extends ConsumerState<_MaritaAIInputArea> {
               size: MaritaIconSize.small,
             ),
             const SizedBox(width: MaritaSpacing.sm),
-            Text(
-              'View Only — you cannot send messages',
-              style: typography.bodyDefault.copyWith(
-                color: colors.contentTertiary,
+            Flexible(
+              child: Text(
+                'View Only — you cannot send messages',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentTertiary,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

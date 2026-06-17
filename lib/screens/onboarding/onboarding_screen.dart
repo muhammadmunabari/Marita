@@ -13,111 +13,122 @@ class OnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.maritaColors.backgroundPrimary,
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: MaritaSpacing.xl,
-          ), // 24px margin
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 90),
-              // Logo
-              Center(
-                child: Image.asset(
-                  'assets/logos/Logobug colored bg.png',
-                  width: 64,
-                  height: 64,
-                ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
               ),
-              const SizedBox(height: 32),
-              // Title
-              Text(
-                'WELCOME\nTO MARITA',
-                textAlign: TextAlign.center,
-                style: context.maritaTypography.displaySmall.copyWith(
-                  color: context.maritaColors.contentPrimary,
-                ),
-              ),
-              const SizedBox(height: 104),
-              // Feature 1
-              _FeatureItem(
-                iconWidget: SvgPicture.asset(
-                  'assets/icons/gemini.svg',
-                  width: MaritaIconSize.medium,
-                  height: MaritaIconSize.medium,
-                  colorFilter: ColorFilter.mode(
-                    context.maritaColors.contentPrimary,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                title: 'AI Assistant',
-                description:
-                    'Understand complex financial data & get clear answers and actionable insights in seconds.',
-              ),
-              const SizedBox(height: 32),
-              // Feature 2
-              _FeatureItem(
-                iconWidget: MaritaIcon(
-                  icon: MaritaIcons.search,
-                  size: MaritaIconSize.medium,
-                  color: context.maritaColors.contentPrimary,
-                ),
-                title: 'Audit System',
-                description:
-                    'Strengthen financial accountability. Track issues, risks, and audit findings with clarity.',
-              ),
-              const SizedBox(height: 32),
-              // Feature 3
-              _FeatureItem(
-                iconWidget: MaritaIcon(
-                  icon: MaritaIcons.folder,
-                  size: MaritaIconSize.medium,
-                  color: context.maritaColors.contentPrimary,
-                ),
-                title: 'Automated Financial Report',
-                description:
-                    'Generate reports instantly. Turn raw data into clear executive insights.',
-              ),
-              const SizedBox(height: 104),
-              // Button
-              MaritaPrimaryButton(
-                label: 'Get started now',
-                onPressed: () {
-                  context.push('/signup');
-                },
-              ),
-              const SizedBox(height: 16),
-              // Login Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Already have an account? ',
-                    style: context.maritaTypography.bodyDefault.copyWith(
-                      color: context.maritaColors.contentSecondary,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      context.push('/login');
-                    },
-                    child: Text(
-                      'Log in',
-                      style: context.maritaTypography.bodyDefaultBold.copyWith(
-                        color: context.maritaColors.interactivePrimary,
-                        decoration: TextDecoration.underline,
-                        decorationColor:
-                            context.maritaColors.interactivePrimary,
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MaritaSpacing.xl,
+                  ), // 24px margin
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Spacer(flex: 3),
+                      // Logo
+                      Center(
+                        child: Image.asset(
+                          'assets/logos/Logobug colored bg.png',
+                          width: 64,
+                          height: 64,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: MaritaSpacing.lg),
+                      // Title
+                      Text(
+                        'WELCOME\nTO MARITA',
+                        textAlign: TextAlign.center,
+                        style: context.maritaTypography.displaySmall.copyWith(
+                          color: context.maritaColors.contentPrimary,
+                        ),
+                      ),
+                      const Spacer(flex: 4),
+                      // Feature 1
+                      _FeatureItem(
+                        iconWidget: SvgPicture.asset(
+                          'assets/icons/gemini.svg',
+                          width: MaritaIconSize.medium,
+                          height: MaritaIconSize.medium,
+                          colorFilter: ColorFilter.mode(
+                            context.maritaColors.contentPrimary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        title: 'AI Assistant',
+                        description:
+                            'Understand complex financial data & get clear answers and actionable insights in seconds.',
+                      ),
+                      const SizedBox(height: MaritaSpacing.xl),
+                      // Feature 2
+                      _FeatureItem(
+                        iconWidget: MaritaIcon(
+                          icon: MaritaIcons.search,
+                          size: MaritaIconSize.medium,
+                          color: context.maritaColors.contentPrimary,
+                        ),
+                        title: 'Audit System',
+                        description:
+                            'Strengthen financial accountability. Track issues, risks, and audit findings with clarity.',
+                      ),
+                      const SizedBox(height: MaritaSpacing.xl),
+                      // Feature 3
+                      _FeatureItem(
+                        iconWidget: MaritaIcon(
+                          icon: MaritaIcons.folder,
+                          size: MaritaIconSize.medium,
+                          color: context.maritaColors.contentPrimary,
+                        ),
+                        title: 'Automated Financial Report',
+                        description:
+                            'Generate reports instantly. Turn raw data into clear executive insights.',
+                      ),
+                      const Spacer(flex: 4),
+                      // Button
+                      MaritaPrimaryButton(
+                        label: 'Get started now',
+                        onPressed: () {
+                          context.push('/signup');
+                        },
+                      ),
+                      const SizedBox(height: MaritaSpacing.md),
+                      // Login Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Already have an account? ',
+                            style: context.maritaTypography.bodyDefault.copyWith(
+                              color: context.maritaColors.contentSecondary,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              context.push('/login');
+                            },
+                            child: Text(
+                              'Log in',
+                              style: context.maritaTypography.bodyDefaultBold.copyWith(
+                                color: context.maritaColors.interactivePrimary,
+                                decoration: TextDecoration.underline,
+                                decorationColor:
+                                    context.maritaColors.interactivePrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: MaritaSpacing.lg),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

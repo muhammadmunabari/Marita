@@ -31,12 +31,22 @@ service cloud.firestore {
 
     // Helper function to check if the user is workspace owner or member with can_edit access
     function isWorkspaceMemberWithWriteAccess(companyId) {
+      let data = get(/databases/$(database)/documents/companies/$(companyId)).data;
+      let uid = request.auth.uid;
+      let memberDetails = data.get('memberDetails', null);
+      let access = memberDetails != null && uid in memberDetails ? memberDetails[uid].get('access', '') : '';
       return isAuthenticated() && (
-        get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid ||
-        (request.auth.uid in get(/databases/$(database)/documents/companies/$(companyId)).data.memberDetails &&
-         get(/databases/$(database)/documents/companies/$(companyId)).data.memberDetails[request.auth.uid].access == 'can_edit')
+        // Direct owner by ownerId field
+        data.ownerId == uid ||
+        // Legacy fallback: if memberDetails is missing, fall back to membership check
+        (memberDetails == null && uid in data.members) ||
+        // Member whose access is 'owner' in memberDetails
+        access == 'owner' ||
+        // Member whose access is 'can_edit' in memberDetails
+        access == 'can_edit'
       );
     }
+
 
     // USERS collection:
     // - Authenticated users can read/write their own user profile document and subcollections.

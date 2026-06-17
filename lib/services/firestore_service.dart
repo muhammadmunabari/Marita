@@ -69,10 +69,25 @@ class FirestoreService {
     required String name,
     required String ownerId,
   }) async {
+    final userMap = await getUser(ownerId);
+    final ownerName = userMap?['name'] ?? 'Owner';
+    final ownerEmail = userMap?['email'] ?? '';
+    final rawRole = userMap?['role'] ?? 'founder';
+    final ownerRole = rawRole == 'founder' ? 'c-level' : rawRole;
+
     final doc = await _db.collection('companies').add({
       'name': name,
       'ownerId': ownerId,
       'members': [ownerId],
+      'memberDetails': {
+        ownerId: {
+          'email': ownerEmail,
+          'name': ownerName,
+          'role': ownerRole,
+          'access': 'owner',
+          'joinedAt': FieldValue.serverTimestamp(),
+        }
+      },
       'createdAt': FieldValue.serverTimestamp(),
     });
     return doc.id;

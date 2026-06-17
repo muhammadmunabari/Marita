@@ -26,12 +26,74 @@ class MigrationService {
   }) : _firestoreService = firestoreService,
        _db = db ?? FirebaseFirestore.instance;
 
+  /// Migrates legacy workspaces missing memberDetails.
+  Future<void> migrateWorkspaceIfNeeded(String companyId) async {
+    try {
+      final docRef = _db.collection('companies').doc(companyId);
+      final docSnap = await docRef.get();
+      if (!docSnap.exists) return;
+
+      final data = docSnap.data();
+      if (data == null) return;
+
+      final memberDetails = data['memberDetails'] as Map<String, dynamic>? ?? {};
+      final ownerId = data['ownerId'] as String?;
+      final membersList = List<String>.from(data['members'] ?? []);
+
+      if (ownerId != null && !memberDetails.containsKey(ownerId)) {
+        debugPrint('Workspace $companyId is missing owner in memberDetails. Migrating...');
+        final updatedMemberDetails = Map<String, dynamic>.from(memberDetails);
+
+        final ownerDoc = await _db.collection('users').doc(ownerId).get();
+        final ownerName = ownerDoc.data()?['name'] ?? 'Owner';
+        final ownerEmail = ownerDoc.data()?['email'] ?? '';
+        final rawRole = ownerDoc.data()?['role'] ?? 'founder';
+        final ownerRole = rawRole == 'founder' ? 'c-level' : rawRole;
+
+        updatedMemberDetails[ownerId] = {
+          'email': ownerEmail,
+          'name': ownerName,
+          'role': ownerRole,
+          'access': 'owner',
+          'joinedAt': FieldValue.serverTimestamp(),
+        };
+
+        for (final memberId in membersList) {
+          if (!updatedMemberDetails.containsKey(memberId)) {
+            final memberDoc = await _db.collection('users').doc(memberId).get();
+            final memberName = memberDoc.data()?['name'] ?? 'Member';
+            final memberEmail = memberDoc.data()?['email'] ?? '';
+            final memberRole = memberDoc.data()?['role'] ?? 'employee';
+
+            updatedMemberDetails[memberId] = {
+              'email': memberEmail,
+              'name': memberName,
+              'role': memberRole,
+              'access': 'can_edit',
+              'joinedAt': FieldValue.serverTimestamp(),
+            };
+          }
+        }
+
+        await docRef.update({
+          'memberDetails': updatedMemberDetails,
+        });
+        debugPrint('Successfully migrated workspace $companyId to contain memberDetails');
+      }
+    } catch (e, stack) {
+      debugPrint('Error migrating legacy workspace memberDetails: $e\n$stack');
+    }
+  }
+
   /// Runs the user-scoped data migration to the active workspace if not already done.
   Future<void> runMigrationIfNeeded({
     required String userId,
     required String companyId,
   }) async {
     try {
+      // 0. Ensure legacy workspace details are migrated
+      await migrateWorkspaceIfNeeded(companyId);
+
       // 1. Check if migration has already been executed for this user
       final flagDocRef = _db
           .collection('users')

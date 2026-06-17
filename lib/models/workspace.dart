@@ -17,14 +17,16 @@ enum MemberAccess {
   }
 
   static MemberAccess fromString(String value) {
-    switch (value.toLowerCase()) {
+    switch (value.toLowerCase().trim()) {
       case 'owner':
         return MemberAccess.owner;
       case 'can_edit':
       case 'canedit':
+      case 'can edit': // legacy format (before normalization fix)
         return MemberAccess.canEdit;
       case 'can_view':
       case 'canview':
+      case 'can view': // legacy format (before normalization fix)
       default:
         return MemberAccess.canView;
     }

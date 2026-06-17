@@ -374,9 +374,11 @@ final activeWorkspaceAccessProvider = Provider<MemberAccess?>((ref) {
   if (user == null || activeWorkspace == null) {
     return null;
   }
+  // Primary check: user is the workspace owner via ownerId field
   if (activeWorkspace.ownerId == user.uid) {
     return MemberAccess.owner;
   }
+  // Secondary check: look up memberDetails
   final memberDetail = activeWorkspace.memberDetails[user.uid];
   return memberDetail?.access;
 });
@@ -385,7 +387,34 @@ final activeWorkspaceAccessProvider = Provider<MemberAccess?>((ref) {
 final canWriteProvider = Provider<bool>((ref) {
   final access = ref.watch(activeWorkspaceAccessProvider);
   if (access == null) return false;
+  // owner and canEdit both have write access
+  // Note: MemberAccess.owner is also included in case memberDetails stores 'owner' access value
   return access == MemberAccess.owner || access == MemberAccess.canEdit;
+});
+
+/// A more robust provider that also checks the raw workspace data directly
+/// Used as a safety net when the provider chain might have a timing issue
+final canWriteRobustProvider = Provider<bool>((ref) {
+  // First try the normal path
+  final normalCheck = ref.watch(canWriteProvider);
+  if (normalCheck) return true;
+
+  // Fallback: directly check ownerId without going through memberDetails
+  final user = ref.watch(authStateProvider).value;
+  final activeWorkspace = ref.watch(activeWorkspaceProvider);
+  if (user == null || activeWorkspace == null) return false;
+
+  // If we are the owner by ownerId, always grant write access
+  if (activeWorkspace.ownerId == user.uid) return true;
+
+  // If memberDetails has us with 'owner' or 'can_edit' access value (raw string check)
+  final memberDetail = activeWorkspace.memberDetails[user.uid];
+  if (memberDetail != null) {
+    return memberDetail.access == MemberAccess.owner ||
+        memberDetail.access == MemberAccess.canEdit;
+  }
+
+  return false;
 });
 
 /// Triggers background re-indexing of any un-indexed files whenever the

@@ -326,10 +326,10 @@ class FileService {
     required String originalName,
     String? parentId,
   }) async {
+    final id = _uuid.v4();
+    final extension =
+        p.extension(originalName).replaceAll('.', '').toLowerCase();
     try {
-      final id = _uuid.v4();
-      final extension =
-          p.extension(originalName).replaceAll('.', '').toLowerCase();
       final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
 
       // Determine standardized type
@@ -389,8 +389,17 @@ class FileService {
         extension: extension,
       );
 
+      debugPrint('[FileService] ✅ Upload success: companies/$companyId/files/$id.$extension');
       return Success(fileItem);
+    } on FirebaseException catch (e, stack) {
+      debugPrint('[FileService] ❌ UPLOAD FAILED (FirebaseException)');
+      debugPrint('  Path   : companies/$companyId/files/$id.$extension');
+      debugPrint('  Plugin : ${e.plugin}');
+      debugPrint('  Code   : ${e.code}');
+      debugPrint('  Message: ${e.message}');
+      return Failure(ErrorMapper.map(e, stack));
     } catch (e, stack) {
+      debugPrint('[FileService] ❌ UPLOAD FAILED (${e.runtimeType}): $e');
       return Failure(ErrorMapper.map(e, stack));
     }
   }

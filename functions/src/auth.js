@@ -10,6 +10,21 @@ if (getApps().length === 0) {
 }
 const db = getFirestore();
 
+/**
+ * Normalizes an access string to a standardized format with underscores.
+ * This ensures consistency between Flutter app (MemberAccess.toJsonString())
+ * and Firebase Storage Rules which check for 'can_edit' / 'can_view'.
+ * @param {string} rawAccess - The raw access string (e.g. 'can edit', 'can_edit', 'owner')
+ * @returns {string} - Normalized access string ('owner', 'can_edit', or 'can_view')
+ */
+function normalizeAccess(rawAccess) {
+  if (!rawAccess) return 'can_view';
+  const normalized = rawAccess.toString().toLowerCase().trim().replace(/\s+/g, '_');
+  if (normalized === 'owner') return 'owner';
+  if (normalized === 'can_edit' || normalized === 'canedit') return 'can_edit';
+  return 'can_view'; // default fallback
+}
+
 // Configure the SMTP transport using environment variables or fallbacks
 const smtpUser = process.env.SMTP_USER || 'your-email@gmail.com';
 const smtpPass = process.env.SMTP_PASS || 'your-app-password';
@@ -132,7 +147,7 @@ exports.onWorkspaceInvitationUpdated = onDocumentUpdated("invitations/{invitatio
     const email = afterData.email;
     const acceptedByUid = afterData.acceptedByUid;
     const acceptedByName = afterData.acceptedByName || "User";
-    const access = afterData.access || "can view";
+    const access = normalizeAccess(afterData.access);
 
     logger.info(`Processing acceptance of invitation for ${email} to company ${companyId}`);
 
@@ -159,7 +174,7 @@ exports.onWorkspaceInvitationUpdated = onDocumentUpdated("invitations/{invitatio
         email: email,
         name: acceptedByName,
         role: "employee", // Default joined role
-        access: access,   // e.g. "can view", "can edit", etc.
+        access: access,   // normalized: 'owner', 'can_edit', or 'can_view'
         joinedAt: new Date().toISOString(),
       };
 

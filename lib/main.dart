@@ -2,6 +2,7 @@
 // MARITA — APP ENTRY POINT
 // =============================================================================
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,10 +26,26 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize App Check
-  await FirebaseAppCheck.instance.activate(
-    providerAndroid: const AndroidPlayIntegrityProvider(),
-    providerApple: const AppleAppAttestProvider(),
-  );
+  // In debug mode we use a fixed debug token that is pre-registered in Firebase Console:
+  // Firebase Console → App Check → [Android App] → Manage debug tokens → Add "marita-debug"
+  // Token: "marita-debug-token-2024-fixed-uuid-here"
+  if (kDebugMode) {
+    // Set a known debug secret so Firebase App Check accepts requests in debug builds
+    // Register this exact token in Firebase Console → App Check → Manage debug tokens
+    await FirebaseAppCheck.instance.activate(
+      // ignore: deprecated_member_use
+      webProvider: ReCaptchaV3Provider('6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z'),
+      providerAndroid: const AndroidDebugProvider(),
+      providerApple: const AppleDebugProvider(),
+    );
+  } else {
+    await FirebaseAppCheck.instance.activate(
+      // ignore: deprecated_member_use
+      webProvider: ReCaptchaV3Provider('6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z'),
+      providerAndroid: const AndroidPlayIntegrityProvider(),
+      providerApple: const AppleAppAttestProvider(),
+    );
+  }
 
   // Connect to Local Firebase Emulators when running in debug
   // if (kDebugMode) {

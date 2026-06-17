@@ -57,7 +57,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final breadcrumbs = ref.watch(folderBreadcrumbsProvider);
     final isGrid = ref.watch(fileGridViewProvider);
     final opsState = ref.watch(fileOpsProvider);
-    final canWrite = ref.watch(canWriteProvider);
+    final canWrite = ref.watch(canWriteRobustProvider);
 
     // Listen to success or error messages
     ref.listen(fileOpsProvider, (previous, next) {
@@ -224,7 +224,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             ),
           ),
           const SizedBox(width: MaritaSpacing.md),
-          const WorkspaceHeaderChip(),
+          const Flexible(
+            child: WorkspaceHeaderChip(),
+          ),
           const Spacer(),
           IconButton(
             icon: Icon(
@@ -493,7 +495,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ],
             ),
           ),
-          if (ref.watch(canWriteProvider))
+          if (ref.watch(canWriteRobustProvider))
             IconButton(
               icon: Icon(
                 MaritaIcons.more,
@@ -548,7 +550,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ],
             ),
           ),
-          if (ref.watch(canWriteProvider))
+          if (ref.watch(canWriteRobustProvider))
             Positioned(
               top: -6,
               right: -6,
