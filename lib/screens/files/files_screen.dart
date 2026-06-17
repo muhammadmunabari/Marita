@@ -55,6 +55,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     final currentFolderId = ref.watch(currentFolderIdProvider);
     final files = ref.watch(currentFolderFilesProvider);
     final breadcrumbs = ref.watch(folderBreadcrumbsProvider);
+    final isGrid = ref.watch(fileGridViewProvider);
     final opsState = ref.watch(fileOpsProvider);
     final canWrite = ref.watch(canWriteRobustProvider);
 
@@ -117,6 +118,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   context,
                   breadcrumbs,
                   currentFolderId,
+                  isGrid,
                 ),
 
                 if (!canWrite)
@@ -159,7 +161,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   child:
                       filteredFiles.isEmpty
                           ? _buildEmptyState(context)
-                          : _buildListView(context, filteredFiles),
+                          : (isGrid
+                              ? _buildGridView(context, filteredFiles)
+                              : _buildListView(context, filteredFiles)),
                 ),
               ],
             ),
@@ -220,9 +224,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             ),
           ),
           const SizedBox(width: MaritaSpacing.md),
-          const Flexible(
-            child: WorkspaceHeaderChip(),
-          ),
+          const Flexible(child: WorkspaceHeaderChip()),
           const Spacer(),
           IconButton(
             icon: Icon(
@@ -296,6 +298,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     BuildContext context,
     List<FileItem> breadcrumbs,
     String? currentFolderId,
+    bool isGrid,
   ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
@@ -318,7 +321,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                       ref.read(currentFolderIdProvider.notifier).state = null;
                     },
                     child: Text(
-                      'Root',
+                      'My Files',
                       style: typography.bodySmall.copyWith(
                         color:
                             currentFolderId == null
@@ -362,6 +365,18 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   ],
                 ],
               ),
+            ),
+          ),
+          const SizedBox(width: MaritaSpacing.md),
+          // View Switcher Toggle
+          GestureDetector(
+            onTap: () {
+              ref.read(fileGridViewProvider.notifier).state = !isGrid;
+            },
+            child: Icon(
+              isGrid ? MaritaIcons.list : MaritaIcons.grid,
+              color: colors.contentSecondary,
+              size: 20,
             ),
           ),
         ],
@@ -422,6 +437,23 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     );
   }
 
+  Widget _buildGridView(BuildContext context, List<FileItem> items) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(MaritaSpacing.lg),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: MaritaSpacing.md,
+        mainAxisSpacing: MaritaSpacing.md,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _buildGridCard(context, item);
+      },
+    );
+  }
+
   Widget _buildListTile(BuildContext context, FileItem item) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
@@ -443,6 +475,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               children: [
                 Text(
                   item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: typography.bodyLargeBold.copyWith(
                     color: colors.contentPrimary,
                   ),
@@ -467,6 +501,65 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                 size: 20,
               ),
               onPressed: () => _showItemOptions(context, item),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridCard(BuildContext context, FileItem item) {
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+
+    return MaritaCard(
+      padding: const EdgeInsets.all(MaritaSpacing.sm),
+      onTap: () => _handleItemTap(item),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildTypeIcon(item, size: 44),
+                const SizedBox(height: MaritaSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: MaritaSpacing.xs,
+                  ),
+                  child: Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                  ),
+                ),
+                if (!item.isFolder) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatSize(item.size),
+                    style: typography.bodySmall.copyWith(
+                      color: colors.contentTertiary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (ref.watch(canWriteRobustProvider))
+            Positioned(
+              top: -6,
+              right: -6,
+              child: IconButton(
+                icon: Icon(
+                  MaritaIcons.more,
+                  color: colors.contentSecondary,
+                  size: 18,
+                ),
+                onPressed: () => _showItemOptions(context, item),
+              ),
             ),
         ],
       ),
