@@ -12,7 +12,6 @@ import '../../services/attachment_service.dart';
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import '../../components/marita_card.dart';
-import '../../components/workspace_header_chip.dart';
 
 class FilesScreen extends ConsumerStatefulWidget {
   const FilesScreen({super.key});
