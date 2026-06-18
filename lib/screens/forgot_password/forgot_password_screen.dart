@@ -26,6 +26,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  bool get _isFormValid => _emailController.text.trim().isNotEmpty;
+
   Future<void> _handleResetPassword() async {
     final email = _emailController.text.trim();
 
@@ -139,14 +141,25 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       hint: 'Email',
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 32),
-                    MaritaPrimaryButton(
-                      label: _isLoading ? 'Sending...' : 'Send Reset Link',
-                      onPressed: _isLoading ? null : _handleResetPassword,
-                    ),
                   ],
                 ),
+              ),
+            ),
+
+            // Bottom Action
+            Padding(
+              padding: const EdgeInsets.only(
+                left: MaritaSpacing.xl,
+                right: MaritaSpacing.xl,
+                bottom: 24, // 24px
+              ),
+              child: MaritaPrimaryButton(
+                label: _isLoading ? 'Sending...' : 'Send Reset Link',
+                onPressed:
+                    (_isLoading || !_isFormValid) ? null : _handleResetPassword,
               ),
             ),
           ],

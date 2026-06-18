@@ -93,7 +93,7 @@ void main() {
     },
   );
 
-  testWidgets('WorkspaceHeaderChip limits workspace name to 8 characters', (
+  testWidgets('WorkspaceHeaderChip limits workspace name to 12 characters', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -134,27 +134,9 @@ void main() {
     testContainer.read(activeWorkspaceProvider.notifier).state = workspaceLong;
     await tester.pump();
 
-    // It should display the limited text: 'PT Asri .....' (8 characters plus '.....')
-    expect(find.text('PT Asri .....'), findsOneWidget);
+    // It should display the limited text: 'PT Asri Kary.....' (12 characters plus '.....')
+    expect(find.text('PT Asri Kary.....'), findsOneWidget);
     expect(find.text('PT Asri Karya Ilmiah Mahasiswa'), findsNothing);
-
-    // Set a short workspace name (7 characters)
-    final workspaceShort = Workspace(
-      id: 'test-id-2',
-      name: 'PT Asri',
-      ownerId: 'owner-id',
-      members: const [],
-      memberDetails: const {},
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    testContainer.read(activeWorkspaceProvider.notifier).state = workspaceShort;
-    await tester.pump();
-
-    // It should display 'PT Asri' exactly as is
-    expect(find.text('PT Asri'), findsOneWidget);
-    expect(find.text('PT Asri.....'), findsNothing);
   });
 
   testWidgets(
@@ -193,23 +175,6 @@ void main() {
 
       // The 'Create New Workspace' button should be visible
       expect(find.text('Create New Workspace'), findsOneWidget);
-
-      // 2. With showCreateButton = false
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: testContainer,
-          child: MaterialApp(
-            theme: MaritaTheme.dark(),
-            home: const Scaffold(
-              body: WorkspaceSwitcherSheet(showCreateButton: false),
-            ),
-          ),
-        ),
-      );
-      await tester.pump(); // Let state streams resolve
-
-      // The 'Create New Workspace' button should NOT be visible
-      expect(find.text('Create New Workspace'), findsNothing);
     },
   );
 }

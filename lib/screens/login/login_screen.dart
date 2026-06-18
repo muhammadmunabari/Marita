@@ -30,6 +30,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  bool get _isFormValid {
+    return _emailController.text.trim().isNotEmpty &&
+        _passwordController.text.isNotEmpty;
+  }
+
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -134,6 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       hint: 'Email',
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
 
@@ -141,6 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       hint: 'Password',
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      onChanged: (_) => setState(() {}),
                       suffixIcon:
                           _obscurePassword
                               ? MaritaIcons.eyeSlash
@@ -167,18 +174,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 32),
-
-                    // Login Button
-                    MaritaPrimaryButton(
-                      label: _isLoading ? 'Logging in...' : 'Log in',
-                      onPressed: _isLoading ? null : _handleLogin,
-                    ),
-
-                    const SizedBox(height: 24),
                   ],
                 ),
+              ),
+            ),
+
+            // Bottom Action
+            Padding(
+              padding: const EdgeInsets.only(
+                left: MaritaSpacing.xl,
+                right: MaritaSpacing.xl,
+                bottom: 24, // 24px
+              ),
+              child: MaritaPrimaryButton(
+                label: _isLoading ? 'Logging in...' : 'Log in',
+                onPressed: (_isLoading || !_isFormValid) ? null : _handleLogin,
               ),
             ),
           ],

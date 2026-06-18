@@ -28,7 +28,7 @@ class WorkspaceHeaderChip extends ConsumerWidget {
 
     final displayName =
         hasActiveWorkspace
-            ? limitChars(activeWorkspace.name, 8)
+            ? limitChars(activeWorkspace.name, 12)
             : 'No Workspace';
 
     return Semantics(

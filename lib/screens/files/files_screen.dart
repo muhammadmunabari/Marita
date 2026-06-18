@@ -211,7 +211,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: MaritaSpacing.lg,
+        horizontal: MaritaSpacing.xl,
         vertical: MaritaSpacing.md,
       ),
       child: Row(
@@ -223,8 +223,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: MaritaSpacing.md),
-          const Flexible(child: WorkspaceHeaderChip()),
+          const SizedBox(width: MaritaSpacing.xl),
           const Spacer(),
           IconButton(
             icon: Icon(
@@ -376,7 +375,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
             child: Icon(
               isGrid ? MaritaIcons.list : MaritaIcons.grid,
               color: colors.contentSecondary,
-              size: 20,
+              size: 0,
             ),
           ),
         ],
@@ -679,7 +678,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                         }
                       },
                       child: Text(
-                        'Share Link',
+                        'Open File',
                         style: typography.bodyDefaultBold.copyWith(
                           color: colors.contentInverse,
                         ),
