@@ -911,7 +911,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   color: colors.contentPrimary,
                 ),
                 title: Text(
-                  'Upload Document',
+                  'Upload Files',
                   style: typography.bodyDefault.copyWith(
                     color: colors.contentPrimary,
                   ),
@@ -927,7 +927,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   color: colors.contentPrimary,
                 ),
                 title: Text(
-                  'Upload Photo / Image',
+                  'Upload Images',
                   style: typography.bodyDefault.copyWith(
                     color: colors.contentPrimary,
                   ),
