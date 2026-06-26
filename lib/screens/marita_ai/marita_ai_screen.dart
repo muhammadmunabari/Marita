@@ -253,7 +253,7 @@ class ChatNotifier extends Notifier<ChatState> {
       print(
         "======================================================================",
       );
-      print("  ├─ Model Target: gemini-2.5-pro");
+      print("  ├─ Model Target: gemini-2.5-flash-lite");
       print("  └─ Status: Stream started...");
 
       final stream = GeminiService.sendMessageStream(
@@ -297,6 +297,7 @@ class ChatNotifier extends Notifier<ChatState> {
         createdAt: DateTime.now(),
         queryType: pipelineResult.queryType.name,
         confidenceScore: pipelineResult.confidenceScore,
+        evidenceScore: pipelineResult.evidenceScore,
         citations: pipelineResult.citations,
         verificationIssues: pipelineResult.feedback,
         fullCorrectCount: pipelineResult.fullCorrectCount,
@@ -1003,6 +1004,15 @@ class _MessageBubble extends ConsumerWidget {
                               ),
                             ),
                           ),
+                      // Score Metrics Card — shown for non-general, non-streaming AI responses
+                      if (!isUser &&
+                          !message.isStreaming &&
+                          message.queryType != null &&
+                          message.queryType != 'general')
+                        Padding(
+                          padding: const EdgeInsets.only(top: MaritaSpacing.md),
+                          child: _ScoreMetricsCard(message: message),
+                        ),
                     ],
                   ),
                 ),
@@ -1090,7 +1100,7 @@ class _MessageBubble extends ConsumerWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    ExportService.exportMessageToPdf(message.text);
+                    ExportService.exportMessageToPdf(message);
                   },
                 ),
                 ListTile(
@@ -1116,6 +1126,222 @@ class _MessageBubble extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Card widget displayed below AI message bubbles showing Evidence, Confidence,
+/// and Precision scores for non-general query responses.
+class _ScoreMetricsCard extends StatelessWidget {
+  final ChatMessage message;
+
+  const _ScoreMetricsCard({required this.message});
+
+  Color _scoreColor(BuildContext context, double? value) {
+    if (value == null) return Colors.grey;
+    if (value >= 80) return const Color(0xFF2E7D32); // green
+    if (value >= 50) return const Color(0xFFE65100); // orange
+    return const Color(0xFFC62828); // red
+  }
+
+  Widget _metricRow(
+    BuildContext context, {
+    required String label,
+    required double? value, // 0-100 scale
+    required MaritaColorPalette colors,
+    required MaritaTypographyAccessor typography,
+  }) {
+    final color = _scoreColor(context, value);
+    final displayPct = value != null ? '${value.toStringAsFixed(1)}%' : 'N/A';
+    final progress = value != null ? (value / 100).clamp(0.0, 1.0) : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: typography.bodyDefault.copyWith(
+                color: colors.contentSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: colors.borderPrimary,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 44,
+            child: Text(
+              displayPct,
+              textAlign: TextAlign.right,
+              style: typography.bodyDefault.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+
+    // Convert all scores to 0-100 scale
+    final evidencePct = message.evidenceScore != null
+        ? message.evidenceScore! * 100
+        : null;
+    final confidencePct = message.confidenceScore != null
+        ? message.confidenceScore! * 100
+        : null;
+    final precisionPct = message.precisionPercent;
+
+    final categoryLabel = {
+      'financialAnalysis': 'Financial Analysis',
+      'fraudDetection': 'Fraud Detection',
+      'auditRequest': 'Audit Request',
+    }[message.queryType] ?? message.queryType ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(MaritaSpacing.md),
+      decoration: BoxDecoration(
+        color: colors.backgroundSecondary,
+        borderRadius: MaritaRadius.borderMedium,
+        border: Border.all(color: colors.borderPrimary),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.verified_outlined,
+                size: 14,
+                color: colors.interactivePrimary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Verification Metrics',
+                style: typography.bodySmallBold.copyWith(
+                  color: colors.contentPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colors.interactivePrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  categoryLabel,
+                  style: typography.bodySmall.copyWith(
+                    color: colors.interactivePrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: MaritaSpacing.sm),
+          Divider(color: colors.borderPrimary, height: 1),
+          const SizedBox(height: MaritaSpacing.sm),
+          _metricRow(
+            context,
+            label: 'Evidence Score',
+            value: evidencePct,
+            colors: colors,
+            typography: typography,
+          ),
+          _metricRow(
+            context,
+            label: 'Confidence Score',
+            value: confidencePct,
+            colors: colors,
+            typography: typography,
+          ),
+          _metricRow(
+            context,
+            label: 'Precision Score',
+            value: precisionPct,
+            colors: colors,
+            typography: typography,
+          ),
+          if (message.fullCorrectCount != null ||
+              message.semiCorrectCount != null ||
+              message.incorrectCount != null) ...[
+            Divider(color: colors.borderPrimary, height: 16),
+            Row(
+              children: [
+                _claimChip(
+                  context,
+                  'Correct',
+                  message.fullCorrectCount ?? 0,
+                  const Color(0xFF2E7D32),
+                  colors,
+                  typography,
+                ),
+                const SizedBox(width: 6),
+                _claimChip(
+                  context,
+                  'Semi',
+                  message.semiCorrectCount ?? 0,
+                  const Color(0xFFE65100),
+                  colors,
+                  typography,
+                ),
+                const SizedBox(width: 6),
+                _claimChip(
+                  context,
+                  'Incorrect',
+                  message.incorrectCount ?? 0,
+                  const Color(0xFFC62828),
+                  colors,
+                  typography,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _claimChip(
+    BuildContext context,
+    String label,
+    int count,
+    Color color,
+    MaritaColorPalette colors,
+    MaritaTypographyAccessor typography,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$label: $count',
+        style: typography.bodySmall.copyWith(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }
@@ -2047,7 +2273,8 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
 
     final templatesByCategory = <String, List<PromptTemplate>>{};
     for (final category in categoriesOrder) {
-      final templates = staticTemplates.where((t) => t.category == category).toList();
+      final templates =
+          staticTemplates.where((t) => t.category == category).toList();
       if (templates.isNotEmpty) {
         templatesByCategory[category] = templates;
       }
@@ -2280,17 +2507,17 @@ class _TemplatesSheetState extends ConsumerState<_TemplatesSheet> {
     );
   }
 
-  Widget _buildCategoryHeader(BuildContext context, String title, IconData icon) {
+  Widget _buildCategoryHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
 
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: colors.contentTertiary,
-        ),
+        Icon(icon, size: 16, color: colors.contentTertiary),
         const SizedBox(width: MaritaSpacing.xs),
         Text(
           title.toUpperCase(),

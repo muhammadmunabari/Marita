@@ -10,7 +10,7 @@ import '../models/chat_message.dart';
 
 class ExportService {
   /// Exports a single AI response to PDF with professional formatting.
-  static Future<void> exportMessageToPdf(String content) async {
+  static Future<void> exportMessageToPdf(ChatMessage message) async {
     try {
       final pdf = pw.Document();
 
@@ -25,7 +25,7 @@ class ExportService {
       final cjkFont = pw.Font.ttf(cjkFontData);
 
       // 1. Clean Content: Remove AI preamble (anything before the first title/header)
-      final cleanedContent = _cleanAIContent(content);
+      final cleanedContent = _cleanAIContent(message.text);
 
       pdf.addPage(
         pw.MultiPage(
@@ -49,8 +49,27 @@ class ExportService {
               boldItalicFont,
             );
 
+            // Add Score Metrics Section (for non-general queries)
+            final queryType = message.queryType;
+            if (queryType != null && queryType != 'general') {
+              contentWidgets.add(pw.SizedBox(height: 40));
+              contentWidgets.add(
+                _buildScoreMetricsSection(
+                  font,
+                  boldFont,
+                  queryType: queryType,
+                  evidenceScore: message.evidenceScore,
+                  confidenceScore: message.confidenceScore,
+                  precisionPercent: message.precisionPercent,
+                  fullCorrectCount: message.fullCorrectCount,
+                  semiCorrectCount: message.semiCorrectCount,
+                  incorrectCount: message.incorrectCount,
+                ),
+              );
+            }
+
             // Add Disclaimer at the end
-            contentWidgets.add(pw.SizedBox(height: 40));
+            contentWidgets.add(pw.SizedBox(height: queryType != null && queryType != 'general' ? 20 : 40));
             contentWidgets.add(_buildVerificationSection(font, boldFont));
 
             return contentWidgets;
@@ -535,6 +554,152 @@ class ExportService {
                     }).toList(),
               );
             }).toList(),
+      ),
+    );
+  }
+
+  /// Builds the Verification Metrics section for non-general AI responses.
+  static pw.Widget _buildScoreMetricsSection(
+    pw.Font base,
+    pw.Font bold, {
+    required String queryType,
+    double? evidenceScore,
+    double? confidenceScore,
+    double? precisionPercent,
+    int? fullCorrectCount,
+    int? semiCorrectCount,
+    int? incorrectCount,
+  }) {
+    // Helper to get color from score (0-100)
+    PdfColor scoreColor(double? value) {
+      if (value == null) return PdfColors.grey500;
+      if (value >= 80) return PdfColors.green700;
+      if (value >= 50) return PdfColors.orange700;
+      return PdfColors.red700;
+    }
+
+    // Helper to format score
+    String fmtPct(double? value, {bool alreadyPercent = false}) {
+      if (value == null) return 'N/A';
+      if (alreadyPercent) return '${value.toStringAsFixed(1)}%';
+      return '${(value * 100).toStringAsFixed(1)}%';
+    }
+
+    // Convert queryType name to display label
+    final categoryLabel = {
+      'financialAnalysis': 'Financial Analysis',
+      'fraudDetection': 'Fraud Detection',
+      'auditRequest': 'Audit Request',
+    }[queryType] ?? queryType;
+
+    final evidencePct = evidenceScore != null ? evidenceScore * 100 : null;
+    final confidencePct = confidenceScore != null ? confidenceScore * 100 : null;
+
+    const double barWidth = 200.0;
+
+    pw.Widget metricRow(String label, double? pctValue, pw.Font base, pw.Font bold) {
+      final color = scoreColor(pctValue);
+      final text = fmtPct(pctValue, alreadyPercent: true);
+      final fillWidth = pctValue != null
+          ? (pctValue / 100).clamp(0.0, 1.0) * barWidth
+          : 0.0;
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 8),
+        child: pw.Row(
+          children: [
+            pw.SizedBox(width: 140,
+              child: pw.Text(label, style: pw.TextStyle(font: base, fontSize: 9, color: PdfColors.grey800)),
+            ),
+            pw.Stack(
+              children: [
+                // Background bar
+                pw.Container(
+                  width: barWidth,
+                  height: 8,
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey200,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                  ),
+                ),
+                // Fill bar
+                pw.Container(
+                  width: fillWidth,
+                  height: 8,
+                  decoration: pw.BoxDecoration(
+                    color: color,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(width: 8),
+            pw.SizedBox(
+              width: 40,
+              child: pw.Text(
+                text,
+                style: pw.TextStyle(font: bold, fontSize: 9, color: color),
+                textAlign: pw.TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.limeAccent700, width: 1.2),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+        color: PdfColors.grey50,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'VERIFICATION METRICS',
+                style: pw.TextStyle(font: bold, fontSize: 11, color: PdfColors.black, letterSpacing: 1),
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.limeAccent700,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                ),
+                child: pw.Text(
+                  categoryLabel.toUpperCase(),
+                  style: pw.TextStyle(font: bold, fontSize: 7, color: PdfColors.white),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+          pw.Container(height: 0.5, color: PdfColors.grey300),
+          pw.SizedBox(height: 10),
+          metricRow('Evidence Score', evidencePct, base, bold),
+          metricRow('Confidence Score', confidencePct, base, bold),
+          metricRow('Precision Score', precisionPercent, base, bold),
+          pw.SizedBox(height: 6),
+          pw.Container(height: 0.5, color: PdfColors.grey300),
+          pw.SizedBox(height: 8),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'Claims Verified:',
+                style: pw.TextStyle(font: bold, fontSize: 8, color: PdfColors.grey700),
+              ),
+              pw.Text(
+                'Correct: ${fullCorrectCount ?? 0}  |  Semi-Correct: ${semiCorrectCount ?? 0}  |  Incorrect: ${incorrectCount ?? 0}',
+                style: pw.TextStyle(font: base, fontSize: 8, color: PdfColors.grey700),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

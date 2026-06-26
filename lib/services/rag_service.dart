@@ -12,7 +12,7 @@ class RAGService {
     required String workspaceId,
     required List<double> queryEmbedding,
     String query = '',
-    int topK = 8,
+    int topK = 15,
     double similarityThreshold = 0.7,
   }) async {
     try {
@@ -53,111 +53,39 @@ class RAGService {
 
       // Check if we should use keyword-based fallback search
       if (queryEmbedding.isEmpty && query.isNotEmpty) {
+        // --- Standard English/Indonesian stopwords ---
         final stopwords = {
-          'what',
-          'is',
-          'are',
-          'the',
-          'a',
-          'an',
-          'to',
-          'for',
-          'in',
-          'of',
-          'and',
-          'or',
-          'on',
-          'with',
-          'by',
-          'at',
-          'from',
-          'this',
-          'that',
-          'these',
-          'those',
-          'it',
-          'its',
-          'we',
-          'our',
-          'you',
-          'your',
-          'they',
-          'their',
-          'he',
-          'she',
-          'him',
-          'her',
-          'was',
-          'were',
-          'be',
-          'been',
-          'have',
-          'has',
-          'had',
-          'do',
-          'does',
-          'did',
-          'but',
-          'if',
-          'then',
-          'else',
-          'because',
-          'as',
-          'until',
-          'while',
-          'about',
-          'against',
-          'between',
-          'into',
-          'through',
-          'during',
-          'before',
-          'after',
-          'above',
-          'below',
-          'up',
-          'down',
-          'out',
-          'off',
-          'over',
-          'under',
-          'again',
-          'further',
-          'once',
-          'here',
-          'there',
-          'when',
-          'where',
-          'why',
-          'how',
-          'all',
-          'any',
-          'both',
-          'each',
-          'few',
-          'more',
-          'most',
-          'other',
-          'some',
-          'such',
-          'no',
-          'nor',
-          'not',
-          'only',
-          'own',
-          'same',
-          'so',
-          'than',
-          'too',
-          'very',
-          's',
-          't',
-          'can',
-          'will',
-          'just',
-          'don',
-          'should',
-          'now'
+          'what', 'is', 'are', 'the', 'a', 'an', 'to', 'for', 'in', 'of',
+          'and', 'or', 'on', 'with', 'by', 'at', 'from', 'this', 'that',
+          'these', 'those', 'it', 'its', 'we', 'our', 'you', 'your', 'they',
+          'their', 'he', 'she', 'him', 'her', 'was', 'were', 'be', 'been',
+          'have', 'has', 'had', 'do', 'does', 'did', 'but', 'if', 'then',
+          'else', 'because', 'as', 'until', 'while', 'about', 'against',
+          'between', 'into', 'through', 'during', 'before', 'after', 'above',
+          'below', 'up', 'down', 'out', 'off', 'over', 'under', 'again',
+          'further', 'once', 'here', 'there', 'when', 'where', 'why', 'how',
+          'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other',
+          'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so',
+          'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don',
+          'should', 'now',
+          // --- Role-play / system-prompt template words ---
+          // These words are almost always present in AI analyst templates and
+          // carry zero signal for document retrieval relevance.
+          'specialist', 'expert', 'senior', 'junior', 'analyst', 'analysis',
+          'task', 'analyze', 'provide', 'ensure', 'objective', 'instruction',
+          'role', 'concise', 'level', 'executive', 'summarize', 'summary',
+          'evaluation', 'specializing', 'reporting', 'investor', 'governance',
+          'performance', 'corporate', 'following', 'please', 'must', 'based',
+          'using', 'given', 'use', 'data', 'information', 'context', 'source',
+          'document', 'respond', 'response', 'write', 'answer', 'question',
+          'output', 'format', 'structured', 'detailed', 'comprehensive',
+          'professional', 'accurate', 'clear', 'user', 'query', 'input',
+          // Indonesian role-play words
+          'anda', 'kamu', 'saya', 'tugas', 'analisis', 'berikan', 'buatkan',
+          'jelaskan', 'tolong', 'mohon', 'pastikan', 'gunakan', 'dengan',
+          'yang', 'dan', 'dari', 'untuk', 'pada', 'dalam', 'adalah', 'ini',
+          'itu', 'tidak', 'juga', 'akan', 'telah', 'atau', 'jika', 'maka',
+          'dapat', 'harus', 'lebih', 'seperti', 'secara', 'oleh', 'tentang',
         };
 
         final cleanQuery = query.toLowerCase().replaceAll(
@@ -193,12 +121,34 @@ class RAGService {
           }
           // Sort descending by match score
           ratedChunks.sort((a, b) => b.value.compareTo(a.value));
-          final results =
-              ratedChunks.map((entry) => entry.key).take(topK).toList();
+
+          // --- Diversity filter: deduplicate chunks with identical content ---
+          // Prevents returning 3 copies of the same governance section.
+          // Max 2 chunks per file allowed to ensure breadth of coverage.
+          final seenContent = <String>{};
+          final fileChunkCount = <String, int>{};
+          final diverseResults = <DocumentChunk>[];
+          for (final entry in ratedChunks) {
+            final chunk = entry.key;
+            // Use first 120 chars as content fingerprint
+            final fingerprint = chunk.content.length > 120
+                ? chunk.content.substring(0, 120).trim()
+                : chunk.content.trim();
+            final fileId = chunk.fileId;
+            final fileCount = fileChunkCount[fileId] ?? 0;
+
+            if (!seenContent.contains(fingerprint) && fileCount < 3) {
+              seenContent.add(fingerprint);
+              fileChunkCount[fileId] = fileCount + 1;
+              diverseResults.add(chunk);
+            }
+            if (diverseResults.length >= topK) break;
+          }
+
           print(
-            "  │  [RAG DEBUG] Keyword-scored chunks: ${ratedChunks.length}, returning top ${results.length}",
+            "  │  [RAG DEBUG] Keyword-scored chunks: ${ratedChunks.length}, after dedup: ${diverseResults.length}, returning top ${diverseResults.length}",
           );
-          return results;
+          return diverseResults;
         }
       }
 

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:marita/services/export_service.dart';
+import 'package:marita/models/chat_message.dart';
 
 void main() {
   test('Test google fonts loading', () async {
@@ -122,7 +123,13 @@ void main() {
 この企業は非常に健全な財務状態を維持しています。(The enterprise maintains a very healthy financial status.)
 ''';
 
-    await ExportService.exportMessageToPdf(cjkContent);
+    await ExportService.exportMessageToPdf(
+      ChatMessage(
+        id: 'test-cjk-001',
+        text: cjkContent,
+        role: MessageRole.ai,
+      ),
+    );
     print("ExportService CJK export test completed successfully.");
   });
 }

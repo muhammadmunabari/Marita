@@ -35,6 +35,7 @@ class PipelineResult {
   final String responseText;
   final QueryType queryType;
   final double confidenceScore;
+  final double? evidenceScore;
   final List<String> citations;
   final bool isVerified;
   final int retrievedChunksCount;
@@ -49,6 +50,7 @@ class PipelineResult {
     required this.responseText,
     required this.queryType,
     required this.confidenceScore,
+    this.evidenceScore,
     required this.citations,
     required this.isVerified,
     required this.retrievedChunksCount,
@@ -306,6 +308,7 @@ class AIPipelineService {
       responseText: finalResponse,
       queryType: queryType,
       confidenceScore: verification.confidenceScore,
+      evidenceScore: verification.evidenceScore,
       citations: verification.validatedCitations,
       isVerified: verification.isValid,
       retrievedChunksCount: retrievedChunks.length,

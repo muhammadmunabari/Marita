@@ -62,6 +62,7 @@ class ChatMessage {
   // Diagnostic fields
   final String? queryType;
   final double? confidenceScore;
+  final double? evidenceScore;
   final List<String> citations;
   final List<String> verificationIssues;
   final int? fullCorrectCount;
@@ -80,6 +81,7 @@ class ChatMessage {
     this.createdAt,
     this.queryType,
     this.confidenceScore,
+    this.evidenceScore,
     this.citations = const [],
     this.verificationIssues = const [],
     this.fullCorrectCount,
@@ -102,6 +104,7 @@ class ChatMessage {
               : DateTime.now().toIso8601String(),
       'queryType': queryType,
       'confidenceScore': confidenceScore,
+      'evidenceScore': evidenceScore,
       'citations': citations,
       'verificationIssues': verificationIssues,
       'fullCorrectCount': fullCorrectCount,
@@ -126,6 +129,7 @@ class ChatMessage {
           map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
       queryType: map['queryType'],
       confidenceScore: (map['confidenceScore'] as num?)?.toDouble(),
+      evidenceScore: (map['evidenceScore'] as num?)?.toDouble(),
       citations: List<String>.from(map['citations'] ?? []),
       verificationIssues: List<String>.from(map['verificationIssues'] ?? []),
       fullCorrectCount: map['fullCorrectCount'] as int?,
@@ -146,6 +150,7 @@ class ChatMessage {
     List<ChatAttachment>? attachments,
     String? queryType,
     double? confidenceScore,
+    double? evidenceScore,
     List<String>? citations,
     List<String>? verificationIssues,
     int? fullCorrectCount,
@@ -164,6 +169,7 @@ class ChatMessage {
       createdAt: createdAt,
       queryType: queryType ?? this.queryType,
       confidenceScore: confidenceScore ?? this.confidenceScore,
+      evidenceScore: evidenceScore ?? this.evidenceScore,
       citations: citations ?? this.citations,
       verificationIssues: verificationIssues ?? this.verificationIssues,
       fullCorrectCount: fullCorrectCount ?? this.fullCorrectCount,
