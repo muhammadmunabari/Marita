@@ -3,14 +3,16 @@ import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/vector_search_service.dart';
 
 class RAGService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  RAGService({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Retrieves relevant document chunks based on a query embedding or text keywords.
   Future<List<DocumentChunk>> retrieveRelevantContext({
     required String workspaceId,
     required List<double> queryEmbedding,
     String query = '',
-    int topK = 5,
+    int topK = 8,
     double similarityThreshold = 0.7,
   }) async {
     try {
@@ -85,6 +87,77 @@ class RAGService {
           'she',
           'him',
           'her',
+          'was',
+          'were',
+          'be',
+          'been',
+          'have',
+          'has',
+          'had',
+          'do',
+          'does',
+          'did',
+          'but',
+          'if',
+          'then',
+          'else',
+          'because',
+          'as',
+          'until',
+          'while',
+          'about',
+          'against',
+          'between',
+          'into',
+          'through',
+          'during',
+          'before',
+          'after',
+          'above',
+          'below',
+          'up',
+          'down',
+          'out',
+          'off',
+          'over',
+          'under',
+          'again',
+          'further',
+          'once',
+          'here',
+          'there',
+          'when',
+          'where',
+          'why',
+          'how',
+          'all',
+          'any',
+          'both',
+          'each',
+          'few',
+          'more',
+          'most',
+          'other',
+          'some',
+          'such',
+          'no',
+          'nor',
+          'not',
+          'only',
+          'own',
+          'same',
+          'so',
+          'than',
+          'too',
+          'very',
+          's',
+          't',
+          'can',
+          'will',
+          'just',
+          'don',
+          'should',
+          'now'
         };
 
         final cleanQuery = query.toLowerCase().replaceAll(
@@ -160,9 +233,8 @@ class RAGService {
           chunk.fileName.isNotEmpty
               ? chunk.fileName
               : (chunk.metadata['fileName'] as String? ?? 'Unknown');
-      sb.writeln("Source [${i + 1}]:");
-      sb.writeln("File: $sourceName (page ${chunk.pageNumber})");
-      sb.writeln("Content:\n${chunk.content}");
+      sb.writeln("Source [${i + 1}] — $sourceName, Halaman ${chunk.pageNumber}:");
+      sb.writeln(chunk.content);
       sb.writeln("-----------------------------------------");
     }
     return sb.toString();

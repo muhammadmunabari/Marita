@@ -1,3 +1,4 @@
+import 'package:firebase_ai/firebase_ai.dart';
 import 'package:marita/models/chat_message.dart';
 import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/fact_verification_service.dart';
@@ -137,7 +138,11 @@ class AIPipelineService {
     if (retrievedChunks.isNotEmpty) {
       for (int i = 0; i < retrievedChunks.length; i++) {
         final chunk = retrievedChunks[i];
-        final docName = chunk.metadata['fileName'] ?? 'Unknown Document';
+        // Bug #2 fix: read from top-level chunk.fileName, fallback to metadata
+        final docName =
+            chunk.fileName.isNotEmpty
+                ? chunk.fileName
+                : (chunk.metadata['fileName'] as String? ?? 'Unknown Document');
         print(
           "  ├─ Chunk [${i + 1}]: File: $docName, Page: ${chunk.pageNumber}",
         );
@@ -182,7 +187,9 @@ class AIPipelineService {
       "======================================================================",
     );
     print("  ├─ Augmented Prompt Length: ${augmentedPrompt.length} characters");
-    print("  └─ Status: Formatted and packaged for Gemini 2.5 Pro");
+    print(
+      "  └─ Status: Formatted and packaged for ${GeminiService.mainModelName}",
+    );
     print(
       "======================================================================\n",
     );
@@ -306,7 +313,12 @@ class AIPipelineService {
           retrievedChunks
               .map(
                 (chunk) => {
-                  'fileName': chunk.metadata['fileName'] ?? 'Unknown Document',
+                  // Bug #2 fix: use top-level fileName, fallback to metadata
+                  'fileName':
+                      chunk.fileName.isNotEmpty
+                          ? chunk.fileName
+                          : (chunk.metadata['fileName'] as String? ??
+                              'Unknown Document'),
                   'pageNumber': chunk.pageNumber,
                   'content': chunk.content,
                 },
@@ -320,6 +332,40 @@ class AIPipelineService {
     );
   }
 
+  /// Extracts a concise search query from the full LLM prompt string.
+  ///
+  /// Bug #1 fix: When a prompt template is used (e.g. "You are a Financial
+  /// Fraud Detection Specialist..."), the entire template was being sent to
+  /// the RAG keyword engine, resulting in irrelevant chunk retrieval.
+  /// This method extracts only the actual user question for RAG search.
+  String _extractRagQuery(String fullQuery) {
+    // Pattern 1: Augmented prompt already has a "User Query:" section
+    final match = RegExp(
+      r'User Query:\s*(.+)',
+      dotAll: true,
+    ).firstMatch(fullQuery);
+    if (match != null) {
+      final extracted = match.group(1)!.trim();
+      return extracted.length > 500 ? extracted.substring(0, 500) : extracted;
+    }
+
+    // Pattern 2: System-prompt prefix — skip the preamble, take the tail
+    if (fullQuery.trimLeft().toLowerCase().startsWith('you are a')) {
+      final words = fullQuery
+          .split(RegExp(r'\s+'))
+          .reversed
+          .take(80)
+          .toList()
+          .reversed
+          .join(' ');
+      return words;
+    }
+
+    // Fallback: first 100 words of query
+    final words = fullQuery.split(RegExp(r'\s+')).take(100).join(' ');
+    return words;
+  }
+
   /// Executes the full AI Pipeline.
   Future<PipelineResult> execute({
     required String query,
@@ -328,15 +374,21 @@ class AIPipelineService {
     List<ChatMessage> history = const [],
     List<double> queryEmbedding = const [],
   }) async {
+    // Bug #1 fix: Use a focused RAG query instead of the full prompt template.
+    // The full `query` (which may include a system prompt preamble) is still
+    // sent to the LLM — but only the extracted user question is used for
+    // document retrieval so that relevant chunks are returned.
+    final ragQuery = _extractRagQuery(query);
+
     // Stage 1 & 2: Static Analysis and RAG Retrieval
-    final queryType = PromptRouter.route(query);
+    final queryType = PromptRouter.route(ragQuery);
     final retrievedChunks = await retrieveContext(
-      query: query,
+      query: ragQuery,
       workspaceId: workspaceId,
       queryEmbedding: queryEmbedding,
     );
 
-    // Stage 3: Build Augmented Prompt
+    // Stage 3: Build Augmented Prompt (full query/prompt sent to LLM)
     final augmentedPrompt = buildAugmentedPrompt(
       query,
       queryType,
@@ -351,14 +403,28 @@ class AIPipelineService {
     print(
       "======================================================================",
     );
-    print("  ├─ Model Target: gemini-2.5-pro");
+    // Bug #3 fix: use constant from GeminiService instead of hardcoded string
+    print("  ├─ Model Target: ${GeminiService.mainModelName}");
+    print(
+      "  ├─ RAG Query Used: \"${ragQuery.length > 80 ? '${ragQuery.substring(0, 80)}...' : ragQuery}\"",
+    );
     print("  └─ Status: Stream started...");
+
+    final systemInstruction = Content('system', [
+      TextPart('''
+ATURAN KETAT:
+1. Tuliskan angka keuangan persis seperti yang tertera di dokumen referensi.
+2. Hindari membulatkan atau merangkum nilai angka kecuali pengguna memintanya.
+3. Jika Anda melakukan perhitungan matematika, tampilkan angka input aslinya terlebih dahulu.
+'''),
+    ]);
 
     final responseBuffer = StringBuffer();
     await for (final chunk in GeminiService.sendMessageStream(
       augmentedPrompt,
       attachments: attachments,
       history: history,
+      systemInstruction: systemInstruction,
     )) {
       responseBuffer.write(chunk);
     }

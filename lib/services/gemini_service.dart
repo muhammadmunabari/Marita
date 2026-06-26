@@ -8,30 +8,80 @@ import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
 
 class GeminiService {
-  // Using FirebaseVertexAI from firebase_ai package
-  static final _vertexAI = FirebaseAI.vertexAI(location: 'us-central1');
+  // gemini-3.1-pro-preview is a preview model only available on the global
+  // Vertex AI endpoint. gemini-2.5-flash-lite is stable and available
+  // regionally in us-central1. Two separate instances are required.
+  static final _vertexAIGlobal = FirebaseAI.vertexAI(location: 'global');
+  static final _vertexAIRegional = FirebaseAI.vertexAI(location: 'us-central1');
 
-  // Using Gemini 2.5 Flash as requested fallback
-  static const _modelName = 'gemini-2.5-pro';
+  static const mainModelName = 'gemini-3.1-pro-preview';
+  static const judgeModelName = 'gemini-2.5-flash-lite';
 
-  static GenerativeModel get _model => _vertexAI.generativeModel(
-    model: _modelName,
-    generationConfig: GenerationConfig(
-      temperature: 0.1,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 65535,
-    ),
-  );
+  static GenerativeModel getModel(
+    String modelName, {
+    GenerationConfig? config,
+    Content? systemInstruction,
+  }) {
+    // Route preview models to the global endpoint; stable models to regional.
+    final backend =
+        modelName == mainModelName ? _vertexAIGlobal : _vertexAIRegional;
+    return backend.generativeModel(
+      model: modelName,
+      generationConfig:
+          config ??
+          GenerationConfig(
+            temperature: 0.1,
+            topP: 0.95,
+            topK: 40,
+            maxOutputTokens: 65535,
+          ),
+      systemInstruction: systemInstruction,
+    );
+  }
+
+  /// For unit testing purposes to avoid invoking actual Firebase AI APIs.
+  static Future<String> Function({
+    required String prompt,
+    required String modelName,
+    required GenerationConfig? config,
+  })? mockGenerateContent;
+
+  /// Generates content directly (not streaming, useful for LLM-as-a-judge).
+  static Future<String> generateContent({
+    required String prompt,
+    String modelName = mainModelName,
+    GenerationConfig? config,
+  }) async {
+    if (mockGenerateContent != null) {
+      return mockGenerateContent!(
+        prompt: prompt,
+        modelName: modelName,
+        config: config,
+      );
+    }
+    try {
+      final model = getModel(modelName, config: config);
+      final response = await model.generateContent([Content.text(prompt)]);
+      return response.text ?? '';
+    } catch (e) {
+      debugPrint('Gemini Generate Content Error: $e');
+      rethrow;
+    }
+  }
 
   /// Sends a message to Gemini and returns a stream of responses.
   static Stream<String> sendMessageStream(
     String prompt, {
     List<ChatAttachment> attachments = const [],
     List<ChatMessage> history = const [],
+    String modelName = mainModelName,
+    Content? systemInstruction,
   }) async* {
     try {
-      final chat = _model.startChat(
+      final chat = getModel(
+        modelName,
+        systemInstruction: systemInstruction,
+      ).startChat(
         history:
             history
                 .map(

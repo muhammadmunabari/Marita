@@ -54,7 +54,17 @@ class DocumentChunkerService {
       // Combine all pages into a single raw text string for storage (Option B)
       final rawText = pages.map((p) => p.text).join('\n');
 
-      final chunks = chunkText(rawText, fileName, fileId);
+      final List<DocumentChunk> chunks = [];
+      for (final page in pages) {
+        final pageChunks = chunkTextWithPage(
+          page.text,
+          fileName,
+          fileId,
+          pageNumber: page.pageNumber,
+        );
+        chunks.addAll(pageChunks);
+      }
+
       if (chunks.isEmpty) {
         debugPrint('[Chunker] No chunks generated for "$fileName".');
         return 0;
@@ -103,6 +113,16 @@ class DocumentChunkerService {
     String fileName,
     String fileId,
   ) {
+    return chunkTextWithPage(rawText, fileName, fileId, pageNumber: 1);
+  }
+
+  /// Splits [rawText] of a specific [pageNumber] into overlapping [DocumentChunk]s.
+  List<DocumentChunk> chunkTextWithPage(
+    String rawText,
+    String fileName,
+    String fileId, {
+    required int pageNumber,
+  }) {
     final chunks = <DocumentChunk>[];
     final text = rawText.trim();
     if (text.isEmpty) return chunks;
@@ -121,10 +141,10 @@ class DocumentChunkerService {
             fileId: fileId,
             fileName: fileName,
             content: excerpt,
-            pageNumber: 1, // page-level detail not available from raw text
+            pageNumber: pageNumber,
             chunkIndex: chunkIndex,
             embedding: [],
-            metadata: {'startChar': start, 'endChar': end},
+            metadata: {'startChar': start, 'endChar': end, 'page': pageNumber},
           ),
         );
         chunkIndex++;
