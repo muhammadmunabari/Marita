@@ -305,7 +305,9 @@ class FactVerificationService {
       final hasUnit = value.toLowerCase().contains(
         RegExp(r'(rp|idr|\$|usd|%)'),
       );
-      if (!hasUnit && parsedVal < 100 && parsedVal == parsedVal.roundToDouble()) {
+      if (!hasUnit &&
+          parsedVal < 100 &&
+          parsedVal == parsedVal.roundToDouble()) {
         continue; // Skip: e.g. "13", "36", "49", "65" are calculated, not cited
       }
 
@@ -329,9 +331,10 @@ class FactVerificationService {
         if (chunkLower.contains(value.toLowerCase())) {
           exactMatch = true;
           // Fix: use top-level fileName, fallback to metadata
-          final docName = chunk.fileName.isNotEmpty
-              ? chunk.fileName
-              : (chunk.metadata['fileName'] as String? ?? 'Document');
+          final docName =
+              chunk.fileName.isNotEmpty
+                  ? chunk.fileName
+                  : (chunk.metadata['fileName'] as String? ?? 'Document');
           matchedCitation = '$docName (Page ${chunk.pageNumber})';
           break;
         }
@@ -351,9 +354,10 @@ class FactVerificationService {
           if ((parsedVal - chunkVal).abs() < 1e-5) {
             exactMatch = true;
             // Fix: use top-level fileName, fallback to metadata
-            final docName = chunk.fileName.isNotEmpty
-                ? chunk.fileName
-                : (chunk.metadata['fileName'] as String? ?? 'Document');
+            final docName =
+                chunk.fileName.isNotEmpty
+                    ? chunk.fileName
+                    : (chunk.metadata['fileName'] as String? ?? 'Document');
             matchedCitation = '$docName (Page ${chunk.pageNumber})';
             break;
           } else {
@@ -364,9 +368,10 @@ class FactVerificationService {
               // 2% tolerance
               approxMatch = true;
               // Fix: use top-level fileName, fallback to metadata
-              final docName = chunk.fileName.isNotEmpty
-                  ? chunk.fileName
-                  : (chunk.metadata['fileName'] as String? ?? 'Document');
+              final docName =
+                  chunk.fileName.isNotEmpty
+                      ? chunk.fileName
+                      : (chunk.metadata['fileName'] as String? ?? 'Document');
               matchedCitation = '$docName (Page ${chunk.pageNumber})';
             }
           }
@@ -397,15 +402,14 @@ class FactVerificationService {
     if (unverifiedStatuses.isNotEmpty) {
       try {
         final contextString = retrievedChunks
-            .map(
-              (c) {
-                // Fix: use top-level fileName for accurate LLM-judge context
-                final docName = c.fileName.isNotEmpty
-                    ? c.fileName
-                    : (c.metadata['fileName'] as String? ?? 'Unknown');
-                return 'Document: $docName (Page ${c.pageNumber})\nContent: ${c.content}';
-              },
-            )
+            .map((c) {
+              // Fix: use top-level fileName for accurate LLM-judge context
+              final docName =
+                  c.fileName.isNotEmpty
+                      ? c.fileName
+                      : (c.metadata['fileName'] as String? ?? 'Unknown');
+              return 'Document: $docName (Page ${c.pageNumber})\nContent: ${c.content}';
+            })
             .join('\n\n');
         final claimsList = unverifiedStatuses
             .map((s) => '- "${s.rawValue}"')
