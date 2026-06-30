@@ -79,14 +79,13 @@ class MaritaPrimaryButton extends StatelessWidget {
 
     final Widget child;
     if (isLoading) {
-      child = const SizedBox(
+      child = SizedBox(
         width: MaritaIconSize.medium,
         height: MaritaIconSize.medium,
         child: CircularProgressIndicator(
           strokeWidth: 2,
           valueColor: AlwaysStoppedAnimation<Color>(
-            MaritaColors
-                .black, // Use primitive for spinner if you want it constant, or colors.contentPrimary
+            colors.contentInverse,
           ),
         ),
       );
@@ -98,7 +97,7 @@ class MaritaPrimaryButton extends StatelessWidget {
           MaritaIcon(
             icon: icon!,
             size: MaritaIconSize.medium,
-            color: _isDisabled ? colors.contentTertiary : colors.contentPrimary,
+            color: _isDisabled ? colors.contentTertiary : colors.contentInverse,
           ),
           const SizedBox(width: MaritaSpacing.sm),
           Text(label),
@@ -112,7 +111,7 @@ class MaritaPrimaryButton extends StatelessWidget {
       backgroundColor:
           _isDisabled ? colors.interactiveDisabled : colors.interactivePrimary,
       foregroundColor:
-          _isDisabled ? colors.contentTertiary : MaritaColors.black,
+          _isDisabled ? colors.contentTertiary : colors.contentInverse,
       disabledBackgroundColor: colors.interactiveDisabled,
       disabledForegroundColor: colors.contentTertiary,
       minimumSize:

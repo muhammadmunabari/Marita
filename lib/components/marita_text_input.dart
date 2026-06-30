@@ -210,7 +210,7 @@ class MaritaTextInput extends StatelessWidget {
                                   ? context.maritaColors.error
                                   : enabled
                                   ? context.maritaColors.contentSecondary
-                                  : MaritaColors.shadow100,
+                                  : context.maritaColors.contentDisabled,
                         ),
                       )
                       : null),
@@ -322,8 +322,8 @@ class MaritaTextInput extends StatelessWidget {
     final colors = context.maritaColors;
 
     if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.only(
+      return Padding(
+        padding: const EdgeInsets.only(
           right: MaritaSpacing.lg,
           left: MaritaSpacing.sm,
         ),
@@ -333,8 +333,7 @@ class MaritaTextInput extends StatelessWidget {
           child: CircularProgressIndicator(
             strokeWidth: 2,
             valueColor: AlwaysStoppedAnimation<Color>(
-              MaritaColors
-                  .shadow300, // Use primitive for spinner if you want it constant
+              colors.contentDisabled,
             ),
           ),
         ),

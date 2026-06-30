@@ -65,7 +65,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
     ),
   );
 
@@ -130,7 +130,7 @@ class _MaritaAppState extends ConsumerState<MaritaApp> {
     return MaterialApp.router(
       title: 'Marita',
       debugShowCheckedModeBanner: false,
-      theme: MaritaTheme.dark(),
+      theme: MaritaLightTheme.build(),
       routerConfig: router,
     );
   }

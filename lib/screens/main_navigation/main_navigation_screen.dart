@@ -66,10 +66,10 @@ class _MaritaBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: MaritaColors.black,
+      decoration: BoxDecoration(
+        color: context.maritaColors.backgroundPrimary,
         border: Border(
-          top: BorderSide(color: MaritaColors.shadow700, width: 1),
+          top: BorderSide(color: context.maritaColors.borderPrimary, width: 1),
         ),
       ),
       child: SafeArea(

@@ -960,7 +960,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                               icon: MaritaIcons.add,
                               color:
                                   isFormValid
-                                      ? MaritaColors.black
+                                      ? colors.contentInverse
                                       : colors.contentTertiary,
                             ),
                             onPressed:
