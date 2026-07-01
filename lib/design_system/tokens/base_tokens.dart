@@ -91,6 +91,17 @@ abstract final class BaseColors {
   static const Color yellow700 = Color(0xFFAD973A);
   static const Color yellow800 = Color(0xFF86752D);
   static const Color yellow900 = Color(0xFF665922);
+
+  // Brand - Lime (dark mode primary brand color, #E4FF1A base)
+  static const Color lime100 = Color(0xFFF7FFB8);
+  static const Color lime200 = Color(0xFFF2FF8A);
+  static const Color lime300 = Color(0xFFECFF5C);
+  static const Color lime400 = Color(0xFFE8FF38);
+  static const Color lime500 = Color(0xFFE4FF1A); // base lime
+  static const Color lime600 = Color(0xFFBDD614);
+  static const Color lime700 = Color(0xFF96AC0F);
+  static const Color lime800 = Color(0xFF70830B);
+  static const Color lime900 = Color(0xFF4A5907);
 }
 
 // ==========================================

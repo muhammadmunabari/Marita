@@ -18,7 +18,7 @@ abstract final class SemanticColors {
   static const Color colorTextBrand = BaseColors.brand700;
   static const Color colorTextSuccess = BaseColors.green800;
   static const Color colorTextWarning = BaseColors.yellow900;
-  static const Color colorTextDanger = BaseColors.red800;
+  static const Color colorTextDanger = BaseColors.red600;
   static const Color colorTextInformation = BaseColors.blue800;
   static const Color colorTextPlaceholder = BaseColors.shadow400;
   static const Color colorTextLink = BaseColors.blue700;
@@ -33,12 +33,12 @@ abstract final class SemanticColors {
   static const Color colorIconBrand = BaseColors.brand700;
   static const Color colorIconSuccess = BaseColors.green700;
   static const Color colorIconWarning = BaseColors.yellow800;
-  static const Color colorIconDanger = BaseColors.red700;
+  static const Color colorIconDanger = BaseColors.red600;
   static const Color colorIconInformation = BaseColors.blue700;
 
   // --- Background Colors ---
-  static const Color colorBackgroundCanvas = BaseColors.cloud100;
-  static const Color colorBackgroundPage = BaseColors.cloud100;
+  static const Color colorBackgroundCanvas = BaseColors.cloud200;
+  static const Color colorBackgroundPage = BaseColors.cloud200;
   static const Color colorBackgroundSurface = BaseColors.cloud50;
   static const Color colorBackgroundSurfaceHover = BaseColors.cloud200;
   static const Color colorBackgroundSurfacePressed = BaseColors.cloud300;

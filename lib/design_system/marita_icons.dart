@@ -184,6 +184,12 @@ class MaritaIcons {
   /// Lock / Password — default (Linear)
   static const IconData lock = IconsaxPlusLinear.lock_1;
 
+  /// Sun / Light mode — default (Linear)
+  static const IconData sun = IconsaxPlusLinear.sun_1;
+
+  /// Moon / Dark mode — default (Linear)
+  static const IconData moon = IconsaxPlusLinear.moon;
+
   // ---------------------------------------------------------------------------
   // Sentiment / Status
   // ---------------------------------------------------------------------------

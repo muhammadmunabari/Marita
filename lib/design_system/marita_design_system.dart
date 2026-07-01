@@ -28,7 +28,7 @@ import 'package:flutter/material.dart';
 export 'tokens/base_tokens.dart';
 export 'tokens/semantic_tokens.dart';
 export 'tokens/marita_light_theme.dart';
-
+export 'tokens/marita_dark_theme.dart';
 
 // =============================================================================
 // COLORS
@@ -69,6 +69,7 @@ class MaritaColors {
   static const Color earth500 = Color(0xFF5B6F01);
 
   static const Color mint500 = Color(0xFF73BA9B);
+  static const Color red500 = Color(0xFFF91D30);
   static const Color orange500 = Color(0xFFFF5714);
   static const Color orange700 = Color(0xFFB53E0E);
 
@@ -452,7 +453,7 @@ class MaritaTheme {
       borderSecondary: MaritaColors.shadow400,
       success: MaritaColors.mint500,
       warning: MaritaColors.orange500,
-      error: MaritaColors.orange700,
+      error: MaritaColors.red500,
     );
 
     return _buildTheme(Brightness.dark, palette);

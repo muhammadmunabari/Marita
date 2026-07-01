@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'design_system/marita_design_system.dart';
 import 'router.dart';
 import 'providers/settings_provider.dart';
+import 'providers/theme_provider.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -34,14 +35,18 @@ Future<void> main() async {
     // Register this exact token in Firebase Console → App Check → Manage debug tokens
     await FirebaseAppCheck.instance.activate(
       // ignore: deprecated_member_use
-      webProvider: ReCaptchaV3Provider('6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z'),
+      webProvider: ReCaptchaV3Provider(
+        '6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z',
+      ),
       providerAndroid: const AndroidDebugProvider(),
       providerApple: const AppleDebugProvider(),
     );
   } else {
     await FirebaseAppCheck.instance.activate(
       // ignore: deprecated_member_use
-      webProvider: ReCaptchaV3Provider('6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z'),
+      webProvider: ReCaptchaV3Provider(
+        '6LdI9KMpAAAAAI7W9e4d_Wq6_G9X5Gv_O5_k1Z1Z',
+      ),
       providerAndroid: const AndroidPlayIntegrityProvider(),
       providerApple: const AppleAppAttestProvider(),
     );
@@ -126,11 +131,31 @@ class _MaritaAppState extends ConsumerState<MaritaApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
+
+    // Determine actual brightness to apply correct system status bar styling
+    final brightness =
+        themeMode == ThemeMode.system
+            ? View.of(context).platformDispatcher.platformBrightness
+            : (themeMode == ThemeMode.dark
+                ? Brightness.dark
+                : Brightness.light);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness:
+            brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: brightness,
+      ),
+    );
 
     return MaterialApp.router(
       title: 'Marita',
       debugShowCheckedModeBanner: false,
       theme: MaritaLightTheme.build(),
+      darkTheme: MaritaDarkTheme.build(),
+      themeMode: themeMode,
       routerConfig: router,
     );
   }

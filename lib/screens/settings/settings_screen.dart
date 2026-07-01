@@ -8,6 +8,7 @@ import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import '../../models/user_profile.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../components/marita_primary_button.dart';
 import '../../components/marita_text_input.dart';
 
@@ -97,6 +98,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _buildAccountSection(context, profile),
                           const SizedBox(height: MaritaSpacing.xl),
                           _buildSecuritySection(context, profile),
+                          const SizedBox(height: MaritaSpacing.xl),
+                          _buildAppearanceSection(context),
                           const SizedBox(height: MaritaSpacing.xl),
                           _buildOthersSection(context),
                         ],
@@ -355,6 +358,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   .read(settingsNotifierProvider.notifier)
                   .toggleBiometrics(!profile.isBiometricEnabled);
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppearanceSection(BuildContext context) {
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+    final currentThemeMode = ref.watch(themeModeProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Appearance',
+          style: typography.bodyLargeBold.copyWith(
+            color: colors.contentPrimary,
+          ),
+        ),
+        const SizedBox(height: MaritaSpacing.md),
+        Container(
+          decoration: BoxDecoration(
+            color: colors.backgroundSecondary,
+            borderRadius: MaritaRadius.borderMedium,
+            border: Border.all(color: colors.borderPrimary),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              _buildSettingsTile(
+                context: context,
+                leadingIcon: MaritaIcons.sun,
+                title: 'Light',
+                trailing: Radio<ThemeMode>(
+                  value: ThemeMode.light,
+                  groupValue: currentThemeMode,
+                  activeColor: colors.interactivePrimary,
+                  onChanged: (ThemeMode? value) {
+                    if (value != null) {
+                      ref.read(themeModeProvider.notifier).setThemeMode(value);
+                    }
+                  },
+                ),
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                },
+              ),
+              Divider(color: colors.borderPrimary, height: 1),
+              _buildSettingsTile(
+                context: context,
+                leadingIcon: MaritaIcons.moon,
+                title: 'Dark',
+                trailing: Radio<ThemeMode>(
+                  value: ThemeMode.dark,
+                  groupValue: currentThemeMode,
+                  activeColor: colors.interactivePrimary,
+                  onChanged: (ThemeMode? value) {
+                    if (value != null) {
+                      ref.read(themeModeProvider.notifier).setThemeMode(value);
+                    }
+                  },
+                ),
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                },
+              ),
+              Divider(color: colors.borderPrimary, height: 1),
+              _buildSettingsTile(
+                context: context,
+                leadingIcon: MaritaIcons.settings,
+                title: 'Use Device Settings',
+                subtitle: "Match appearance to your device's Display & Brightness settings.",
+                trailing: Radio<ThemeMode>(
+                  value: ThemeMode.system,
+                  groupValue: currentThemeMode,
+                  activeColor: colors.interactivePrimary,
+                  onChanged: (ThemeMode? value) {
+                    if (value != null) {
+                      ref.read(themeModeProvider.notifier).setThemeMode(value);
+                    }
+                  },
+                ),
+                onTap: () {
+                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                },
+              ),
+            ],
           ),
         ),
       ],
