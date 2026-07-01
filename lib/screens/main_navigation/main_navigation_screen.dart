@@ -80,25 +80,29 @@ class _MaritaBottomBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _MaritaNavItem(
-                iconPath: 'assets/icons/Marita AI.svg',
+                selectedIconPath: 'assets/icons/gemini-filled.svg',
+                defaultIconPath: 'assets/icons/gemini-linear.svg',
                 label: 'Marita AI',
                 isSelected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-folder.svg',
+                selectedIconPath: 'assets/icons/folder-filled.svg',
+                defaultIconPath: 'assets/icons/folder-linear.svg',
                 label: 'Files',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-buildings.svg',
+                selectedIconPath: 'assets/icons/buildings-filled.svg',
+                defaultIconPath: 'assets/icons/buildings-linear.svg',
                 label: 'Workspaces',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
               _MaritaNavItem(
-                iconPath: 'assets/icons/iconsax-setting.svg',
+                selectedIconPath: 'assets/icons/setting-filled.svg',
+                defaultIconPath: 'assets/icons/setting-linear.svg',
                 label: 'Settings',
                 isSelected: currentIndex == 3,
                 onTap: () => onTap(3),
@@ -112,13 +116,15 @@ class _MaritaBottomBar extends StatelessWidget {
 }
 
 class _MaritaNavItem extends StatefulWidget {
-  final String iconPath;
+  final String selectedIconPath;
+  final String defaultIconPath;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _MaritaNavItem({
-    required this.iconPath,
+    required this.selectedIconPath,
+    required this.defaultIconPath,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -179,7 +185,7 @@ class _MaritaNavItemState extends State<_MaritaNavItem>
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                widget.iconPath,
+                widget.isSelected ? widget.selectedIconPath : widget.defaultIconPath,
                 width: 24,
                 height: 24,
                 colorFilter: ColorFilter.mode(color, BlendMode.srcIn),

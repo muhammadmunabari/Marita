@@ -69,7 +69,6 @@ class MaritaColors {
   static const Color earth500 = Color(0xFF5B6F01);
 
   static const Color mint500 = Color(0xFF73BA9B);
-  static const Color red500 = Color(0xFFF91D30);
   static const Color orange500 = Color(0xFFFF5714);
   static const Color orange700 = Color(0xFFB53E0E);
 
@@ -453,7 +452,7 @@ class MaritaTheme {
       borderSecondary: MaritaColors.shadow400,
       success: MaritaColors.mint500,
       warning: MaritaColors.orange500,
-      error: MaritaColors.red500,
+      error: MaritaColors.orange700,
     );
 
     return _buildTheme(Brightness.dark, palette);
