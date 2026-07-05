@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../providers/file_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/workspace_provider.dart';
 import '../../services/attachment_service.dart';
+import '../../services/file_open_service.dart';
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import '../../components/marita_card.dart';
@@ -491,15 +493,14 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ],
             ),
           ),
-          if (ref.watch(canWriteRobustProvider))
-            IconButton(
-              icon: Icon(
-                MaritaIcons.more,
-                color: colors.contentSecondary,
-                size: 20,
-              ),
-              onPressed: () => _showItemOptions(context, item),
+          IconButton(
+            icon: Icon(
+              MaritaIcons.more,
+              color: colors.contentSecondary,
+              size: 20,
             ),
+            onPressed: () => _showItemOptions(context, item),
+          ),
         ],
       ),
     );
@@ -546,19 +547,18 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ],
             ),
           ),
-          if (ref.watch(canWriteRobustProvider))
-            Positioned(
-              top: -6,
-              right: -6,
-              child: IconButton(
-                icon: Icon(
-                  MaritaIcons.more,
-                  color: colors.contentSecondary,
-                  size: 18,
-                ),
-                onPressed: () => _showItemOptions(context, item),
+          Positioned(
+            top: -6,
+            right: -6,
+            child: IconButton(
+              icon: Icon(
+                MaritaIcons.more,
+                color: colors.contentSecondary,
+                size: 18,
               ),
+              onPressed: () => _showItemOptions(context, item),
             ),
+          ),
         ],
       ),
     );
@@ -623,7 +623,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Padding(
           padding: const EdgeInsets.all(MaritaSpacing.xl),
           child: Column(
@@ -668,12 +668,98 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                           borderRadius: MaritaRadius.borderMedium,
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        if (item.url != null) {
-                          SharePlus.instance.share(
-                            ShareParams(text: item.url!, subject: item.name),
-                          );
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        if (item.url == null) return;
+
+                        double downloadProgress = 0;
+                        StateSetter? dialogSetState;
+                        if (!context.mounted) return;
+
+                        final dialogContextCompleter = Completer<BuildContext>();
+
+                        // Show download/open progress dialog
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (dialogCtx) {
+                            if (!dialogContextCompleter.isCompleted) {
+                              dialogContextCompleter.complete(dialogCtx);
+                            }
+                            return StatefulBuilder(
+                              builder: (statefulCtx, setDialogState) {
+                                dialogSetState = setDialogState;
+                                return AlertDialog(
+                                  backgroundColor: colors.backgroundSecondary,
+                                  title: Text(
+                                    'Opening File',
+                                    style: typography.bodyLargeBold.copyWith(
+                                      color: colors.contentPrimary,
+                                    ),
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      LinearProgressIndicator(
+                                        value:
+                                            downloadProgress > 0
+                                                ? downloadProgress
+                                                : null,
+                                        color: colors.interactivePrimary,
+                                        backgroundColor:
+                                            colors.backgroundPrimary,
+                                      ),
+                                      const SizedBox(
+                                        height: MaritaSpacing.md,
+                                      ),
+                                      Text(
+                                        downloadProgress > 0
+                                            ? 'Downloading: ${(downloadProgress * 100).toStringAsFixed(0)}%'
+                                            : 'Connecting...',
+                                        style: typography.bodyDefault
+                                            .copyWith(
+                                              color: colors.contentSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+
+                        final dialogContext = await dialogContextCompleter.future;
+
+                        final error = await FileOpenService.downloadAndOpen(
+                          item,
+                          onProgress: (progress) {
+                            if (dialogSetState != null) {
+                              dialogSetState!(() {
+                                downloadProgress = progress;
+                              });
+                            }
+                          },
+                        );
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext); // Dismiss progress dialog
+                        }
+
+                        if (error != null && context.mounted) {
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  error,
+                                  style: typography.bodyDefault.copyWith(
+                                    color: colors.contentInverse,
+                                  ),
+                                ),
+                                backgroundColor: colors.error,
+                              ),
+                            );
                         }
                       },
                       child: Text(
@@ -729,11 +815,30 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (item.url != null)
+                ListTile(
+                  leading: Icon(
+                    MaritaIcons.share,
+                    color: colors.contentPrimary,
+                  ),
+                  title: Text(
+                    'Share Link',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    SharePlus.instance.share(
+                      ShareParams(text: item.url!, subject: item.name),
+                    );
+                  },
+                ),
               ListTile(
                 leading: Icon(MaritaIcons.edit, color: colors.contentPrimary),
                 title: Text(
@@ -743,7 +848,20 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
+                  if (!ref.read(canWriteRobustProvider)) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          "error: view only can't rename",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: colors.error,
+                      ),
+                    );
+                    return;
+                  }
                   _showRenameDialog(context, item);
                 },
               ),
@@ -754,7 +872,20 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   style: typography.bodyDefault.copyWith(color: colors.error),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
+                  if (!ref.read(canWriteRobustProvider)) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          "error: view only can't delete",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: colors.error,
+                      ),
+                    );
+                    return;
+                  }
                   _confirmDelete(context, item);
                 },
               ),
@@ -884,7 +1015,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -901,7 +1032,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showCreateFolderDialog(context);
                 },
               ),
@@ -917,7 +1048,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _handleUploadDocument();
                 },
               ),
@@ -933,7 +1064,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _handleUploadImage();
                 },
               ),

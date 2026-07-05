@@ -326,6 +326,9 @@ class MaritaIcons {
 
   /// List layout — default (Linear)
   static const IconData list = IconsaxPlusLinear.textalign_justifyleft;
+
+  /// Share / Export — default (Linear)
+  static const IconData share = IconsaxPlusLinear.export;
 }
 
 // =============================================================================
