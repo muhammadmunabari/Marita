@@ -1,5 +1,24 @@
 enum MessageRole { user, ai }
 
+enum LoadingRequestType {
+  financialStatements,
+  invoices,
+  receipts,
+  contracts,
+  annualReport,
+  accountingQuestion,
+  general,
+}
+
+/// Tracks the active stage of the AI pipeline so that [AuditLoadingWidget]
+/// can advance its step indicators in sync with actual processing progress.
+enum AIPipelinePhase {
+  idle,              // No active request
+  retrievingContext, // Stage 1 & 2: RAG retrieval
+  buildingPrompt,    // Stage 3: build augmented prompt
+  generating,        // Stage 4: Gemini stream active
+}
+
 class ChatAttachment {
   final String id;
   final String name;
@@ -58,6 +77,7 @@ class ChatMessage {
   final bool isStreaming;
   final List<ChatAttachment> attachments;
   final DateTime? createdAt;
+  final LoadingRequestType? loadingRequestType;
 
   // Diagnostic fields
   final String? queryType;
@@ -79,6 +99,7 @@ class ChatMessage {
     this.isStreaming = false,
     this.attachments = const [],
     this.createdAt,
+    this.loadingRequestType,
     this.queryType,
     this.confidenceScore,
     this.evidenceScore,
@@ -102,6 +123,7 @@ class ChatMessage {
           createdAt != null
               ? createdAt!.toIso8601String()
               : DateTime.now().toIso8601String(),
+      'loadingRequestType': loadingRequestType?.name,
       'queryType': queryType,
       'confidenceScore': confidenceScore,
       'evidenceScore': evidenceScore,
@@ -117,6 +139,14 @@ class ChatMessage {
   }
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
+    LoadingRequestType? loadingType;
+    if (map['loadingRequestType'] != null) {
+      loadingType = LoadingRequestType.values.firstWhere(
+        (e) => e.name == map['loadingRequestType'],
+        orElse: () => LoadingRequestType.general,
+      );
+    }
+
     return ChatMessage(
       id: map['id'] ?? '',
       text: map['text'] ?? '',
@@ -127,6 +157,7 @@ class ChatMessage {
               .toList(),
       createdAt:
           map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+      loadingRequestType: loadingType,
       queryType: map['queryType'],
       confidenceScore: (map['confidenceScore'] as num?)?.toDouble(),
       evidenceScore: (map['evidenceScore'] as num?)?.toDouble(),
@@ -148,6 +179,7 @@ class ChatMessage {
     String? text,
     bool? isStreaming,
     List<ChatAttachment>? attachments,
+    LoadingRequestType? loadingRequestType,
     String? queryType,
     double? confidenceScore,
     double? evidenceScore,
@@ -167,6 +199,7 @@ class ChatMessage {
       isStreaming: isStreaming ?? this.isStreaming,
       attachments: attachments ?? this.attachments,
       createdAt: createdAt,
+      loadingRequestType: loadingRequestType ?? this.loadingRequestType,
       queryType: queryType ?? this.queryType,
       confidenceScore: confidenceScore ?? this.confidenceScore,
       evidenceScore: evidenceScore ?? this.evidenceScore,

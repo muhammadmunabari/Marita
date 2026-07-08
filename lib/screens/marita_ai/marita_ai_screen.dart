@@ -21,6 +21,8 @@ import 'package:marita/providers/template_provider.dart';
 import 'package:marita/providers/workspace_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../components/workspace_header_chip.dart';
+import '../../components/audit_loading_widget.dart';
+import '../../components/verification_metrics_card.dart';
 
 // =============================================================================
 // STATE & NOTIFIER
@@ -29,12 +31,14 @@ class ChatState {
   final String? title;
   final List<ChatMessage> messages;
   final bool isLoading;
+  final AIPipelinePhase pipelinePhase;
 
   ChatState({
     this.chatId,
     this.title,
     this.messages = const [],
     this.isLoading = false,
+    this.pipelinePhase = AIPipelinePhase.idle,
   });
 
   ChatState copyWith({
@@ -42,12 +46,14 @@ class ChatState {
     String? title,
     List<ChatMessage>? messages,
     bool? isLoading,
+    AIPipelinePhase? pipelinePhase,
   }) {
     return ChatState(
       chatId: chatId ?? this.chatId,
       title: title ?? this.title,
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      pipelinePhase: pipelinePhase ?? this.pipelinePhase,
     );
   }
 }
@@ -68,10 +74,50 @@ class ChatNotifier extends Notifier<ChatState> {
     state = state.copyWith(title: newTitle);
   }
 
+  /// Detects the audit step category from the user's message text and
+  /// attached file names, returning the appropriate [LoadingRequestType].
+  LoadingRequestType _detectRequestType(
+    String message,
+    List<String> fileNames,
+  ) {
+    final lower = message.toLowerCase();
+    final allText = '$lower ${fileNames.join(' ').toLowerCase()}';
+
+    if (allText.contains(RegExp(r'annual report|laporan tahunan'))) {
+      return LoadingRequestType.annualReport;
+    }
+    if (allText.contains(RegExp(r'invoice|faktur'))) {
+      return LoadingRequestType.invoices;
+    }
+    if (allText.contains(RegExp(r'receipt|kwitansi|struk'))) {
+      return LoadingRequestType.receipts;
+    }
+    if (allText.contains(RegExp(r'contract|perjanjian|kontrak'))) {
+      return LoadingRequestType.contracts;
+    }
+    if (allText.contains(RegExp(
+      r'financial statement|laporan keuangan|neraca|balance sheet|income statement',
+    ))) {
+      return LoadingRequestType.financialStatements;
+    }
+    if (allText.contains(RegExp(
+      r'jurnal|debit|kredit|akuntansi|accounting|cogs|depreciation',
+    ))) {
+      return LoadingRequestType.accountingQuestion;
+    }
+    return LoadingRequestType.general;
+  }
+
   void sendMessage(String text, {List<ChatAttachment>? attachments}) async {
     final user = ref.read(currentUserProvider);
     final userId = user?.uid ?? 'anonymous';
     final firestoreService = ref.read(firestoreServiceProvider);
+
+    // 0. Detect the loading request type from message + file names
+    final requestType = _detectRequestType(
+      text,
+      (attachments ?? []).map((a) => a.name).toList(),
+    );
 
     // 1. Initial message with local paths
     final tempId = const Uuid().v4();
@@ -84,13 +130,14 @@ class ChatNotifier extends Notifier<ChatState> {
     );
     state = state.copyWith(messages: [...state.messages, userMsg]);
 
-    // 2. Prepare AI message
+    // 2. Prepare AI message — carry the detected requestType for the loading widget
     final aiId = '${const Uuid().v4()}_ai';
     final aiMsg = ChatMessage(
       id: aiId,
       text: '',
       role: MessageRole.ai,
       isStreaming: true,
+      loadingRequestType: requestType,
       createdAt: DateTime.now(),
     );
     state = state.copyWith(messages: [...state.messages, aiMsg]);
@@ -230,6 +277,7 @@ class ChatNotifier extends Notifier<ChatState> {
       final pipelineService = AIPipelineService();
 
       // Stage 1 & 2: Static Analysis and RAG Retrieval
+      state = state.copyWith(pipelinePhase: AIPipelinePhase.retrievingContext);
       final retrievedChunks = await pipelineService.retrieveContext(
         query: text,
         workspaceId: workspaceId,
@@ -238,6 +286,7 @@ class ChatNotifier extends Notifier<ChatState> {
       );
 
       // Stage 3: Build Augmented Prompt
+      state = state.copyWith(pipelinePhase: AIPipelinePhase.buildingPrompt);
       final queryType = PromptRouter.route(text);
       final augmentedPrompt = pipelineService.buildAugmentedPrompt(
         text,
@@ -246,6 +295,7 @@ class ChatNotifier extends Notifier<ChatState> {
       );
 
       // Stage 4: Generative Execution Stream
+      state = state.copyWith(pipelinePhase: AIPipelinePhase.generating);
       print(
         "======================================================================",
       );
@@ -313,6 +363,7 @@ class ChatNotifier extends Notifier<ChatState> {
           for (final msg in state.messages)
             if (msg.id == aiId) finalAiMsg else msg,
         ],
+        pipelinePhase: AIPipelinePhase.idle,
       );
 
       // Save AI message to Firestore
@@ -340,6 +391,7 @@ class ChatNotifier extends Notifier<ChatState> {
           for (final msg in state.messages)
             if (msg.id == aiId) errorMsg else msg,
         ],
+        pipelinePhase: AIPipelinePhase.idle,
       );
 
       if (chatId != null) {
@@ -917,6 +969,10 @@ class _MessageBubble extends ConsumerWidget {
     final isUser = message.role == MessageRole.user;
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
+    // Read the live pipeline phase so AuditLoadingWidget advances in sync
+    final pipelinePhase = ref.watch(
+      chatProvider.select((s) => s.pipelinePhase),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: MaritaSpacing.xl),
@@ -985,43 +1041,61 @@ class _MessageBubble extends ConsumerWidget {
                               color: colors.contentPrimary,
                             ),
                           )
-                          : MarkdownBody(
-                            data:
-                                message.text.isEmpty && message.isStreaming
-                                    ? "..."
-                                    : message.text,
-                            styleSheet: MarkdownStyleSheet(
-                              p: typography.bodyLarge.copyWith(
-                                color: colors.contentPrimary,
-                              ),
-                              code: typography.bodyDefault.copyWith(
-                                fontFamily: 'monospace',
-                                backgroundColor: colors.backgroundSecondary,
-                              ),
-                              codeblockDecoration: BoxDecoration(
-                                color: colors.backgroundSecondary,
-                                borderRadius: MaritaRadius.borderMedium,
-                              ),
-                            ),
+                          // AI bubble — show loading widget while streaming
+                          // and no text has arrived yet; switch to markdown
+                          // once the first token lands (AnimatedSwitcher handles
+                          // the fade transition automatically).
+                          : AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child:
+                                (!message.isStreaming || message.text.isNotEmpty)
+                                    ? MarkdownBody(
+                                      key: const ValueKey('md'),
+                                      data: message.text,
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: typography.bodyLarge.copyWith(
+                                          color: colors.contentPrimary,
+                                        ),
+                                        code: typography.bodyDefault.copyWith(
+                                          fontFamily: 'monospace',
+                                          backgroundColor:
+                                              colors.backgroundSecondary,
+                                        ),
+                                        codeblockDecoration: BoxDecoration(
+                                          color: colors.backgroundSecondary,
+                                          borderRadius:
+                                              MaritaRadius.borderMedium,
+                                        ),
+                                      ),
+                                    )
+                                    : AuditLoadingWidget(
+                                      key: ValueKey(
+                                        'loading_${message.id}',
+                                      ),
+                                      requestType:
+                                          message.loadingRequestType ??
+                                          LoadingRequestType.general,
+                                      phase: pipelinePhase,
+                                    ),
                           ),
-                      // Score Metrics Card — shown for non-general, non-streaming AI responses
-                      if (!isUser &&
-                          !message.isStreaming &&
-                          message.queryType != null &&
-                          message.queryType != 'general')
-                        Padding(
-                          padding: const EdgeInsets.only(top: MaritaSpacing.md),
-                          child: _ScoreMetricsCard(message: message),
-                        ),
+
                     ],
                   ),
                 ),
               ),
             ],
           ),
+          // ── Verification Metrics Card — outside bubble, above action buttons
+          if (!isUser &&
+              !message.isStreaming &&
+              _hasMetrics(message))
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: VerificationMetricsCard(message: message),
+            ),
           if (!isUser && !message.isStreaming)
             Padding(
-              padding: const EdgeInsets.only(top: MaritaSpacing.sm),
+              padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
                   _AIActionIcon(
@@ -1058,6 +1132,15 @@ class _MessageBubble extends ConsumerWidget {
       ),
     );
   }
+
+  /// Returns true when the message has at least one non-null metric score
+  /// and belongs to a non-general query type.
+  bool _hasMetrics(ChatMessage m) =>
+      m.queryType != null &&
+      m.queryType != 'general' &&
+      (m.evidenceScore != null ||
+          m.confidenceScore != null ||
+          m.precisionPercent != null);
 
   void _showExportBottomSheet(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
@@ -1130,221 +1213,7 @@ class _MessageBubble extends ConsumerWidget {
   }
 }
 
-/// Card widget displayed below AI message bubbles showing Evidence, Confidence,
-/// and Precision scores for non-general query responses.
-class _ScoreMetricsCard extends StatelessWidget {
-  final ChatMessage message;
 
-  const _ScoreMetricsCard({required this.message});
-
-  Color _scoreColor(BuildContext context, double? value) {
-    if (value == null) return Colors.grey;
-    if (value >= 80) return const Color(0xFF2E7D32); // green
-    if (value >= 50) return const Color(0xFFE65100); // orange
-    return const Color(0xFFC62828); // red
-  }
-
-  Widget _metricRow(
-    BuildContext context, {
-    required String label,
-    required double? value, // 0-100 scale
-    required MaritaColorPalette colors,
-    required MaritaTypographyAccessor typography,
-  }) {
-    final color = _scoreColor(context, value);
-    final displayPct = value != null ? '${value.toStringAsFixed(1)}%' : 'N/A';
-    final progress = value != null ? (value / 100).clamp(0.0, 1.0) : 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: typography.bodyDefault.copyWith(
-                color: colors.contentSecondary,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: colors.borderPrimary,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 44,
-            child: Text(
-              displayPct,
-              textAlign: TextAlign.right,
-              style: typography.bodyDefault.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.maritaColors;
-    final typography = context.maritaTypography;
-
-    // Convert all scores to 0-100 scale
-    final evidencePct = message.evidenceScore != null
-        ? message.evidenceScore! * 100
-        : null;
-    final confidencePct = message.confidenceScore != null
-        ? message.confidenceScore! * 100
-        : null;
-    final precisionPct = message.precisionPercent;
-
-    final categoryLabel = {
-      'financialAnalysis': 'Financial Analysis',
-      'fraudDetection': 'Fraud Detection',
-      'auditRequest': 'Audit Request',
-    }[message.queryType] ?? message.queryType ?? '';
-
-    return Container(
-      padding: const EdgeInsets.all(MaritaSpacing.md),
-      decoration: BoxDecoration(
-        color: colors.backgroundSecondary,
-        borderRadius: MaritaRadius.borderMedium,
-        border: Border.all(color: colors.borderPrimary),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.verified_outlined,
-                size: 14,
-                color: colors.interactivePrimary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Verification Metrics',
-                style: typography.bodySmallBold.copyWith(
-                  color: colors.contentPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: colors.interactivePrimary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  categoryLabel,
-                  style: typography.bodySmall.copyWith(
-                    color: colors.interactivePrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: MaritaSpacing.sm),
-          Divider(color: colors.borderPrimary, height: 1),
-          const SizedBox(height: MaritaSpacing.sm),
-          _metricRow(
-            context,
-            label: 'Evidence Score',
-            value: evidencePct,
-            colors: colors,
-            typography: typography,
-          ),
-          _metricRow(
-            context,
-            label: 'Confidence Score',
-            value: confidencePct,
-            colors: colors,
-            typography: typography,
-          ),
-          _metricRow(
-            context,
-            label: 'Precision Score',
-            value: precisionPct,
-            colors: colors,
-            typography: typography,
-          ),
-          if (message.fullCorrectCount != null ||
-              message.semiCorrectCount != null ||
-              message.incorrectCount != null) ...[
-            Divider(color: colors.borderPrimary, height: 16),
-            Row(
-              children: [
-                _claimChip(
-                  context,
-                  'Correct',
-                  message.fullCorrectCount ?? 0,
-                  const Color(0xFF2E7D32),
-                  colors,
-                  typography,
-                ),
-                const SizedBox(width: 6),
-                _claimChip(
-                  context,
-                  'Semi',
-                  message.semiCorrectCount ?? 0,
-                  const Color(0xFFE65100),
-                  colors,
-                  typography,
-                ),
-                const SizedBox(width: 6),
-                _claimChip(
-                  context,
-                  'Incorrect',
-                  message.incorrectCount ?? 0,
-                  const Color(0xFFC62828),
-                  colors,
-                  typography,
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _claimChip(
-    BuildContext context,
-    String label,
-    int count,
-    Color color,
-    MaritaColorPalette colors,
-    MaritaTypographyAccessor typography,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        '$label: $count',
-        style: typography.bodySmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
 
 class _AIActionIcon extends StatelessWidget {
   final IconData icon;
