@@ -92,6 +92,35 @@ abstract final class SemanticColors {
   static const Color colorBorderSelected = BaseColors.brand500;
   static const Color colorBorderInverse = BaseColors.shadow900;
 
+  // --- Risk Sentiment Colors ---
+  static const Color colorTextRiskLow = BaseColors.green800;
+  static const Color colorTextRiskMedium = BaseColors.yellow600;
+  static const Color colorTextRiskHigh = BaseColors.red600;
+
+  static const Color colorBackgroundRiskLow = BaseColors.green50;
+  static const Color colorBackgroundRiskMedium = BaseColors.yellow50;
+  static const Color colorBackgroundRiskHigh = BaseColors.red50;
+
+  static const Color colorBorderRiskLow = BaseColors.green500;
+  static const Color colorBorderRiskMedium = BaseColors.yellow500;
+  static const Color colorBorderRiskHigh = BaseColors.red500;
+
+  // --- Risk Level Colors (Analyze Screen) ---
+  static const Color colorRiskLow = BaseColors.green500;
+  static const Color colorRiskMedium = BaseColors.yellow500;
+  static const Color colorRiskHigh = BaseColors.red500;
+  static const Color colorRiskCritical = BaseColors.red700;
+
+  static const Color colorRiskLowBackground = BaseColors.green50;
+  static const Color colorRiskMediumBackground = BaseColors.yellow50;
+  static const Color colorRiskHighBackground = BaseColors.red50;
+  static const Color colorRiskCriticalBackground = BaseColors.red100;
+
+  static const Color colorRiskLowText = BaseColors.green900;
+  static const Color colorRiskMediumText = BaseColors.shadow900;
+  static const Color colorRiskHighText = BaseColors.red900;
+  static const Color colorRiskCriticalText = BaseColors.cloud50;
+
   // --- Button Colors ---
   static const Color colorButtonPrimaryBackground = BaseColors.brand500;
   static const Color colorButtonPrimaryForeground = BaseColors.cloud50;

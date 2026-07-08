@@ -684,7 +684,7 @@ class MaritaTypographyAccessor {
   TextStyle get titleMedium => MaritaTypography.titleMedium;
   TextStyle get titleSmall => MaritaTypography.titleSmall;
   TextStyle get h3 => MaritaTypography.titleSmall;
-  TextStyle get h4 => MaritaTypography.titleSmall.copyWith(fontSize: 18);
+  TextStyle get h4 => MaritaTypography.titleSmall.copyWith(fontSize: 18.0);
 
   // Body
   TextStyle get bodyLargeBold => MaritaTypography.bodyLargeBold;
@@ -692,9 +692,9 @@ class MaritaTypographyAccessor {
   TextStyle get bodyDefaultBold => MaritaTypography.bodyDefaultBold;
   TextStyle get bodyDefault => MaritaTypography.bodyDefault;
   TextStyle get bodySmallBold =>
-      MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12);
+      MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12.0);
   TextStyle get bodySmall =>
-      MaritaTypography.bodyDefault.copyWith(fontSize: 12);
+      MaritaTypography.bodyDefault.copyWith(fontSize: 12.0);
   TextStyle get bodyDisabled => MaritaTypography.bodyDefault.copyWith(
     color: context.maritaColors.contentDisabled,
   );

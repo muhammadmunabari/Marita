@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:flutter/foundation.dart';
 import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/gemini_service.dart';
 
@@ -62,7 +63,6 @@ class _ClaimStatus {
     required this.rawValue,
     required this.category,
     this.explanation = '',
-    this.citation,
   });
 }
 
@@ -493,7 +493,7 @@ Each object must have this exact JSON schema:
         }
       } catch (e) {
         // Fallback: log the error and keep original algorithmic classifications
-        print('Error in LLM Fact Verification Judge: $e');
+        debugPrint('Error in LLM Fact Verification Judge: $e');
       }
     }
 

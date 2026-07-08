@@ -1,4 +1,5 @@
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:flutter/foundation.dart';
 import 'package:marita/models/chat_message.dart';
 import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/fact_verification_service.dart';
@@ -72,16 +73,16 @@ class AIPipelineService {
     required String workspaceId,
     List<double> queryEmbedding = const [],
   }) async {
-    print(
+    debugPrint(
       "======================================================================",
     );
-    print("🔍 [AI PIPELINE] STAGE 1: STATIC ANALYSIS & PROMPT ROUTING");
-    print(
+    debugPrint("🔍 [AI PIPELINE] STAGE 1: STATIC ANALYSIS & PROMPT ROUTING");
+    debugPrint(
       "======================================================================",
     );
     final queryType = PromptRouter.route(query);
-    print("  ├─ User Query: \"$query\"");
-    print("  ├─ Classification: ${queryType.name.toUpperCase()}");
+    debugPrint("  ├─ User Query: \"$query\"");
+    debugPrint("  ├─ Classification: ${queryType.name.toUpperCase()}");
 
     // Find matched keywords for explanation in logs
     final lowerQuery = query.toLowerCase();
@@ -111,22 +112,22 @@ class AIPipelineService {
         lowerQuery.contains('verify')) {
       keywords.addAll(['audit', 'tax', 'compliance', 'verify']);
     }
-    print(
+    debugPrint(
       "  └─ Detected Routing Keywords: ${keywords.isNotEmpty ? keywords.join(', ') : 'none'}",
     );
 
-    print(
+    debugPrint(
       "\n======================================================================",
     );
-    print("📚 [AI PIPELINE] STAGE 2: RAG QUERY CONTEXT RETRIEVAL");
-    print(
+    debugPrint("📚 [AI PIPELINE] STAGE 2: RAG QUERY CONTEXT RETRIEVAL");
+    debugPrint(
       "======================================================================",
     );
-    print("  ├─ Workspace ID: $workspaceId");
-    print(
+    debugPrint("  ├─ Workspace ID: $workspaceId");
+    debugPrint(
       "  ├─ Retrieval Method: ${queryEmbedding.isNotEmpty ? 'Semantic Vector' : 'Keyword Text Fallback'}",
     );
-    print(
+    debugPrint(
       "  ├─ RAG Query (first 120 chars): \"${query.length > 120 ? '${query.substring(0, 120)}...' : query}\"",
     );
 
@@ -136,7 +137,7 @@ class AIPipelineService {
       query: query,
     );
 
-    print("  ├─ Retrieved Chunks Count: ${retrievedChunks.length}");
+    debugPrint("  ├─ Retrieved Chunks Count: ${retrievedChunks.length}");
     if (retrievedChunks.isNotEmpty) {
       for (int i = 0; i < retrievedChunks.length; i++) {
         final chunk = retrievedChunks[i];
@@ -145,24 +146,24 @@ class AIPipelineService {
             chunk.fileName.isNotEmpty
                 ? chunk.fileName
                 : (chunk.metadata['fileName'] as String? ?? 'Unknown Document');
-        print(
+        debugPrint(
           "  ├─ Chunk [${i + 1}]: File: $docName, Page: ${chunk.pageNumber}",
         );
         final preview =
             chunk.content.length > 80
                 ? '${chunk.content.substring(0, 80).replaceAll('\n', ' ')}...'
                 : chunk.content;
-        print("  │  └─ Content Preview: \"$preview\"");
+        debugPrint("  │  └─ Content Preview: \"$preview\"");
       }
     } else {
-      print(
+      debugPrint(
         "  ├─ ⚠️  No chunks retrieved — check Firestore path: companies/$workspaceId/files/<id>/chunks",
       );
-      print(
+      debugPrint(
         "  └─ Suggestion: Ensure documents have been uploaded and processed into the workspace.",
       );
     }
-    print(
+    debugPrint(
       "======================================================================\n",
     );
 
@@ -181,18 +182,18 @@ class AIPipelineService {
     augmentedPrompt.writeln(contextString);
     augmentedPrompt.writeln("\nUser Query: $query");
 
-    print(
+    debugPrint(
       "======================================================================",
     );
-    print("✍️ [AI PIPELINE] STAGE 3: PROMPT AUGMENTATION");
-    print(
+    debugPrint("✍️ [AI PIPELINE] STAGE 3: PROMPT AUGMENTATION");
+    debugPrint(
       "======================================================================",
     );
-    print("  ├─ Augmented Prompt Length: ${augmentedPrompt.length} characters");
-    print(
+    debugPrint("  ├─ Augmented Prompt Length: ${augmentedPrompt.length} characters");
+    debugPrint(
       "  └─ Status: Formatted and packaged for ${GeminiService.mainModelName}",
     );
-    print(
+    debugPrint(
       "======================================================================\n",
     );
 
@@ -206,15 +207,15 @@ class AIPipelineService {
     required String draftResponse,
     required List<DocumentChunk> retrievedChunks,
   }) async {
-    print(
+    debugPrint(
       "======================================================================",
     );
-    print("⚖️ [AI PIPELINE] STAGE 5: FACT VERIFICATION");
-    print(
+    debugPrint("⚖️ [AI PIPELINE] STAGE 5: FACT VERIFICATION");
+    debugPrint(
       "======================================================================",
     );
-    print("  ├─ Verifying Draft Response against source chunks...");
-    print("  ├─ Source Chunks Available: ${retrievedChunks.length}");
+    debugPrint("  ├─ Verifying Draft Response against source chunks...");
+    debugPrint("  ├─ Source Chunks Available: ${retrievedChunks.length}");
 
     final verification = await FactVerificationService.verifyResponse(
       draftResponse: draftResponse,
@@ -227,80 +228,80 @@ class AIPipelineService {
         (verification.assessment?.semiCorrectCount ?? 0) +
         (verification.assessment?.incorrectCount ?? 0);
 
-    print("  ├─ Total Numerical/Financial Claims Scanned: $totalScanned");
-    print(
+    debugPrint("  ├─ Total Numerical/Financial Claims Scanned: $totalScanned");
+    debugPrint(
       "  ├─ Evidence Score: ${verification.evidenceScore.toStringAsFixed(2)}",
     );
-    print(
+    debugPrint(
       "  ├─ Confidence Score: ${(verification.confidenceScore * 100).toStringAsFixed(1)}%",
     );
 
     if (verification.validatedCitations.isNotEmpty) {
-      print("  ├─ Validated Citations:");
+      debugPrint("  ├─ Validated Citations:");
       for (final citation in verification.validatedCitations) {
-        print("  │  └─ ✅ $citation");
+        debugPrint("  │  └─ ✅ $citation");
       }
     } else {
-      print("  ├─ Validated Citations: (none)");
+      debugPrint("  ├─ Validated Citations: (none)");
     }
 
     if (verification.feedback.isNotEmpty) {
-      print("  ├─ Verification Issues (Potential Hallucinations):");
+      debugPrint("  ├─ Verification Issues (Potential Hallucinations):");
       for (final issue in verification.feedback) {
-        print("  │  └─ ⚠️  $issue");
+        debugPrint("  │  └─ ⚠️  $issue");
       }
     } else {
-      print("  ├─ Fact Check: ✅ All claims verified against source context.");
+      debugPrint("  ├─ Fact Check: ✅ All claims verified against source context.");
     }
 
     // --- Assessment Criteria (Precision Metric) ---
     final assessment = verification.assessment;
     if (assessment != null) {
-      print("  ├─ ─────────────────────────────────────────");
-      print("  ├─ 📊 ASSESSMENT CRITERIA (Precision Metric)");
-      print("  ├─ ─────────────────────────────────────────");
-      print(
+      debugPrint("  ├─ ─────────────────────────────────────────");
+      debugPrint("  ├─ 📊 ASSESSMENT CRITERIA (Precision Metric)");
+      debugPrint("  ├─ ─────────────────────────────────────────");
+      debugPrint(
         "  ├─ [1] Full Correct   : ${assessment.fullCorrectCount} claim(s)",
       );
-      print("  │       Jawaban sesuai sepenuhnya dengan data sumber.");
-      print(
+      debugPrint("  │       Jawaban sesuai sepenuhnya dengan data sumber.");
+      debugPrint(
         "  ├─ [2] Semi-Correct   : ${assessment.semiCorrectCount} claim(s)",
       );
-      print("  │       Nilai numerik benar, kesalahan pada satuan/pembulatan.");
-      print("  ├─ [3] Incorrect      : ${assessment.incorrectCount} claim(s)");
-      print("  │       Jawaban tidak sesuai / numerical hallucination.");
-      print("  ├─ ─────────────────────────────────────────");
-      print("  ├─ Precision Formula  : Correct / (Correct + Incorrect) × 100%");
-      print(
+      debugPrint("  │       Nilai numerik benar, kesalahan pada satuan/pembulatan.");
+      debugPrint("  ├─ [3] Incorrect      : ${assessment.incorrectCount} claim(s)");
+      debugPrint("  │       Jawaban tidak sesuai / numerical hallucination.");
+      debugPrint("  ├─ ─────────────────────────────────────────");
+      debugPrint("  ├─ Precision Formula  : Correct / (Correct + Incorrect) × 100%");
+      debugPrint(
         "  │  = ${assessment.fullCorrectCount} / (${assessment.fullCorrectCount} + ${assessment.incorrectCount}) × 100%",
       );
-      print(
+      debugPrint(
         "  └─ Precision Score    : ${assessment.precisionPercent.toStringAsFixed(1)}%",
       );
     } else {
-      print(
+      debugPrint(
         "  └─ Assessment Criteria: N/A (no source chunks to compare against).",
       );
     }
 
-    print(
+    debugPrint(
       "\n======================================================================",
     );
-    print("🚦 [AI PIPELINE] STAGE 6: RESPONSE VALIDATOR & FALLBACK");
-    print(
+    debugPrint("🚦 [AI PIPELINE] STAGE 6: RESPONSE VALIDATOR & FALLBACK");
+    debugPrint(
       "======================================================================",
     );
-    print(
+    debugPrint(
       "  ├─ Pipeline Status: ${verification.isValid ? 'PASSED (Confidence >= 85%)' : 'WARNING (Confidence < 85%)'}",
     );
 
     String finalResponse = draftResponse;
     if (!verification.isValid && verification.confidenceScore < 0.5) {
-      print("  └─ Action: Fallback message suppressed as per user request.");
+      debugPrint("  └─ Action: Fallback message suppressed as per user request.");
     } else {
-      print("  └─ Action: Response matches validation requirements.");
+      debugPrint("  └─ Action: Response matches validation requirements.");
     }
-    print(
+    debugPrint(
       "======================================================================\n",
     );
 
@@ -399,19 +400,19 @@ class AIPipelineService {
     );
 
     // Stage 4: Generative Execution
-    print(
+    debugPrint(
       "======================================================================",
     );
-    print("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
-    print(
+    debugPrint("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
+    debugPrint(
       "======================================================================",
     );
     // Bug #3 fix: use constant from GeminiService instead of hardcoded string
-    print("  ├─ Model Target: ${GeminiService.mainModelName}");
-    print(
+    debugPrint("  ├─ Model Target: ${GeminiService.mainModelName}");
+    debugPrint(
       "  ├─ RAG Query Used: \"${ragQuery.length > 80 ? '${ragQuery.substring(0, 80)}...' : ragQuery}\"",
     );
-    print("  └─ Status: Stream started...");
+    debugPrint("  └─ Status: Stream started...");
 
     final systemInstruction = Content('system', [
       TextPart('''
@@ -431,8 +432,8 @@ ATURAN KETAT:
     )) {
       responseBuffer.write(chunk);
     }
-    print("  └─ Status: Stream generation complete.");
-    print(
+    debugPrint("  └─ Status: Stream generation complete.");
+    debugPrint(
       "======================================================================\n",
     );
 

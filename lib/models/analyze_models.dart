@@ -1,0 +1,358 @@
+import 'file_item.dart';
+
+/// Risk levels from Stage 4 & 10 of financial audit analysis.
+enum RiskLevel { low, medium, high, critical }
+
+/// Status of each stage in the analysis pipeline.
+enum AnalysisStepStatus { pending, running, completed, error }
+
+/// Overall status of the analysis job for a single file or the whole batch.
+enum AnalysisStatus { idle, running, completed, error }
+
+/// Represents a single stage in the 14-stage pipeline.
+class AnalysisPipelineStage {
+  final int stageNumber; // 1–14
+  final String title; // e.g., "File Identification"
+  final AnalysisStepStatus status;
+  final String? errorMessage;
+
+  const AnalysisPipelineStage({
+    required this.stageNumber,
+    required this.title,
+    required this.status,
+    this.errorMessage,
+  });
+
+  AnalysisPipelineStage copyWith({
+    int? stageNumber,
+    String? title,
+    AnalysisStepStatus? status,
+    String? errorMessage,
+  }) {
+    return AnalysisPipelineStage(
+      stageNumber: stageNumber ?? this.stageNumber,
+      title: title ?? this.title,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'stageNumber': stageNumber,
+      'title': title,
+      'status': status.name,
+      'errorMessage': errorMessage,
+    };
+  }
+
+  factory AnalysisPipelineStage.fromMap(Map<String, dynamic> map) {
+    return AnalysisPipelineStage(
+      stageNumber: map['stageNumber'] as int? ?? 0,
+      title: map['title'] as String? ?? '',
+      status: AnalysisStepStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => AnalysisStepStatus.pending,
+      ),
+      errorMessage: map['errorMessage'] as String?,
+    );
+  }
+}
+
+/// Represents a single finding from the audit.
+class AuditFinding {
+  final String title;
+  final String description;
+  final RiskLevel riskLevel;
+  final List<String> affectedItems; // transactions, accounts, vendors, etc.
+  final String recommendation;
+  final int priority; // 1 = highest
+
+  const AuditFinding({
+    required this.title,
+    required this.description,
+    required this.riskLevel,
+    required this.affectedItems,
+    required this.recommendation,
+    required this.priority,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'riskLevel': riskLevel.name,
+      'affectedItems': affectedItems,
+      'recommendation': recommendation,
+      'priority': priority,
+    };
+  }
+
+  factory AuditFinding.fromMap(Map<String, dynamic> map) {
+    return AuditFinding(
+      title: map['title'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      riskLevel: RiskLevel.values.firstWhere(
+        (e) => e.name == map['riskLevel'],
+        orElse: () => RiskLevel.medium,
+      ),
+      affectedItems: List<String>.from(map['affectedItems'] ?? []),
+      recommendation: map['recommendation'] as String? ?? '',
+      priority: map['priority'] as int? ?? 1,
+    );
+  }
+}
+
+/// Details of a single risk category score.
+class RiskScore {
+  final int score; // 0–100
+  final RiskLevel level;
+  final double confidence; // 0.0–1.0
+  final String explanation;
+
+  const RiskScore({
+    required this.score,
+    required this.level,
+    required this.confidence,
+    required this.explanation,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'score': score,
+      'level': level.name,
+      'confidence': confidence,
+      'explanation': explanation,
+    };
+  }
+
+  factory RiskScore.fromMap(Map<String, dynamic> map) {
+    return RiskScore(
+      score: map['score'] as int? ?? 0,
+      level: RiskLevel.values.firstWhere(
+        (e) => e.name == map['level'],
+        orElse: () => RiskLevel.low,
+      ),
+      confidence: (map['confidence'] as num?)?.toDouble() ?? 0.0,
+      explanation: map['explanation'] as String? ?? '',
+    );
+  }
+}
+
+/// The overall structured result of a completed document audit.
+class AnalysisResult {
+  final String fileId;
+  final String fileName;
+  final RiskScore organizationRisk;
+  final RiskScore transactionRisk;
+  final RiskScore entityRisk;
+  final RiskScore financialStatementRisk;
+  final RiskScore documentRisk;
+  final String executiveSummary;
+  final List<AuditFinding> findings; // sorted by priority
+  final List<AnalysisPipelineStage> stages;
+  final double overallConfidence;
+  final DateTime analyzedAt;
+
+  const AnalysisResult({
+    required this.fileId,
+    required this.fileName,
+    required this.organizationRisk,
+    required this.transactionRisk,
+    required this.entityRisk,
+    required this.financialStatementRisk,
+    required this.documentRisk,
+    required this.executiveSummary,
+    required this.findings,
+    required this.stages,
+    required this.overallConfidence,
+    required this.analyzedAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'fileId': fileId,
+      'fileName': fileName,
+      'organizationRisk': organizationRisk.toMap(),
+      'transactionRisk': transactionRisk.toMap(),
+      'entityRisk': entityRisk.toMap(),
+      'financialStatementRisk': financialStatementRisk.toMap(),
+      'documentRisk': documentRisk.toMap(),
+      'executiveSummary': executiveSummary,
+      'findings': findings.map((e) => e.toMap()).toList(),
+      'stages': stages.map((e) => e.toMap()).toList(),
+      'overallConfidence': overallConfidence,
+      'analyzedAt': analyzedAt.toIso8601String(),
+    };
+  }
+
+  factory AnalysisResult.fromMap(Map<String, dynamic> map) {
+    DateTime parseDateTime(dynamic val) {
+      if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+      return DateTime.now();
+    }
+
+    return AnalysisResult(
+      fileId: map['fileId'] as String? ?? '',
+      fileName: map['fileName'] as String? ?? '',
+      organizationRisk:
+          RiskScore.fromMap(Map<String, dynamic>.from(map['organizationRisk'] ?? {})),
+      transactionRisk:
+          RiskScore.fromMap(Map<String, dynamic>.from(map['transactionRisk'] ?? {})),
+      entityRisk:
+          RiskScore.fromMap(Map<String, dynamic>.from(map['entityRisk'] ?? {})),
+      financialStatementRisk: RiskScore.fromMap(
+          Map<String, dynamic>.from(map['financialStatementRisk'] ?? {})),
+      documentRisk:
+          RiskScore.fromMap(Map<String, dynamic>.from(map['documentRisk'] ?? {})),
+      executiveSummary: map['executiveSummary'] as String? ?? '',
+      findings: (map['findings'] as List?)
+              ?.map((e) => AuditFinding.fromMap(Map<String, dynamic>.from(e)))
+              .toList() ??
+          [],
+      stages: (map['stages'] as List?)
+              ?.map(
+                  (e) => AnalysisPipelineStage.fromMap(Map<String, dynamic>.from(e)))
+              .toList() ??
+          [],
+      overallConfidence: (map['overallConfidence'] as num?)?.toDouble() ?? 0.0,
+      analyzedAt: parseDateTime(map['analyzedAt']),
+    );
+  }
+
+  /// Composite overall score (average of all 5 dimension scores).
+  int get overallScore {
+    final scores = [
+      organizationRisk.score,
+      transactionRisk.score,
+      entityRisk.score,
+      financialStatementRisk.score,
+      documentRisk.score,
+    ];
+    return (scores.reduce((a, b) => a + b) / scores.length).round();
+  }
+
+  /// Highest risk level across all dimensions.
+  RiskLevel get highestRiskLevel {
+    final levels = [
+      organizationRisk.level,
+      transactionRisk.level,
+      entityRisk.level,
+      financialStatementRisk.level,
+      documentRisk.level,
+    ];
+    return levels.reduce(
+        (a, b) => b.index > a.index ? b : a);
+  }
+}
+
+// =============================================================================
+// PER-FILE ANALYSIS ENTRY — tracks state of one file in the batch pipeline
+// =============================================================================
+
+/// Tracks the full lifecycle of a single file within a batch analysis run.
+class FileAnalysisEntry {
+  final FileItem file;
+  final AnalysisStatus status;
+  final List<AnalysisPipelineStage> stages;
+  final AnalysisResult? result;
+  final String? errorMessage;
+  final bool fromCache; // true if result was loaded from Firestore cache
+
+  const FileAnalysisEntry({
+    required this.file,
+    this.status = AnalysisStatus.idle,
+    this.stages = const [],
+    this.result,
+    this.errorMessage,
+    this.fromCache = false,
+  });
+
+  FileAnalysisEntry copyWith({
+    FileItem? file,
+    AnalysisStatus? status,
+    List<AnalysisPipelineStage>? stages,
+    AnalysisResult? result,
+    String? errorMessage,
+    bool? fromCache,
+  }) {
+    return FileAnalysisEntry(
+      file: file ?? this.file,
+      status: status ?? this.status,
+      stages: stages ?? this.stages,
+      result: result ?? this.result,
+      errorMessage: errorMessage ?? this.errorMessage,
+      fromCache: fromCache ?? this.fromCache,
+    );
+  }
+}
+
+// =============================================================================
+// ANALYZE STATE — Riverpod state for the Analyze Screen (batch mode)
+// =============================================================================
+
+/// The state managed by Riverpod for the Analyze Screen.
+class AnalyzeState {
+  /// Per-file entries — one per file in the active workspace.
+  final List<FileAnalysisEntry> fileEntries;
+
+  /// Index of the file currently being processed (-1 = none).
+  final int currentFileIndex;
+
+  /// Overall batch status.
+  final AnalysisStatus status;
+
+  /// Global error message (only used when the batch itself fails to start).
+  final String? errorMessage;
+
+  const AnalyzeState({
+    this.fileEntries = const [],
+    this.currentFileIndex = -1,
+    this.status = AnalysisStatus.idle,
+    this.errorMessage,
+  });
+
+  AnalyzeState copyWith({
+    List<FileAnalysisEntry>? fileEntries,
+    int? currentFileIndex,
+    AnalysisStatus? status,
+    String? errorMessage,
+  }) {
+    return AnalyzeState(
+      fileEntries: fileEntries ?? this.fileEntries,
+      currentFileIndex: currentFileIndex ?? this.currentFileIndex,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
+
+  // ── Derived helpers ──────────────────────────────────────────────────────
+
+  int get totalFiles => fileEntries.length;
+
+  int get completedCount =>
+      fileEntries.where((e) => e.status == AnalysisStatus.completed).length;
+
+  int get errorCount =>
+      fileEntries.where((e) => e.status == AnalysisStatus.error).length;
+
+  List<FileAnalysisEntry> get completedEntries =>
+      fileEntries.where((e) => e.status == AnalysisStatus.completed).toList();
+
+  /// Average overall score across all completed results (null if none).
+  int? get aggregateScore {
+    final results = completedEntries.map((e) => e.result).whereType<AnalysisResult>();
+    if (results.isEmpty) return null;
+    final total = results.map((r) => r.overallScore).reduce((a, b) => a + b);
+    return (total / results.length).round();
+  }
+
+  /// Highest risk level across all completed results.
+  RiskLevel? get aggregateRiskLevel {
+    final results = completedEntries.map((e) => e.result).whereType<AnalysisResult>();
+    if (results.isEmpty) return null;
+    return results
+        .map((r) => r.highestRiskLevel)
+        .reduce((a, b) => b.index > a.index ? b : a);
+  }
+}

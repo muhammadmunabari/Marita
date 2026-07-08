@@ -73,6 +73,11 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
 
       // Sub-collections under companies
+      match /analyses/{analysisId} {
+        allow read: if isWorkspaceMember(companyId);
+        allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+      }
+
       match /chats/{chatId} {
         allow read: if isWorkspaceMember(companyId);
         allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);

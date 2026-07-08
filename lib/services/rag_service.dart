@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/vector_search_service.dart';
 
@@ -24,13 +25,13 @@ class RAGService {
               .collection('files')
               .get();
 
-      print("  │  [RAG DEBUG] Files in workspace: ${docSnapshots.docs.length}");
+      debugPrint("  │  [RAG DEBUG] Files in workspace: ${docSnapshots.docs.length}");
 
       final List<DocumentChunk> allChunks = [];
 
       for (final doc in docSnapshots.docs) {
         final chunkSnapshots = await doc.reference.collection('chunks').get();
-        print(
+        debugPrint(
           "  │  [RAG DEBUG] File '${doc.id}' has ${chunkSnapshots.docs.length} chunks",
         );
         for (final chunkDoc in chunkSnapshots.docs) {
@@ -49,7 +50,7 @@ class RAGService {
         }
       }
 
-      print("  │  [RAG DEBUG] Total chunks loaded: ${allChunks.length}");
+      debugPrint("  │  [RAG DEBUG] Total chunks loaded: ${allChunks.length}");
 
       // Check if we should use keyword-based fallback search
       if (queryEmbedding.isEmpty && query.isNotEmpty) {
@@ -100,7 +101,7 @@ class RAGService {
                 .take(20) // Cap to first 20 meaningful keywords
                 .toList();
 
-        print(
+        debugPrint(
           "  │  [RAG DEBUG] Keywords (${keywords.length}): ${keywords.join(', ')}",
         );
 
@@ -145,7 +146,7 @@ class RAGService {
             if (diverseResults.length >= topK) break;
           }
 
-          print(
+          debugPrint(
             "  │  [RAG DEBUG] Keyword-scored chunks: ${ratedChunks.length}, after dedup: ${diverseResults.length}, returning top ${diverseResults.length}",
           );
           return diverseResults;
@@ -163,7 +164,7 @@ class RAGService {
       return bestChunks;
     } catch (e) {
       // Return empty context if there are failures, adhering to RAG fallback guidelines
-      print("  │  [RAG ERROR] Failed to retrieve chunks: $e");
+      debugPrint("  │  [RAG ERROR] Failed to retrieve chunks: $e");
       return [];
     }
   }

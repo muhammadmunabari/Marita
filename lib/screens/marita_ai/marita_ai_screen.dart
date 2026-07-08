@@ -296,15 +296,15 @@ class ChatNotifier extends Notifier<ChatState> {
 
       // Stage 4: Generative Execution Stream
       state = state.copyWith(pipelinePhase: AIPipelinePhase.generating);
-      print(
+      debugPrint(
         "======================================================================",
       );
-      print("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
-      print(
+      debugPrint("🤖 [AI PIPELINE] STAGE 4: GEMINI EXECUTION & GENERATIVE STREAM");
+      debugPrint(
         "======================================================================",
       );
-      print("  ├─ Model Target: gemini-2.5-flash-lite");
-      print("  └─ Status: Stream started...");
+      debugPrint("  ├─ Model Target: gemini-2.5-flash-lite");
+      debugPrint("  └─ Status: Stream started...");
 
       final stream = GeminiService.sendMessageStream(
         augmentedPrompt,
@@ -323,8 +323,8 @@ class ChatNotifier extends Notifier<ChatState> {
         );
       }
 
-      print("  └─ Status: Stream generation complete.");
-      print(
+      debugPrint("  └─ Status: Stream generation complete.");
+      debugPrint(
         "======================================================================\n",
       );
 

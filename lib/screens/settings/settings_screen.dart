@@ -386,66 +386,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             border: Border.all(color: colors.borderPrimary),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              _buildSettingsTile(
-                context: context,
-                leadingIcon: MaritaIcons.sun,
-                title: 'Light',
-                trailing: Radio<ThemeMode>(
-                  value: ThemeMode.light,
-                  groupValue: currentThemeMode,
-                  activeColor: colors.interactivePrimary,
-                  onChanged: (ThemeMode? value) {
-                    if (value != null) {
-                      ref.read(themeModeProvider.notifier).setThemeMode(value);
-                    }
+          child: RadioGroup<ThemeMode>(
+            groupValue: currentThemeMode,
+            onChanged: (ThemeMode? value) {
+              if (value != null) {
+                ref.read(themeModeProvider.notifier).setThemeMode(value);
+              }
+            },
+            child: Column(
+              children: [
+                _buildSettingsTile(
+                  context: context,
+                  leadingIcon: MaritaIcons.sun,
+                  title: 'Light',
+                  trailing: Radio<ThemeMode>(
+                    value: ThemeMode.light,
+                    activeColor: colors.interactivePrimary,
+                  ),
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
                   },
                 ),
-                onTap: () {
-                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
-                },
-              ),
-              Divider(color: colors.borderPrimary, height: 1),
-              _buildSettingsTile(
-                context: context,
-                leadingIcon: MaritaIcons.moon,
-                title: 'Dark',
-                trailing: Radio<ThemeMode>(
-                  value: ThemeMode.dark,
-                  groupValue: currentThemeMode,
-                  activeColor: colors.interactivePrimary,
-                  onChanged: (ThemeMode? value) {
-                    if (value != null) {
-                      ref.read(themeModeProvider.notifier).setThemeMode(value);
-                    }
+                Divider(color: colors.borderPrimary, height: 1),
+                _buildSettingsTile(
+                  context: context,
+                  leadingIcon: MaritaIcons.moon,
+                  title: 'Dark',
+                  trailing: Radio<ThemeMode>(
+                    value: ThemeMode.dark,
+                    activeColor: colors.interactivePrimary,
+                  ),
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
                   },
                 ),
-                onTap: () {
-                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
-                },
-              ),
-              Divider(color: colors.borderPrimary, height: 1),
-              _buildSettingsTile(
-                context: context,
-                leadingIcon: MaritaIcons.settings,
-                title: 'Use Device Settings',
-                subtitle: "Match appearance to your device's Display & Brightness settings.",
-                trailing: Radio<ThemeMode>(
-                  value: ThemeMode.system,
-                  groupValue: currentThemeMode,
-                  activeColor: colors.interactivePrimary,
-                  onChanged: (ThemeMode? value) {
-                    if (value != null) {
-                      ref.read(themeModeProvider.notifier).setThemeMode(value);
-                    }
+                Divider(color: colors.borderPrimary, height: 1),
+                _buildSettingsTile(
+                  context: context,
+                  leadingIcon: MaritaIcons.settings,
+                  title: 'Use Device Settings',
+                  subtitle: "Match appearance to your device's Display & Brightness settings.",
+                  trailing: Radio<ThemeMode>(
+                    value: ThemeMode.system,
+                    activeColor: colors.interactivePrimary,
+                  ),
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
                   },
                 ),
-                onTap: () {
-                  ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

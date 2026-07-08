@@ -551,4 +551,61 @@ class FirestoreService {
   }) async {
     await _db.collection('invitations').doc(invitationId).delete();
   }
+
+  // ===========================================================================
+  // ANALYSES (Analyze Screen Cache)
+  // ===========================================================================
+
+  /// Saves analysis result to Firestore cache.
+  Future<void> saveAnalysisResult({
+    required String companyId,
+    required String fileId,
+    required Map<String, dynamic> resultData,
+  }) async {
+    await _db
+        .collection('companies')
+        .doc(companyId)
+        .collection('analyses')
+        .doc(fileId)
+        .set({
+      ...resultData,
+      'analyzedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Fetches cached analysis result for a file.
+  Future<Map<String, dynamic>?> getAnalysisResult(
+      String companyId, String fileId) async {
+    final doc = await _db
+        .collection('companies')
+        .doc(companyId)
+        .collection('analyses')
+        .doc(fileId)
+        .get();
+    if (!doc.exists) return null;
+    return doc.data();
+  }
+
+  /// Real-time stream of analysis status for a file.
+  Stream<Map<String, dynamic>?> watchAnalysisResult(
+      String companyId, String fileId) {
+    return _db
+        .collection('companies')
+        .doc(companyId)
+        .collection('analyses')
+        .doc(fileId)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.data() : null);
+  }
+
+  /// Lists all analyses for a workspace (for file list view).
+  Stream<List<Map<String, dynamic>>> watchWorkspaceAnalyses(String companyId) {
+    return _db
+        .collection('companies')
+        .doc(companyId)
+        .collection('analyses')
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+  }
 }

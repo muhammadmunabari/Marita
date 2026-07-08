@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
@@ -7,9 +8,9 @@ void main() {
       final provider = WebDebugProvider(
         debugToken: 'test-token',
       );
-      print('WebDebugProvider created: $provider');
+      debugPrint('WebDebugProvider created: $provider');
     } catch (e) {
-      print('Error: $e');
+      debugPrint('Error: $e');
     }
   });
 }

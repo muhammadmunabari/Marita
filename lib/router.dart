@@ -17,6 +17,7 @@ import 'screens/forgot_password/forgot_password_screen.dart';
 import 'screens/main_navigation/main_navigation_screen.dart';
 import 'screens/marita_ai/marita_ai_screen.dart';
 import 'screens/files/files_screen.dart';
+import 'screens/analyze/analyze_screen.dart';
 import 'screens/workspaces/workspaces_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
@@ -36,6 +37,7 @@ class MaritaRoutes {
   static const String biometricLock = '/biometric-lock';
   static const String home = '/';
   static const String files = '/files';
+  static const String analyze = '/analyze';
   static const String workspaces = '/workspaces';
   static const String settings = '/settings';
   static const List<String> publicRoutes = [
@@ -189,6 +191,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Index 2 — Analyze
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: MaritaRoutes.analyze,
+                builder: (context, state) => const AnalyzeScreen(),
+              ),
+            ],
+          ),
+          // Index 3 — Workspaces
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -197,6 +209,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Index 4 — Settings
           StatefulShellBranch(
             routes: [
               GoRoute(

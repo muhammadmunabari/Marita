@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:printing/printing.dart';
@@ -14,7 +15,7 @@ void main() {
     final font4 = await PdfGoogleFonts.notoSansTCRegular();
     final font5 = await PdfGoogleFonts.notoSansKRRegular();
     final font6 = await PdfGoogleFonts.notoColorEmoji();
-    print("Fonts loaded successfully: $font1, $font2, $font3, $font4, $font5, $font6");
+    debugPrint("Fonts loaded successfully: $font1, $font2, $font3, $font4, $font5, $font6");
   });
 
   test('Test loading local CJK font asset and generating PDF with Japanese and Chinese', () async {
@@ -39,7 +40,7 @@ void main() {
 
     final bytes = await pdf.save();
     expect(bytes, isNotEmpty);
-    print("PDF with CJK characters compiled successfully. Size: ${bytes.length} bytes");
+    debugPrint("PDF with CJK characters compiled successfully. Size: ${bytes.length} bytes");
   });
 
   test('Test font fallback inheritance in explicit TextStyles', () async {
@@ -84,7 +85,7 @@ void main() {
 
     final bytes = await pdf.save();
     expect(bytes, isNotEmpty);
-    print("Explicit TextStyle font fallback test succeeded.");
+    debugPrint("Explicit TextStyle font fallback test succeeded.");
   });
 
   test('Test ExportService.exportMessageToPdf with CJK characters', () async {
@@ -130,7 +131,7 @@ void main() {
         role: MessageRole.ai,
       ),
     );
-    print("ExportService CJK export test completed successfully.");
+    debugPrint("ExportService CJK export test completed successfully.");
   });
 }
 

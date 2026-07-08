@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:marita/design_system/marita_design_system.dart';
-import 'package:marita/design_system/tokens/semantic_tokens.dart';
 
 /// Marita's light theme generator.
 /// Maps the design token specifications (SemanticColors) to [MaritaColorPalette]
