@@ -33,49 +33,49 @@ final analyzeServiceProvider = Provider<AnalyzeService>((ref) {
 // ---------------------------------------------------------------------------
 
 class AnalyzeNotifier extends Notifier<AnalyzeState> {
+  final String workspaceId;
+  AnalyzeNotifier(this.workspaceId);
+
   @override
   AnalyzeState build() {
-    // Get initial files
+    // Read the files initially (do not watch, to avoid rebuilds of state)
     final filesResult = ref.read(allWorkspaceFilesProvider).asData?.value;
     final files = (filesResult is Success<List<FileItem>>)
         ? filesResult.data.where((f) => !f.isFolder).toList()
         : const <FileItem>[];
-    
+
     final entries = files.map((f) => FileAnalysisEntry(file: f)).toList();
-    
-    // Listen for changes to automatically update entries and run analysis
+
+    // Listen for file changes to keep the list synced (no auto-audit run)
     ref.listen(allWorkspaceFilesProvider, (previous, next) {
       final newFilesResult = next.asData?.value;
       if (newFilesResult is Success<List<FileItem>>) {
-        final newFiles = newFilesResult.data;
-        _updateFilesAndAnalyze(newFiles);
+        _syncFileList(newFilesResult.data);
       }
     });
-    
-    return AnalyzeState(fileEntries: entries);
+
+    return AnalyzeState(
+      fileEntries: entries,
+      workspaceId: workspaceId,
+    );
   }
 
-  void _updateFilesAndAnalyze(List<FileItem> newFiles) {
-    bool hasNewFiles = false;
+  void _syncFileList(List<FileItem> newFiles) {
+    final nonFolders = newFiles.where((f) => !f.isFolder).toList();
     final currentEntries = List<FileAnalysisEntry>.from(state.fileEntries);
-    
-    for (final file in newFiles) {
-      if (file.isFolder) continue; // Ignore folder items
-      
-      final exists = currentEntries.any((e) => e.file.id == file.id);
-      if (!exists) {
-        currentEntries.add(FileAnalysisEntry(file: file));
-        hasNewFiles = true;
+    final updatedEntries = <FileAnalysisEntry>[];
+
+    for (final file in nonFolders) {
+      final existingIndex = currentEntries.indexWhere((e) => e.file.id == file.id);
+      if (existingIndex != -1) {
+        final existingEntry = currentEntries[existingIndex];
+        updatedEntries.add(existingEntry.copyWith(file: file));
+      } else {
+        updatedEntries.add(FileAnalysisEntry(file: file));
       }
     }
-    
-    if (hasNewFiles) {
-      state = state.copyWith(fileEntries: currentEntries);
-      if (state.status != AnalysisStatus.running) {
-        // Automatically start analysis for new files
-        runAllAnalysis(forceFresh: false);
-      }
-    }
+
+    state = state.copyWith(fileEntries: updatedEntries);
   }
 
   void _updateEntry(int index, FileAnalysisEntry entry) {
@@ -86,9 +86,6 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 
   // ── Run analysis on all workspace files sequentially ───────────────────────
   Future<void> runAllAnalysis({bool forceFresh = false}) async {
-    final workspace = ref.read(activeWorkspaceProvider);
-    if (workspace == null) return;
-
     final user = ref.read(authStateProvider).value;
     if (user == null) return;
 
@@ -135,16 +132,23 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 
       // ── Check Firestore cache first (unless forcing fresh) ───────────────
       if (!forceFresh) {
-        final cached = await analyzeService.getCachedResult(workspace.id, fileId);
-        if (cached != null) {
-          final updatedEntry = entry.copyWith(
-            status: AnalysisStatus.completed,
-            result: cached,
-            stages: cached.stages,
-            fromCache: true,
-          );
-          _updateEntry(i, updatedEntry);
-          continue;
+        final cachedHash = await analyzeService.getCachedContentHash(state.workspaceId, fileId);
+        final currentHash = entry.file.contentHash;
+        final isUnmodified = (currentHash == null && cachedHash == null) || (currentHash != null && currentHash == cachedHash);
+
+        if (isUnmodified) {
+          final cached = await analyzeService.getCachedResult(state.workspaceId, fileId);
+          if (cached != null) {
+            final updatedEntry = entry.copyWith(
+              status: AnalysisStatus.completed,
+              result: cached,
+              stages: cached.stages,
+              fromCache: true,
+              auditedContentHash: cachedHash,
+            );
+            _updateEntry(i, updatedEntry);
+            continue;
+          }
         }
       }
 
@@ -169,10 +173,11 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 
       try {
         await for (final stageUpdate in analyzeService.runAnalysis(
-          companyId: workspace.id,
+          companyId: state.workspaceId,
           fileId: fileId,
           fileName: entry.file.name,
           userId: user.uid,
+          contentHash: entry.file.contentHash,
         )) {
           final idx = stageUpdate.stageNumber - 1;
           updatedStages[idx] = stageUpdate;
@@ -180,13 +185,15 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
         }
 
         // Fetch the completed result from Firestore
-        final result = await analyzeService.getCachedResult(workspace.id, fileId);
+        final result = await analyzeService.getCachedResult(state.workspaceId, fileId);
+        final currentHash = entry.file.contentHash;
         _updateEntry(i, state.fileEntries[i].copyWith(
           status: result != null ? AnalysisStatus.completed : AnalysisStatus.error,
           result: result,
           stages: List.from(updatedStages),
           errorMessage: result == null ? 'Analysis completed but result not found.' : null,
           fromCache: false,
+          auditedContentHash: currentHash,
         ));
       } catch (e) {
         _updateEntry(i, state.fileEntries[i].copyWith(
@@ -206,6 +213,6 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 }
 
 /// Main provider for the Analyze screen.
-final analyzeProvider = NotifierProvider<AnalyzeNotifier, AnalyzeState>(
-  AnalyzeNotifier.new,
+final analyzeProvider = NotifierProvider.family<AnalyzeNotifier, AnalyzeState, String>(
+  (workspaceId) => AnalyzeNotifier(workspaceId),
 );

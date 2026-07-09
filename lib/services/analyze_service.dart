@@ -108,6 +108,7 @@ class AnalyzeService {
     required String fileId,
     required String fileName,
     required String userId,
+    String? contentHash,
   }) async* {
     // Build initial pending stages
     final stages = List<AnalysisPipelineStage>.generate(
@@ -199,6 +200,7 @@ class AnalyzeService {
         resultData: {
           'status': 'completed',
           'analyzedBy': userId,
+          'contentHash': contentHash,
           'result': result.toMap(),
         },
       );
@@ -223,6 +225,7 @@ class AnalyzeService {
         resultData: {
           'status': 'error',
           'analyzedBy': userId,
+          'contentHash': contentHash,
           'errorMessage': e.toString(),
         },
       );
@@ -247,6 +250,21 @@ class AnalyzeService {
       return AnalysisResult.fromMap(Map<String, dynamic>.from(resultMap));
     } catch (e) {
       debugPrint('[AnalyzeService] getCachedResult error: $e');
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public: Load cached content hash from Firestore.
+  // Returns null if no cached result exists or no content hash.
+  // ---------------------------------------------------------------------------
+  Future<String?> getCachedContentHash(String companyId, String fileId) async {
+    try {
+      final data = await _firestoreService.getAnalysisResult(companyId, fileId);
+      if (data == null) return null;
+      return data['contentHash'] as String?;
+    } catch (e) {
+      debugPrint('[AnalyzeService] getCachedContentHash error: $e');
       return null;
     }
   }

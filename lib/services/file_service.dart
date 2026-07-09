@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:mime/mime.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart';
 import '../core/result.dart';
 import '../core/error_mapper.dart';
 import '../models/file_item.dart';
@@ -94,6 +95,10 @@ class FileService {
         type = 'text';
       }
 
+      // Compute content hash
+      final bytes = await file.readAsBytes();
+      final contentHash = sha256.convert(bytes).toString();
+
       // Upload to Firebase Storage
       final ref = _storage.ref().child('users/$userId/files/$id.$extension');
       final uploadTask = await ref.putFile(
@@ -117,6 +122,7 @@ class FileService {
         isFolder: false,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        contentHash: contentHash,
       );
 
       await _firestoreService.saveUserFile(
@@ -346,6 +352,10 @@ class FileService {
         type = 'text';
       }
 
+      // Compute content hash
+      final bytes = await file.readAsBytes();
+      final contentHash = sha256.convert(bytes).toString();
+
       // Upload to Firebase Storage
       final ref = _storage.ref().child(
         'companies/$companyId/files/$id.$extension',
@@ -372,6 +382,7 @@ class FileService {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isIndexed: false,
+        contentHash: contentHash,
       );
 
       await _firestoreService.saveWorkspaceFile(

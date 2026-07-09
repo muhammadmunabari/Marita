@@ -258,6 +258,7 @@ class FileAnalysisEntry {
   final AnalysisResult? result;
   final String? errorMessage;
   final bool fromCache; // true if result was loaded from Firestore cache
+  final String? auditedContentHash; // Hash saat file terakhir diaudit
 
   const FileAnalysisEntry({
     required this.file,
@@ -266,6 +267,7 @@ class FileAnalysisEntry {
     this.result,
     this.errorMessage,
     this.fromCache = false,
+    this.auditedContentHash,
   });
 
   FileAnalysisEntry copyWith({
@@ -275,6 +277,7 @@ class FileAnalysisEntry {
     AnalysisResult? result,
     String? errorMessage,
     bool? fromCache,
+    String? auditedContentHash,
   }) {
     return FileAnalysisEntry(
       file: file ?? this.file,
@@ -283,6 +286,7 @@ class FileAnalysisEntry {
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
       fromCache: fromCache ?? this.fromCache,
+      auditedContentHash: auditedContentHash ?? this.auditedContentHash,
     );
   }
 }
@@ -304,12 +308,14 @@ class AnalyzeState {
 
   /// Global error message (only used when the batch itself fails to start).
   final String? errorMessage;
+  final String workspaceId;
 
   const AnalyzeState({
     this.fileEntries = const [],
     this.currentFileIndex = -1,
     this.status = AnalysisStatus.idle,
     this.errorMessage,
+    required this.workspaceId,
   });
 
   AnalyzeState copyWith({
@@ -317,12 +323,14 @@ class AnalyzeState {
     int? currentFileIndex,
     AnalysisStatus? status,
     String? errorMessage,
+    String? workspaceId,
   }) {
     return AnalyzeState(
       fileEntries: fileEntries ?? this.fileEntries,
       currentFileIndex: currentFileIndex ?? this.currentFileIndex,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 

@@ -13,13 +13,25 @@ import '../../design_system/marita_design_system.dart';
 import '../../models/analyze_models.dart';
 import '../../models/file_item.dart';
 import '../../providers/analyze_provider.dart';
+import '../../providers/workspace_provider.dart';
 
 class AnalyzeScreen extends ConsumerWidget {
   const AnalyzeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(analyzeProvider);
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
+    if (activeWorkspace == null) {
+      return const Scaffold(
+        backgroundColor: SemanticColors.colorBackgroundCanvas,
+        body: SafeArea(
+          child: Center(
+            child: Text('No active workspace selected.'),
+          ),
+        ),
+      );
+    }
+    final state = ref.watch(analyzeProvider(activeWorkspace.id));
 
     return Scaffold(
       backgroundColor: SemanticColors.colorBackgroundCanvas,
@@ -47,7 +59,7 @@ class _IdleView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final notifier = ref.read(analyzeProvider.notifier);
+    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
 
     return CustomScrollView(
       slivers: [
@@ -420,7 +432,7 @@ class _CompletedView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final notifier = ref.read(analyzeProvider.notifier);
+    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
     
     final aggregateScore = state.aggregateScore ?? 0;
     final aggregateLevel = state.aggregateRiskLevel ?? RiskLevel.low;
@@ -687,7 +699,7 @@ class _ErrorView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final notifier = ref.read(analyzeProvider.notifier);
+    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
 
     return Center(
       child: Padding(

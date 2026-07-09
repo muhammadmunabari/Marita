@@ -17,6 +17,7 @@ class FileItem {
   final bool isIndexed;
   final DateTime? indexedAt;
   final int? chunkCount;
+  final String? contentHash; // SHA-256 hash of file content, for change detection
 
   const FileItem({
     required this.id,
@@ -35,6 +36,7 @@ class FileItem {
     this.isIndexed = false,
     this.indexedAt,
     this.chunkCount,
+    this.contentHash,
   });
 
   factory FileItem.fromMap(String id, Map<String, dynamic> map) {
@@ -64,6 +66,7 @@ class FileItem {
           map['indexedAt'] != null ? parseDateTime(map['indexedAt']) : null,
       chunkCount:
           map['chunkCount'] is num ? (map['chunkCount'] as num).toInt() : null,
+      contentHash: map['contentHash'] as String?,
     );
   }
 
@@ -84,6 +87,7 @@ class FileItem {
       'isIndexed': isIndexed,
       'indexedAt': indexedAt,
       'chunkCount': chunkCount,
+      'contentHash': contentHash,
     };
   }
 
@@ -104,6 +108,7 @@ class FileItem {
     bool? isIndexed,
     DateTime? indexedAt,
     int? chunkCount,
+    String? contentHash,
   }) {
     return FileItem(
       id: id ?? this.id,
@@ -122,6 +127,7 @@ class FileItem {
       isIndexed: isIndexed ?? this.isIndexed,
       indexedAt: indexedAt ?? this.indexedAt,
       chunkCount: chunkCount ?? this.chunkCount,
+      contentHash: contentHash ?? this.contentHash,
     );
   }
 }
