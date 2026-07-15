@@ -99,8 +99,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   Image.asset(
                     'assets/logos/Logobug black bg.png',
-                    width: 48,
-                    height: 48,
+                    width: 36,
+                    height: 36,
                   ),
                 ],
               ),

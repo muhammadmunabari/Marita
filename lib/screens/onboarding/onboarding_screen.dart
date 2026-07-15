@@ -17,9 +17,7 @@ class OnboardingScreen extends StatelessWidget {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -32,9 +30,9 @@ class OnboardingScreen extends StatelessWidget {
                       // Logo
                       Center(
                         child: Image.asset(
-                          'assets/logos/Logobug colored bg.png',
-                          width: 64,
-                          height: 64,
+                          'assets/logos/Logobug black bg.png',
+                          width: 48,
+                          height: 48,
                         ),
                       ),
                       const SizedBox(height: MaritaSpacing.lg),
@@ -58,7 +56,7 @@ class OnboardingScreen extends StatelessWidget {
                             BlendMode.srcIn,
                           ),
                         ),
-                        title: 'AI Assistant',
+                        title: 'Interactive AI Assistant',
                         description:
                             'Understand complex financial data & get clear answers and actionable insights in seconds.',
                       ),
@@ -70,22 +68,27 @@ class OnboardingScreen extends StatelessWidget {
                           size: MaritaIconSize.medium,
                           color: context.maritaColors.contentPrimary,
                         ),
-                        title: 'Audit System',
+                        title: 'Smart Audit System',
                         description:
                             'Strengthen financial accountability. Track issues, risks, and audit findings with clarity.',
                       ),
                       const SizedBox(height: MaritaSpacing.xl),
                       // Feature 3
                       _FeatureItem(
-                        iconWidget: MaritaIcon(
-                          icon: MaritaIcons.folder,
-                          size: MaritaIconSize.medium,
-                          color: context.maritaColors.contentPrimary,
+                        iconWidget: SvgPicture.asset(
+                          'assets/icons/mouse-linear.svg',
+                          width: MaritaIconSize.medium,
+                          height: MaritaIconSize.medium,
+                          colorFilter: ColorFilter.mode(
+                            context.maritaColors.contentPrimary,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                        title: 'Automated Financial Report',
+                        title: 'Secure Dedicated Workspaces',
                         description:
-                            'Generate reports instantly. Turn raw data into clear executive insights.',
+                            'Organize your projects and collaborate safely in dedicated, isolated workspaces for different investors or teams.',
                       ),
+
                       const Spacer(flex: 4),
                       // Button
                       MaritaPrimaryButton(
@@ -101,9 +104,10 @@ class OnboardingScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Already have an account? ',
-                            style: context.maritaTypography.bodyDefault.copyWith(
-                              color: context.maritaColors.contentSecondary,
-                            ),
+                            style: context.maritaTypography.bodyDefault
+                                .copyWith(
+                                  color: context.maritaColors.contentSecondary,
+                                ),
                           ),
                           GestureDetector(
                             onTap: () {
@@ -111,12 +115,14 @@ class OnboardingScreen extends StatelessWidget {
                             },
                             child: Text(
                               'Log in',
-                              style: context.maritaTypography.bodyDefaultBold.copyWith(
-                                color: context.maritaColors.interactivePrimary,
-                                decoration: TextDecoration.underline,
-                                decorationColor:
-                                    context.maritaColors.interactivePrimary,
-                              ),
+                              style: context.maritaTypography.bodyDefaultBold
+                                  .copyWith(
+                                    color:
+                                        context.maritaColors.interactivePrimary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor:
+                                        context.maritaColors.interactivePrimary,
+                                  ),
                             ),
                           ),
                         ],
