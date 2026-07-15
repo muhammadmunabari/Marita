@@ -1,5 +1,6 @@
-enum MessageRole { user, ai }
+import 'package:marita/models/message_feedback.dart';
 
+enum MessageRole { user, ai }
 enum LoadingRequestType {
   financialStatements,
   invoices,
@@ -18,6 +19,10 @@ enum AIPipelinePhase {
   buildingPrompt,    // Stage 3: build augmented prompt
   generating,        // Stage 4: Gemini stream active
 }
+
+enum VersionBadgeType { edited, regenerated, updated, outdated }
+
+enum ConversationStatus { draft, inReview, approved, resolved, archived }
 
 class ChatAttachment {
   final String id;
@@ -92,6 +97,26 @@ class ChatMessage {
   final int? retrievedChunksCount;
   final List<Map<String, dynamic>> retrievedChunksInfo;
 
+  // Versioning
+  final int version;
+  final String? parentMessageId;
+  final bool isCurrentVersion;
+  final String? versionLabel;
+  final List<String> allVersionIds;
+  final List<String> promptVersionIds;
+  final List<String> responseVersionIds;
+
+  // Analysis
+  final bool isAnalysisResponse;
+
+  // Feedback
+  final FeedbackType? feedbackType;
+  final bool feedbackSubmitted;
+
+  // Audit trace
+  final String? createdBy;
+  final String? updatedAt;
+
   ChatMessage({
     required this.id,
     required this.text,
@@ -111,6 +136,18 @@ class ChatMessage {
     this.precisionPercent,
     this.retrievedChunksCount,
     this.retrievedChunksInfo = const [],
+    this.version = 1,
+    this.parentMessageId,
+    this.isCurrentVersion = true,
+    this.versionLabel,
+    this.allVersionIds = const [],
+    this.promptVersionIds = const [],
+    this.responseVersionIds = const [],
+    this.isAnalysisResponse = false,
+    this.feedbackType,
+    this.feedbackSubmitted = false,
+    this.createdBy,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -135,6 +172,18 @@ class ChatMessage {
       'precisionPercent': precisionPercent,
       'retrievedChunksCount': retrievedChunksCount,
       'retrievedChunksInfo': retrievedChunksInfo,
+      'version': version,
+      'parentMessageId': parentMessageId,
+      'isCurrentVersion': isCurrentVersion,
+      'versionLabel': versionLabel,
+      'allVersionIds': allVersionIds,
+      'promptVersionIds': promptVersionIds,
+      'responseVersionIds': responseVersionIds,
+      'isAnalysisResponse': isAnalysisResponse,
+      'feedbackType': feedbackType?.name,
+      'feedbackSubmitted': feedbackSubmitted,
+      'createdBy': createdBy,
+      'updatedAt': updatedAt,
     };
   }
 
@@ -158,7 +207,7 @@ class ChatMessage {
       createdAt:
           map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
       loadingRequestType: loadingType,
-      queryType: map['queryType'],
+      queryType: map['queryType'] ?? (map['isAnalysisResponse'] == true ? 'analysis' : null),
       confidenceScore: (map['confidenceScore'] as num?)?.toDouble(),
       evidenceScore: (map['evidenceScore'] as num?)?.toDouble(),
       citations: List<String>.from(map['citations'] ?? []),
@@ -172,13 +221,32 @@ class ChatMessage {
           (map['retrievedChunksInfo'] as List? ?? [])
               .map((c) => Map<String, dynamic>.from(c as Map))
               .toList(),
+      version: map['version'] ?? 1,
+      parentMessageId: map['parentMessageId'],
+      isCurrentVersion: map['isCurrentVersion'] ?? true,
+      versionLabel: map['versionLabel'],
+      allVersionIds: List<String>.from(map['allVersionIds'] ?? []),
+      promptVersionIds: List<String>.from(map['promptVersionIds'] ?? []),
+      responseVersionIds: List<String>.from(map['responseVersionIds'] ?? []),
+      isAnalysisResponse: map['isAnalysisResponse'] ?? false,
+      feedbackType: map['feedbackType'] != null
+          ? FeedbackType.values.firstWhere(
+              (e) => e.name == map['feedbackType'],
+              orElse: () => FeedbackType.thumbUp,
+            )
+          : null,
+      feedbackSubmitted: map['feedbackSubmitted'] ?? false,
+      createdBy: map['createdBy'],
+      updatedAt: map['updatedAt'],
     );
   }
 
   ChatMessage copyWith({
+    String? id,
     String? text,
     bool? isStreaming,
     List<ChatAttachment>? attachments,
+    DateTime? createdAt,
     LoadingRequestType? loadingRequestType,
     String? queryType,
     double? confidenceScore,
@@ -191,14 +259,26 @@ class ChatMessage {
     double? precisionPercent,
     int? retrievedChunksCount,
     List<Map<String, dynamic>>? retrievedChunksInfo,
+    int? version,
+    String? parentMessageId,
+    bool? isCurrentVersion,
+    String? versionLabel,
+    List<String>? allVersionIds,
+    List<String>? promptVersionIds,
+    List<String>? responseVersionIds,
+    bool? isAnalysisResponse,
+    FeedbackType? feedbackType,
+    bool? feedbackSubmitted,
+    String? createdBy,
+    String? updatedAt,
   }) {
     return ChatMessage(
-      id: id,
+      id: id ?? this.id,
       text: text ?? this.text,
       role: role,
       isStreaming: isStreaming ?? this.isStreaming,
       attachments: attachments ?? this.attachments,
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
       loadingRequestType: loadingRequestType ?? this.loadingRequestType,
       queryType: queryType ?? this.queryType,
       confidenceScore: confidenceScore ?? this.confidenceScore,
@@ -211,6 +291,18 @@ class ChatMessage {
       precisionPercent: precisionPercent ?? this.precisionPercent,
       retrievedChunksCount: retrievedChunksCount ?? this.retrievedChunksCount,
       retrievedChunksInfo: retrievedChunksInfo ?? this.retrievedChunksInfo,
+      version: version ?? this.version,
+      parentMessageId: parentMessageId ?? this.parentMessageId,
+      isCurrentVersion: isCurrentVersion ?? this.isCurrentVersion,
+      versionLabel: versionLabel ?? this.versionLabel,
+      allVersionIds: allVersionIds ?? this.allVersionIds,
+      promptVersionIds: promptVersionIds ?? this.promptVersionIds,
+      responseVersionIds: responseVersionIds ?? this.responseVersionIds,
+      isAnalysisResponse: isAnalysisResponse ?? this.isAnalysisResponse,
+      feedbackType: feedbackType ?? this.feedbackType,
+      feedbackSubmitted: feedbackSubmitted ?? this.feedbackSubmitted,
+      createdBy: createdBy ?? this.createdBy,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

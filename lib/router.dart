@@ -20,6 +20,7 @@ import 'screens/files/files_screen.dart';
 import 'screens/analyze/analyze_screen.dart';
 import 'screens/workspaces/workspaces_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/report/report_screen.dart';
 
 // =============================================================================
 // ROUTE PATHS
@@ -40,6 +41,7 @@ class MaritaRoutes {
   static const String analyze = '/analyze';
   static const String workspaces = '/workspaces';
   static const String settings = '/settings';
+  static const String reportViewer = '/report/:messageId';
   static const List<String> publicRoutes = [
     splash,
     onboarding,
@@ -219,6 +221,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: MaritaRoutes.reportViewer,
+        builder: (context, state) => ReportScreen(
+          messageId: state.pathParameters['messageId']!,
+        ),
       ),
     ],
 

@@ -134,7 +134,7 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
       if (!forceFresh) {
         final cachedHash = await analyzeService.getCachedContentHash(state.workspaceId, fileId);
         final currentHash = entry.file.contentHash;
-        final isUnmodified = (currentHash == null && cachedHash == null) || (currentHash != null && currentHash == cachedHash);
+        final isUnmodified = currentHash != null && cachedHash != null && currentHash == cachedHash;
 
         if (isUnmodified) {
           final cached = await analyzeService.getCachedResult(state.workspaceId, fileId);
@@ -172,6 +172,7 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
       final updatedStages = List<AnalysisPipelineStage>.from(initialStages);
 
       try {
+        AnalysisResult? streamedResult;
         await for (final stageUpdate in analyzeService.runAnalysis(
           companyId: state.workspaceId,
           fileId: fileId,
@@ -181,11 +182,14 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
         )) {
           final idx = stageUpdate.stageNumber - 1;
           updatedStages[idx] = stageUpdate;
+          if (stageUpdate.result != null) {
+            streamedResult = stageUpdate.result;
+          }
           _updateEntry(i, state.fileEntries[i].copyWith(stages: List.from(updatedStages)));
         }
 
         // Fetch the completed result from Firestore
-        final result = await analyzeService.getCachedResult(state.workspaceId, fileId);
+        final result = streamedResult ?? await analyzeService.getCachedResult(state.workspaceId, fileId);
         final currentHash = entry.file.contentHash;
         _updateEntry(i, state.fileEntries[i].copyWith(
           status: result != null ? AnalysisStatus.completed : AnalysisStatus.error,

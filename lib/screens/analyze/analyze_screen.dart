@@ -22,19 +22,17 @@ class AnalyzeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeWorkspace = ref.watch(activeWorkspaceProvider);
     if (activeWorkspace == null) {
-      return const Scaffold(
-        backgroundColor: SemanticColors.colorBackgroundCanvas,
-        body: SafeArea(
-          child: Center(
-            child: Text('No active workspace selected.'),
-          ),
+      return Scaffold(
+        backgroundColor: context.maritaColors.backgroundPrimary,
+        body: const SafeArea(
+          child: Center(child: Text('No active workspace selected.')),
         ),
       );
     }
     final state = ref.watch(analyzeProvider(activeWorkspace.id));
 
     return Scaffold(
-      backgroundColor: SemanticColors.colorBackgroundCanvas,
+      backgroundColor: context.maritaColors.backgroundPrimary,
       body: SafeArea(
         child: switch (state.status) {
           AnalysisStatus.idle => _IdleView(state: state),
@@ -70,7 +68,7 @@ class _IdleView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Batch Risk Analysis',
+                  'Audit Risk Analysis',
                   style: typography.titleLarge.copyWith(
                     color: colors.contentPrimary,
                   ),
@@ -135,22 +133,30 @@ class _EmptyFilesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: SemanticColors.colorBackgroundCard,
+        color: colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
-        border: Border.all(color: SemanticColors.colorBorderDefault),
+        border: Border.all(color: colors.borderSecondary),
       ),
       child: Column(
         children: [
-          Icon(Icons.folder_open_rounded, size: 40, color: colors.contentSecondary),
+          Icon(
+            Icons.folder_open_rounded,
+            size: 40,
+            color: colors.contentSecondary,
+          ),
           const SizedBox(height: 12),
           Text(
             'No files found',
-            style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+            style: typography.bodyDefaultBold.copyWith(
+              color: colors.contentPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Upload documents in the Files tab to get started.',
-            style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+            style: typography.bodyDefault.copyWith(
+              color: colors.contentSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -172,11 +178,9 @@ class _FileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: SemanticColors.colorBackgroundCard,
+        color: colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(SemanticRadius.radiusInput),
-        border: Border.all(
-          color: SemanticColors.colorBorderDefault,
-        ),
+        border: Border.all(color: colors.borderSecondary),
       ),
       child: Row(
         children: [
@@ -184,7 +188,7 @@ class _FileCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: SemanticColors.colorBackgroundSurface,
+              color: colors.backgroundSecondary,
               borderRadius: BorderRadius.circular(SemanticRadius.radiusBadge),
             ),
             child: Icon(
@@ -231,6 +235,7 @@ class _AnalyzeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.maritaColors;
     final typography = context.maritaTypography;
     return SizedBox(
       width: double.infinity,
@@ -240,9 +245,10 @@ class _AnalyzeButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: enabled
-                ? SemanticColors.colorButtonPrimaryBackground
-                : SemanticColors.colorButtonPrimaryDisabledBackground,
+            color:
+                enabled
+                    ? colors.interactivePrimary
+                    : colors.interactiveDisabled,
             borderRadius: BorderRadius.circular(SemanticRadius.radiusInput),
           ),
           child: Center(
@@ -252,17 +258,19 @@ class _AnalyzeButton extends StatelessWidget {
                 Icon(
                   Icons.auto_awesome_rounded,
                   size: 18,
-                  color: enabled
-                      ? SemanticColors.colorButtonPrimaryForeground
-                      : SemanticColors.colorButtonPrimaryDisabledForeground,
+                  color:
+                      enabled
+                          ? colors.contentInverse
+                          : colors.contentDisabled,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Run Batch Analysis',
+                  'Run Audit Analysis',
                   style: typography.bodyDefaultBold.copyWith(
-                    color: enabled
-                        ? SemanticColors.colorButtonPrimaryForeground
-                        : SemanticColors.colorButtonPrimaryDisabledForeground,
+                    color:
+                        enabled
+                            ? colors.contentInverse
+                            : colors.contentDisabled,
                   ),
                 ),
               ],
@@ -286,7 +294,7 @@ class _RunningView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    
+
     final totalFiles = state.totalFiles;
     final completedCount = state.completedCount;
     final currentFileIndex = state.currentFileIndex;
@@ -299,12 +307,18 @@ class _RunningView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Analyzing Batch',
-                    style: typography.titleLarge.copyWith(color: colors.contentPrimary)),
+                Text(
+                  'Analyzing Batch',
+                  style: typography.titleLarge.copyWith(
+                    color: colors.contentPrimary,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   '$completedCount of $totalFiles files complete',
-                  style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                  style: typography.bodyDefault.copyWith(
+                    color: colors.contentSecondary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Progress bar
@@ -313,9 +327,9 @@ class _RunningView extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: totalFiles == 0 ? 0 : completedCount / totalFiles,
                     minHeight: 6,
-                    backgroundColor: SemanticColors.colorBorderSubtle,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      SemanticColors.colorButtonPrimaryBackground,
+                    backgroundColor: colors.borderSecondary,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colors.interactivePrimary,
                     ),
                   ),
                 ),
@@ -333,7 +347,10 @@ class _RunningView extends StatelessWidget {
             final entry = state.fileEntries[i];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _FileProgressCard(entry: entry, isCurrent: i == currentFileIndex),
+              child: _FileProgressCard(
+                entry: entry,
+                isCurrent: i == currentFileIndex,
+              ),
             );
           },
         ),
@@ -353,17 +370,21 @@ class _FileProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    
+
     final stages = entry.stages;
-    final completedStages = stages.where((s) => s.status == AnalysisStepStatus.completed).length;
+    final completedStages =
+        stages.where((s) => s.status == AnalysisStepStatus.completed).length;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: SemanticColors.colorBackgroundCard,
+        color: colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
         border: Border.all(
-          color: isCurrent ? SemanticColors.colorBorderSelected : SemanticColors.colorBorderDefault,
+          color:
+              isCurrent
+                  ? colors.interactivePrimary
+                  : colors.borderSecondary,
           width: isCurrent ? 1.5 : 1,
         ),
       ),
@@ -375,20 +396,33 @@ class _FileProgressCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   entry.file.name,
-                  style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                  style: typography.bodyDefaultBold.copyWith(
+                    color: colors.contentPrimary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (entry.status == AnalysisStatus.completed)
-                const Icon(Icons.check_circle_rounded, size: 16, color: SemanticColors.colorTextSuccess)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: colors.success,
+                )
               else if (entry.status == AnalysisStatus.error)
-                const Icon(Icons.error_rounded, size: 16, color: SemanticColors.colorTextDanger)
+                Icon(
+                  Icons.error_rounded,
+                  size: 16,
+                  color: colors.error,
+                )
               else if (isCurrent)
-                const SizedBox(
+                SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: SemanticColors.colorButtonPrimaryBackground),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.interactivePrimary,
+                  ),
                 ),
             ],
           ),
@@ -399,21 +433,21 @@ class _FileProgressCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: completedStages / 14,
                 minHeight: 4,
-                backgroundColor: SemanticColors.colorBorderSubtle,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  SemanticColors.colorButtonPrimaryBackground,
+                backgroundColor: colors.borderSecondary,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  colors.interactivePrimary,
                 ),
               ),
             ),
             const SizedBox(height: 12),
             for (int j = 0; j < stages.length; j++)
-              if (stages[j].status == AnalysisStepStatus.running || 
-                 (stages[j].status == AnalysisStepStatus.pending && (j == 0 || stages[j-1].status == AnalysisStepStatus.completed)))
-                AnalysisPipelineStep(
-                  stage: stages[j],
-                  isLast: true,
-                ),
-          ]
+              if (stages[j].status == AnalysisStepStatus.running ||
+                  (stages[j].status == AnalysisStepStatus.pending &&
+                      (j == 0 ||
+                          stages[j - 1].status ==
+                              AnalysisStepStatus.completed)))
+                AnalysisPipelineStep(stage: stages[j], isLast: true),
+          ],
         ],
       ),
     );
@@ -433,7 +467,7 @@ class _CompletedView extends ConsumerWidget {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
     final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
-    
+
     final aggregateScore = state.aggregateScore ?? 0;
     final aggregateLevel = state.aggregateRiskLevel ?? RiskLevel.low;
 
@@ -449,12 +483,18 @@ class _CompletedView extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Batch Analysis Complete',
-                          style: typography.titleLarge.copyWith(color: colors.contentPrimary)),
+                      Text(
+                        'Audit Analysis Complete',
+                        style: typography.titleLarge.copyWith(
+                          color: colors.contentPrimary,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${state.completedCount} files analyzed successfully',
-                        style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+                        style: typography.bodyDefault.copyWith(
+                          color: colors.contentSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -462,23 +502,36 @@ class _CompletedView extends ConsumerWidget {
                 GestureDetector(
                   onTap: () => notifier.runAllAnalysis(forceFresh: true),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: SemanticColors.colorBackgroundSurface,
-                      borderRadius: BorderRadius.circular(SemanticRadius.radiusInput),
-                      border: Border.all(color: SemanticColors.colorBorderDefault),
+                      color: colors.backgroundSecondary,
+                      borderRadius: BorderRadius.circular(
+                        SemanticRadius.radiusInput,
+                      ),
+                      border: Border.all(
+                        color: colors.borderSecondary,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.refresh_rounded, size: 14, color: SemanticColors.colorTextDefault),
+                        Icon(
+                          Icons.refresh_rounded,
+                          size: 14,
+                          color: colors.contentPrimary,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Re-run',
-                            style: typography.bodyDefault.copyWith(
-                              fontSize: 12.0,
-                              color: SemanticColors.colorTextDefault,
-                              fontWeight: FontWeight.w600,
-                            )),
+                        Text(
+                          'Re-run',
+                          style: typography.bodyDefault.copyWith(
+                            fontSize: 12.0,
+                            color: colors.contentPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -495,23 +548,29 @@ class _CompletedView extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: SemanticColors.colorBackgroundCard,
+                color: colors.backgroundSecondary,
                 borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
-                border: Border.all(color: SemanticColors.colorBorderDefault),
+                border: Border.all(color: colors.borderSecondary),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  RiskScoreGauge(score: aggregateScore, level: aggregateLevel, size: 120),
+                  RiskScoreGauge(
+                    score: aggregateScore,
+                    level: aggregateLevel,
+                    size: 120,
+                  ),
                   const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Aggregate Risk Score',
-                            style: typography.bodyDefaultBold.copyWith(
-                              color: colors.contentPrimary,
-                            )),
+                        Text(
+                          'Aggregate Risk Score',
+                          style: typography.bodyDefaultBold.copyWith(
+                            color: colors.contentPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         RiskLevelBadge(level: aggregateLevel),
                         const SizedBox(height: 8),
@@ -540,7 +599,7 @@ class _CompletedView extends ConsumerWidget {
             child: const _SectionLabel('File Results'),
           ),
         ),
-        
+
         SliverList.separated(
           itemCount: state.fileEntries.length,
           separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -574,19 +633,31 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
     final result = widget.entry.result;
-    
+
     if (result == null) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: SemanticColors.colorBackgroundCard,
+          color: colors.backgroundSecondary,
           borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
-          border: Border.all(color: SemanticColors.colorBorderDefault),
+          border: Border.all(color: colors.borderSecondary),
         ),
         child: Row(
           children: [
-            Expanded(child: Text(widget.entry.file.name, style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary))),
-            Text('Failed', style: typography.bodyDefault.copyWith(color: SemanticColors.colorTextDanger)),
+            Expanded(
+              child: Text(
+                widget.entry.file.name,
+                style: typography.bodyDefaultBold.copyWith(
+                  color: colors.contentPrimary,
+                ),
+              ),
+            ),
+            Text(
+              'Failed',
+              style: typography.bodyDefault.copyWith(
+                color: colors.error,
+              ),
+            ),
           ],
         ),
       );
@@ -594,9 +665,9 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: SemanticColors.colorBackgroundCard,
+        color: colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
-        border: Border.all(color: SemanticColors.colorBorderDefault),
+        border: Border.all(color: colors.borderSecondary),
       ),
       child: Column(
         children: [
@@ -613,7 +684,9 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                       children: [
                         Text(
                           result.fileName,
-                          style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary),
+                          style: typography.bodyDefaultBold.copyWith(
+                            color: colors.contentPrimary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -622,7 +695,10 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                           children: [
                             Text(
                               'Score: ${result.overallScore}',
-                              style: typography.bodyDefault.copyWith(fontSize: 12.0, color: colors.contentSecondary),
+                              style: typography.bodyDefault.copyWith(
+                                fontSize: 12.0,
+                                color: colors.contentSecondary,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             RiskLevelBadge(level: result.highestRiskLevel),
@@ -632,7 +708,9 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                     ),
                   ),
                   Icon(
-                    _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
                     color: colors.contentSecondary,
                   ),
                 ],
@@ -640,33 +718,53 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
             ),
           ),
           if (_expanded) ...[
-            const Divider(height: 1, color: SemanticColors.colorBorderSubtle),
+            Divider(height: 1, color: colors.borderSecondary),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Executive Summary', style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary)),
+                  Text(
+                    'Executive Summary',
+                    style: typography.bodyDefaultBold.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     result.executiveSummary,
-                    style: typography.bodyDefault.copyWith(color: colors.contentSecondary, height: 1.5),
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   if (result.findings.isNotEmpty) ...[
                     Row(
                       children: [
-                        Text('Top Findings', style: typography.bodyDefaultBold.copyWith(color: colors.contentPrimary)),
+                        Text(
+                          'Top Findings',
+                          style: typography.bodyDefaultBold.copyWith(
+                            color: colors.contentPrimary,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: SemanticColors.colorBackgroundDanger,
+                            color: colors.error.withAlpha(26),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '${result.findings.length}',
-                            style: typography.bodyDefault.copyWith(fontSize: 10.0, color: SemanticColors.colorTextDanger, fontWeight: FontWeight.bold),
+                            style: typography.bodyDefault.copyWith(
+                              fontSize: 10.0,
+                              color: colors.error,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -675,12 +773,12 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                     for (int i = 0; i < result.findings.length; i++) ...[
                       if (i > 0) const SizedBox(height: 8),
                       AuditFindingCard(finding: result.findings[i]),
-                    ]
+                    ],
                   ],
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -710,34 +808,51 @@ class _ErrorView extends ConsumerWidget {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: SemanticColors.colorBackgroundDanger,
+              decoration: BoxDecoration(
+                color: colors.error.withAlpha(26),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline_rounded, size: 32, color: SemanticColors.colorTextDanger),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 32,
+                color: colors.error,
+              ),
             ),
             const SizedBox(height: 16),
-            Text('Analysis Failed',
-                style: typography.titleSmall.copyWith(color: colors.contentPrimary)),
+            Text(
+              'Analysis Failed',
+              style: typography.titleSmall.copyWith(
+                color: colors.contentPrimary,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               state.errorMessage ?? 'An unexpected error occurred.',
-              style: typography.bodyDefault.copyWith(color: colors.contentSecondary),
+              style: typography.bodyDefault.copyWith(
+                color: colors.contentSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             GestureDetector(
               onTap: () => notifier.runAllAnalysis(forceFresh: false),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: SemanticColors.colorButtonPrimaryBackground,
-                  borderRadius: BorderRadius.circular(SemanticRadius.radiusInput),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
                 ),
-                child: Text('Try Again',
-                    style: typography.bodyDefaultBold.copyWith(
-                      color: SemanticColors.colorButtonPrimaryForeground,
-                    )),
+                decoration: BoxDecoration(
+                  color: colors.interactivePrimary,
+                  borderRadius: BorderRadius.circular(
+                    SemanticRadius.radiusInput,
+                  ),
+                ),
+                child: Text(
+                  'Try Again',
+                  style: typography.bodyDefaultBold.copyWith(
+                    color: colors.backgroundPrimary,
+                  ),
+                ),
               ),
             ),
           ],
@@ -762,7 +877,7 @@ class _SectionLabel extends StatelessWidget {
       style: context.maritaTypography.bodyDefault.copyWith(
         fontSize: 11.0,
         fontWeight: FontWeight.w700,
-        color: SemanticColors.colorTextMuted,
+        color: context.maritaColors.contentSecondary,
         letterSpacing: 0.8,
       ),
     );

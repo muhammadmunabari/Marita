@@ -331,6 +331,7 @@ class FileService {
     required File file,
     required String originalName,
     String? parentId,
+    void Function(double progress)? onProgress,
   }) async {
     final id = _uuid.v4();
     final extension =
@@ -360,14 +361,23 @@ class FileService {
       final ref = _storage.ref().child(
         'companies/$companyId/files/$id.$extension',
       );
-      final uploadTask = await ref.putFile(
+      final uploadTask = ref.putFile(
         file,
         SettableMetadata(
           contentType: mimeType,
           customMetadata: {'originalName': originalName, 'type': type},
         ),
       );
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      
+      if (onProgress != null) {
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+          onProgress(progress);
+        });
+      }
+      
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
       final size = await file.length();
 
       final fileItem = FileItem(

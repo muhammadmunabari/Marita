@@ -23,5 +23,11 @@ service firebase.storage {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+
+    // 3. Public access for shared reports
+    match /reports/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
   }
 }

@@ -16,11 +16,18 @@ class AnalysisPipelineStage {
   final AnalysisStepStatus status;
   final String? errorMessage;
 
+  /// In-memory only: carries the completed [AnalysisResult] on the final stage
+  /// (stageNumber == 14, status == completed). Not persisted to Firestore.
+  /// This eliminates the write→read race condition by passing the result
+  /// directly through the stream rather than re-fetching it.
+  final AnalysisResult? result;
+
   const AnalysisPipelineStage({
     required this.stageNumber,
     required this.title,
     required this.status,
     this.errorMessage,
+    this.result,
   });
 
   AnalysisPipelineStage copyWith({
@@ -28,15 +35,19 @@ class AnalysisPipelineStage {
     String? title,
     AnalysisStepStatus? status,
     String? errorMessage,
+    AnalysisResult? result,
   }) {
     return AnalysisPipelineStage(
       stageNumber: stageNumber ?? this.stageNumber,
       title: title ?? this.title,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
+      result: result ?? this.result,
     );
   }
 
+  /// Excludes the [result] field — it is in-memory only and must not be
+  /// serialized to Firestore (the full AnalysisResult is stored separately).
   Map<String, dynamic> toMap() {
     return {
       'stageNumber': stageNumber,
@@ -55,6 +66,7 @@ class AnalysisPipelineStage {
         orElse: () => AnalysisStepStatus.pending,
       ),
       errorMessage: map['errorMessage'] as String?,
+      // result is never restored from Firestore — it is transient
     );
   }
 }

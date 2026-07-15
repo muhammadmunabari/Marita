@@ -5,7 +5,11 @@ import 'package:marita/models/chunk_model.dart';
 import 'package:marita/services/fact_verification_service.dart';
 import 'package:marita/services/gemini_service.dart';
 import 'package:marita/services/rag_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final aiPipelineServiceProvider = Provider<AIPipelineService>((ref) {
+  return AIPipelineService();
+});
 enum QueryType { general, financialAnalysis, fraudDetection, auditRequest }
 
 class PromptRouter {
@@ -64,7 +68,22 @@ class PipelineResult {
   });
 }
 
+class PipelineStreamChunk {
+  final String? textChunk;
+  final bool isError;
+  final String? errorMessage;
+
+  PipelineStreamChunk({
+    this.textChunk,
+    this.isError = false,
+    this.errorMessage,
+  });
+}
+
 class AIPipelineService {
+  PipelineResult? _lastResult;
+  PipelineResult? get lastResult => _lastResult;
+
   final RAGService _ragService = RAGService();
 
   /// Step 1 & 2: Static Analysis (Routing) and RAG Retrieval
@@ -176,10 +195,31 @@ class AIPipelineService {
     QueryType queryType,
     List<DocumentChunk> chunks,
   ) {
-    final contextString = _ragService.buildContextString(chunks);
     final augmentedPrompt = StringBuffer();
     augmentedPrompt.writeln("Query Type: ${queryType.name}");
-    augmentedPrompt.writeln(contextString);
+
+    if (chunks.isEmpty) {
+      // No document context available — instruct the model to reason from
+      // general domain knowledge and be explicit about the missing source.
+      augmentedPrompt.writeln('''
+--- CONTEXT NOTICE ---
+No source documents were found in this workspace for this query.
+
+Instructions for this response:
+- Do NOT output "N/A", "Not Available", or leave any section blank.
+- Answer each section using your general knowledge of finance, accounting,
+  and audit best practices.
+- Begin every section that lacks document support with:
+  "[General Principle — not sourced from uploaded documents]"
+- If you can derive a partial answer from the user query itself (e.g., a
+  company name, a date, or a figure the user mentioned), cite it explicitly
+  as: "[From user query: ...]"
+--- END CONTEXT NOTICE ---
+''');
+    } else {
+      augmentedPrompt.writeln(_ragService.buildContextString(chunks));
+    }
+
     augmentedPrompt.writeln("\nUser Query: $query");
 
     debugPrint(
@@ -188,6 +228,9 @@ class AIPipelineService {
     debugPrint("✍️ [AI PIPELINE] STAGE 3: PROMPT AUGMENTATION");
     debugPrint(
       "======================================================================",
+    );
+    debugPrint(
+      "  ├─ Context Mode: ${chunks.isEmpty ? '⚠️  SPARSE (no chunks)' : '✅ DOCUMENT (${chunks.length} chunks)'}",
     );
     debugPrint("  ├─ Augmented Prompt Length: ${augmentedPrompt.length} characters");
     debugPrint(
@@ -416,10 +459,25 @@ class AIPipelineService {
 
     final systemInstruction = Content('system', [
       TextPart('''
-ATURAN KETAT:
-1. Tuliskan angka keuangan persis seperti yang tertera di dokumen referensi.
-2. Hindari membulatkan atau merangkum nilai angka kecuali pengguna memintanya.
-3. Jika Anda melakukan perhitungan matematika, tampilkan angka input aslinya terlebih dahulu.
+STRICT RESPONSE RULES / ATURAN RESPONS KETAT:
+
+[EN] You are Marita AI, an expert financial and audit intelligence assistant.
+1. NEVER output "N/A", "Not Available", "Tidak Tersedia", or any empty placeholder as an answer to a user question. This is strictly forbidden.
+2. Even when source documents are incomplete or missing, you MUST provide a reasoned, informative answer based on available evidence and your general knowledge of finance, audit, and accounting best practices.
+3. When you rely on general knowledge rather than document context, explicitly state: "Based on general audit/financial principles (not from uploaded documents): ..." so the user understands the source of the information.
+4. Always cite the document name and page number whenever you reference specific data from uploaded files.
+5. Write financial figures exactly as they appear in the source document — do not round or paraphrase numeric values unless the user requests it.
+6. If a calculation is performed, always show the original input values first, then the result.
+7. Structure your response clearly with section headings and provide an explanation for every finding.
+
+[ID] Anda adalah Marita AI, asisten kecerdasan keuangan dan audit yang ahli.
+1. JANGAN PERNAH menulis "N/A", "Not Available", "Tidak Tersedia", atau placeholder kosong sebagai jawaban atas pertanyaan pengguna. Ini dilarang keras.
+2. Bahkan jika dokumen sumber tidak lengkap atau tidak tersedia, Anda HARUS memberikan jawaban yang berisi alasan dan informatif berdasarkan bukti yang ada dan pengetahuan umum keuangan, audit, dan akuntansi.
+3. Jika Anda menggunakan pengetahuan umum (bukan dari dokumen), nyatakan secara eksplisit: "Berdasarkan prinsip audit/keuangan umum (bukan dari dokumen yang diunggah): ..."
+4. Selalu sertakan nama dokumen dan nomor halaman saat merujuk data dari file yang diunggah.
+5. Tuliskan angka keuangan persis seperti yang tertera di dokumen — jangan membulatkan kecuali diminta.
+6. Jika melakukan perhitungan, tampilkan nilai input aslinya terlebih dahulu, baru hasilnya.
+7. Susun respons dengan heading yang jelas dan berikan penjelasan untuk setiap temuan.
 '''),
     ]);
 
@@ -446,5 +504,78 @@ ATURAN KETAT:
       draftResponse: draftResponse,
       retrievedChunks: retrievedChunks,
     );
+  }
+
+  /// Streams the generative response back as chunks and calculates lastResult
+  Stream<PipelineStreamChunk> processQueryStream({
+    required String query,
+    required String workspaceId,
+    List<ChatAttachment> attachments = const [],
+    List<ChatMessage> chatHistory = const [],
+    List<double> queryEmbedding = const [],
+  }) async* {
+    _lastResult = null;
+    try {
+      final ragQuery = _extractRagQuery(query);
+      final queryType = PromptRouter.route(ragQuery);
+      final retrievedChunks = await retrieveContext(
+        query: ragQuery,
+        workspaceId: workspaceId,
+        queryEmbedding: queryEmbedding,
+      );
+
+      final augmentedPrompt = buildAugmentedPrompt(
+        query,
+        queryType,
+        retrievedChunks,
+      );
+
+      final systemInstruction = Content('system', [
+        TextPart('''
+STRICT RESPONSE RULES / ATURAN RESPONS KETAT:
+
+[EN] You are Marita AI, an expert financial and audit intelligence assistant.
+1. NEVER output "N/A", "Not Available", "Tidak Tersedia", or any empty placeholder as an answer to a user question. This is strictly forbidden.
+2. Even when source documents are incomplete or missing, you MUST provide a reasoned, informative answer based on available evidence and your general knowledge of finance, audit, and accounting best practices.
+3. When you rely on general knowledge rather than document context, explicitly state: "Based on general audit/financial principles (not from uploaded documents): ..." so the user understands the source of the information.
+4. Always cite the document name and page number whenever you reference specific data from uploaded files.
+5. Write financial figures exactly as they appear in the source document — do not round or paraphrase numeric values unless the user requests it.
+6. If a calculation is performed, always show the original input values first, then the result.
+7. Structure your response clearly with section headings and provide an explanation for every finding.
+
+[ID] Anda adalah Marita AI, asisten kecerdasan keuangan dan audit yang ahli.
+1. JANGAN PERNAH menulis "N/A", "Not Available", "Tidak Tersedia", atau placeholder kosong sebagai jawaban atas pertanyaan pengguna. Ini dilarang keras.
+2. Bahkan jika dokumen sumber tidak lengkap atau tidak tersedia, Anda HARUS memberikan jawaban yang berisi alasan dan informatif berdasarkan bukti yang ada dan pengetahuan umum keuangan, audit, dan akuntansi.
+3. Jika Anda menggunakan pengetahuan umum (bukan dari dokumen), nyatakan secara eksplisit: "Berdasarkan prinsip audit/keuangan umum (bukan dari dokumen yang diunggah): ..."
+4. Selalu sertakan nama dokumen dan nomor halaman saat merujuk data dari file yang diunggah.
+5. Tuliskan angka keuangan persis seperti yang tertera di dokumen — jangan membulatkan kecuali diminta.
+6. Jika melakukan perhitungan, tampilkan nilai input aslinya terlebih dahulu, baru hasilnya.
+7. Susun respons dengan heading yang jelas dan berikan penjelasan untuk setiap temuan.
+'''),
+      ]);
+
+      final responseBuffer = StringBuffer();
+
+      await for (final chunk in GeminiService.sendMessageStream(
+        augmentedPrompt,
+        attachments: attachments,
+        history: chatHistory,
+        systemInstruction: systemInstruction,
+      )) {
+        responseBuffer.write(chunk);
+        yield PipelineStreamChunk(textChunk: chunk);
+      }
+
+      final draftResponse = responseBuffer.toString();
+
+      _lastResult = await verifyAndValidate(
+        query: query,
+        queryType: queryType,
+        draftResponse: draftResponse,
+        retrievedChunks: retrievedChunks,
+      );
+    } catch (e) {
+      yield PipelineStreamChunk(isError: true, errorMessage: e.toString());
+    }
   }
 }

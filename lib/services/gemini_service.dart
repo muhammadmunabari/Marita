@@ -69,6 +69,37 @@ class GeminiService {
     }
   }
 
+  /// Generates content using the streaming API and returns the full accumulated text.
+  /// More reliable than generateContent() for long JSON responses because it 
+  /// consumes the full stream rather than relying on a single HTTP response body.
+  static Future<String> generateContentFull({
+    required String prompt,
+    String modelName = mainModelName,
+    GenerationConfig? config,
+  }) async {
+    if (mockGenerateContent != null) {
+      return mockGenerateContent!(
+        prompt: prompt,
+        modelName: modelName,
+        config: config,
+      );
+    }
+    try {
+      final model = getModel(modelName, config: config);
+      final stream = model.generateContentStream([Content.text(prompt)]);
+      final buffer = StringBuffer();
+      await for (final chunk in stream) {
+        if (chunk.text != null) {
+          buffer.write(chunk.text);
+        }
+      }
+      return buffer.toString();
+    } catch (e) {
+      debugPrint('Gemini Generate Content Full Error: $e');
+      rethrow;
+    }
+  }
+
   /// Sends a message to Gemini and returns a stream of responses.
   static Stream<String> sendMessageStream(
     String prompt, {

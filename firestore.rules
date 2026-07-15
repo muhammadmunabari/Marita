@@ -81,6 +81,11 @@ service cloud.firestore {
       match /chats/{chatId} {
         allow read: if isWorkspaceMember(companyId);
         allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+
+        match /reports/{reportId} {
+          allow read: if isWorkspaceMember(companyId);
+          allow create, update, delete: if isWorkspaceMemberWithWriteAccess(companyId);
+        }
       }
 
       match /files/{fileId} {
@@ -154,6 +159,14 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.members ||
         isInvitedUser(resource.data.email)
       );
+    }
+
+    // FEEDBACK collection:
+    // - Authenticated users can submit feedback.
+    match /feedback/{feedbackId} {
+      allow create: if isAuthenticated();
+      // Normally only admins can read feedback, but we restrict it to prevent unauthorized reads
+      allow read, update, delete: if false;
     }
   }
 }

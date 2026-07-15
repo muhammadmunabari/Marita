@@ -169,7 +169,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
               ],
             ),
           ),
-          if (opsState.isLoading)
+          if (opsState.isLoading && opsState.uploadProgress == null)
             Container(
               color: Colors.black54,
               child: Center(
@@ -190,6 +190,16 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                     ),
                   ],
                 ),
+              ),
+            ),
+          if (opsState.uploadProgress != null)
+            Positioned(
+              left: MaritaSpacing.lg,
+              right: MaritaSpacing.lg,
+              bottom: MaritaSpacing.lg,
+              child: _UploadProgressBanner(
+                progress: opsState.uploadProgress!,
+                totalBytes: opsState.uploadTotalBytes,
               ),
             ),
         ],
@@ -1186,5 +1196,61 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
 
   String _formatDate(DateTime dt) {
     return DateFormat('dd MMM yyyy, HH:mm').format(dt);
+  }
+}
+
+class _UploadProgressBanner extends StatelessWidget {
+  final double progress;
+  final int? totalBytes;
+
+  const _UploadProgressBanner({
+    required this.progress,
+    this.totalBytes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.maritaColors;
+    final typography = context.maritaTypography;
+    
+    String sizeText = '';
+    if (totalBytes != null) {
+      final mb = totalBytes! / (1024 * 1024);
+      sizeText = ' (${mb.toStringAsFixed(1)} MB)';
+    }
+
+    return MaritaCard(
+      padding: const EdgeInsets.all(MaritaSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Uploading...$sizeText',
+                style: typography.bodyDefaultBold.copyWith(
+                  color: colors.contentPrimary,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toStringAsFixed(0)}%',
+                style: typography.bodySmall.copyWith(
+                  color: colors.contentSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: MaritaSpacing.sm),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: colors.backgroundPrimary,
+            color: colors.interactivePrimary,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ],
+      ),
+    );
   }
 }

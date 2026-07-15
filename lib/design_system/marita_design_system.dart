@@ -309,6 +309,30 @@ class MaritaTypography {
     fontWeight: FontWeight.w400,
   );
 
+  /// Body Small Bold — 12px / line-height 16px / SemiBold
+  static const TextStyle bodySmallBold = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Body Small — 12px / line-height 16px / Regular
+  static const TextStyle bodySmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Heading 4 — 18px / line-height 22px / SemiBold
+  static const TextStyle heading4 = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 18,
+    height: 22 / 18,
+    fontWeight: FontWeight.w600,
+  );
+
   // ---------------------------------------------------------------------------
   // Link
   // ---------------------------------------------------------------------------
@@ -684,17 +708,18 @@ class MaritaTypographyAccessor {
   TextStyle get titleMedium => MaritaTypography.titleMedium;
   TextStyle get titleSmall => MaritaTypography.titleSmall;
   TextStyle get h3 => MaritaTypography.titleSmall;
-  TextStyle get h4 => MaritaTypography.titleSmall.copyWith(fontSize: 18.0);
+  TextStyle get h4 => MaritaTypography.heading4;
+  TextStyle get heading4 => MaritaTypography.heading4;
 
   // Body
   TextStyle get bodyLargeBold => MaritaTypography.bodyLargeBold;
   TextStyle get bodyLarge => MaritaTypography.bodyLarge;
+  TextStyle get bodyMedium => MaritaTypography.bodyDefault;
   TextStyle get bodyDefaultBold => MaritaTypography.bodyDefaultBold;
   TextStyle get bodyDefault => MaritaTypography.bodyDefault;
-  TextStyle get bodySmallBold =>
-      MaritaTypography.bodyDefaultBold.copyWith(fontSize: 12.0);
-  TextStyle get bodySmall =>
-      MaritaTypography.bodyDefault.copyWith(fontSize: 12.0);
+  TextStyle get bodySmallBold => MaritaTypography.bodySmallBold;
+  TextStyle get bodySmall => MaritaTypography.bodySmall;
+  TextStyle get labelSmall => MaritaTypography.bodySmall;
   TextStyle get bodyDisabled => MaritaTypography.bodyDefault.copyWith(
     color: context.maritaColors.contentDisabled,
   );

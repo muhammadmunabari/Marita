@@ -212,7 +212,7 @@ class MaritaCard extends StatelessWidget {
       opacity: _isDisabled ? 0.5 : 1.0,
       child: Material(
         color: context.maritaColors.backgroundPrimary,
-        elevation: MaritaElevation.low,
+        elevation: 0,
         borderRadius: MaritaRadius.borderMedium,
         clipBehavior: Clip.antiAlias,
         child: Container(

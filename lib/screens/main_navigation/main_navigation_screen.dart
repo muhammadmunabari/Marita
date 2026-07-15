@@ -94,8 +94,8 @@ class _MaritaBottomBar extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
               _MaritaNavItem(
-                selectedIconPath: 'assets/icons/iconsax-chart.svg',
-                defaultIconPath: 'assets/icons/iconsax-chart.svg',
+                selectedIconPath: 'assets/icons/chart-filled.svg',
+                defaultIconPath: 'assets/icons/chart-linear.svg',
                 label: 'Analyze',
                 isSelected: currentIndex == 2,
                 onTap: () => onTap(2),

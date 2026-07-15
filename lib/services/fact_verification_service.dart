@@ -272,11 +272,20 @@ class FactVerificationService {
   }) async {
     if (retrievedChunks.isEmpty) {
       return VerificationResult(
-        isValid: true, // Let general conversational prompts pass
+        isValid: true,
         confidenceScore: 1.0,
         evidenceScore: 0.0,
-        feedback: ['No context provided for validation.'],
+        feedback: [
+          'Answer is based on general domain knowledge. '
+          'No source documents were found in this workspace to verify against.',
+        ],
         validatedCitations: [],
+        assessment: AssessmentResult(
+          fullCorrectCount: 0,
+          semiCorrectCount: 0,
+          incorrectCount: 0,
+          precisionPercent: 100.0, // No claims to be wrong — default to 100%
+        ),
       );
     }
 

@@ -138,7 +138,7 @@ class RAGService {
             final fileId = chunk.fileId;
             final fileCount = fileChunkCount[fileId] ?? 0;
 
-            if (!seenContent.contains(fingerprint) && fileCount < 3) {
+            if (!seenContent.contains(fingerprint) && fileCount < 10) {
               seenContent.add(fingerprint);
               fileChunkCount[fileId] = fileCount + 1;
               diverseResults.add(chunk);

@@ -16,6 +16,7 @@
 // =============================================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:marita/models/message_feedback.dart';
 
 /// Service class wrapping all Firestore operations.
 ///
@@ -607,5 +608,17 @@ class FirestoreService {
         .snapshots()
         .map((snap) =>
             snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+  }
+
+  // ===========================================================================
+  // FEEDBACK
+  // ===========================================================================
+
+  /// Submits message feedback to Firestore.
+  Future<void> submitFeedback(MessageFeedback feedback) async {
+    await _db
+        .collection('feedback')
+        .doc(feedback.feedbackId)
+        .set(feedback.toMap());
   }
 }

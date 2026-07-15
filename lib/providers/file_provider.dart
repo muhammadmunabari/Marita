@@ -102,18 +102,30 @@ class FileOpsState {
   final bool isLoading;
   final AppError? error;
   final String? successMessage;
+  final double? uploadProgress;
+  final int? uploadTotalBytes;
 
-  const FileOpsState({this.isLoading = false, this.error, this.successMessage});
+  const FileOpsState({
+    this.isLoading = false, 
+    this.error, 
+    this.successMessage,
+    this.uploadProgress,
+    this.uploadTotalBytes,
+  });
 
   FileOpsState copyWith({
     bool? isLoading,
     AppError? error,
     String? successMessage,
+    double? uploadProgress,
+    int? uploadTotalBytes,
   }) {
     return FileOpsState(
       isLoading: isLoading ?? this.isLoading,
       error: error, // Can reset to null
       successMessage: successMessage,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
+      uploadTotalBytes: uploadTotalBytes ?? this.uploadTotalBytes,
     );
   }
 }
@@ -227,12 +239,17 @@ class FileOpsNotifier extends Notifier<FileOpsState> {
     final activeWorkspace = ref.read(activeWorkspaceProvider);
     if (activeWorkspace == null) return false;
 
-    state = const FileOpsState(isLoading: true);
+    final fileSize = await file.length();
+    state = FileOpsState(isLoading: true, uploadProgress: 0.0, uploadTotalBytes: fileSize);
+    
     final result = await _fileService.uploadAndSaveWorkspaceFile(
       companyId: activeWorkspace.id,
       file: file,
       originalName: originalName,
       parentId: parentId,
+      onProgress: (progress) {
+        state = state.copyWith(uploadProgress: progress);
+      },
     );
 
     return result.fold(
