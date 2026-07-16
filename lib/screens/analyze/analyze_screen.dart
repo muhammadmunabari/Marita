@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/analysis_pipeline_step.dart';
 import '../../components/audit_finding_card.dart';
+import '../../components/marita_primary_button.dart';
 import '../../components/risk_level_badge.dart';
 import '../../components/risk_score_gauge.dart';
 import '../../design_system/marita_design_system.dart';
@@ -30,16 +31,24 @@ class AnalyzeScreen extends ConsumerWidget {
       );
     }
     final state = ref.watch(analyzeProvider(activeWorkspace.id));
+    final canWrite = ref.watch(canWriteRobustProvider);
 
     return Scaffold(
       backgroundColor: context.maritaColors.backgroundPrimary,
       body: SafeArea(
-        child: switch (state.status) {
-          AnalysisStatus.idle => _IdleView(state: state),
-          AnalysisStatus.running => _RunningView(state: state),
-          AnalysisStatus.completed => _CompletedView(state: state),
-          AnalysisStatus.error => _ErrorView(state: state),
-        },
+        child: Column(
+          children: [
+            Expanded(
+              child: switch (state.status) {
+                AnalysisStatus.idle => _IdleView(state: state),
+                AnalysisStatus.running => _RunningView(state: state),
+                AnalysisStatus.completed => _CompletedView(state: state),
+                AnalysisStatus.error => _ErrorView(state: state),
+              },
+            ),
+            _StickyAnalyzeBar(state: state, canWrite: canWrite),
+          ],
+        ),
       ),
     );
   }
@@ -57,7 +66,6 @@ class _IdleView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
 
     return CustomScrollView(
       slivers: [
@@ -109,15 +117,7 @@ class _IdleView extends ConsumerWidget {
             },
           ),
 
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-            child: _AnalyzeButton(
-              enabled: state.fileEntries.isNotEmpty,
-              onTap: () => notifier.runAllAnalysis(forceFresh: false),
-            ),
-          ),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
   }
@@ -228,55 +228,71 @@ class _FileCard extends StatelessWidget {
   }
 }
 
-class _AnalyzeButton extends StatelessWidget {
-  final bool enabled;
-  final VoidCallback onTap;
-  const _AnalyzeButton({required this.enabled, required this.onTap});
+class _StickyAnalyzeBar extends ConsumerWidget {
+  final AnalyzeState state;
+  final bool canWrite;
+
+  const _StickyAnalyzeBar({required this.state, required this.canWrite});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color:
-                enabled
-                    ? colors.interactivePrimary
-                    : colors.interactiveDisabled,
-            borderRadius: BorderRadius.circular(SemanticRadius.radiusInput),
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  size: 18,
-                  color:
-                      enabled
-                          ? colors.contentInverse
-                          : colors.contentDisabled,
+    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
+
+    String label = 'Run Audit Analysis';
+    bool isEnabled = state.fileEntries.isNotEmpty && canWrite;
+    bool forceFresh = false;
+
+    switch (state.status) {
+      case AnalysisStatus.idle:
+        label = 'Run Audit Analysis';
+        break;
+      case AnalysisStatus.running:
+        label = 'Analyzing...';
+        isEnabled = false;
+        break;
+      case AnalysisStatus.completed:
+        label = 'Re-run Audit';
+        forceFresh = true;
+        break;
+      case AnalysisStatus.error:
+        label = 'Try Again';
+        forceFresh = true;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: BoxDecoration(
+        color: colors.backgroundPrimary,
+        border: Border(top: BorderSide(color: colors.borderSecondary)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!canWrite)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Text(
+                'View-only users cannot run analysis.',
+                style: typography.bodyDefault.copyWith(
+                  color: colors.contentSecondary,
+                  fontSize: 12,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Run Audit Analysis',
-                  style: typography.bodyDefaultBold.copyWith(
-                    color:
-                        enabled
-                            ? colors.contentInverse
-                            : colors.contentDisabled,
-                  ),
-                ),
-              ],
+                textAlign: TextAlign.center,
+              ),
             ),
+          MaritaPrimaryButton(
+            label: label,
+            onPressed:
+                isEnabled
+                    ? () => notifier.runAllAnalysis(forceFresh: forceFresh)
+                    : null,
+            icon: Icons.auto_awesome_rounded,
+            isExpanded: true,
           ),
-        ),
+        ],
       ),
     );
   }
@@ -381,10 +397,7 @@ class _FileProgressCard extends StatelessWidget {
         color: colors.backgroundSecondary,
         borderRadius: BorderRadius.circular(SemanticRadius.radiusCard),
         border: Border.all(
-          color:
-              isCurrent
-                  ? colors.interactivePrimary
-                  : colors.borderSecondary,
+          color: isCurrent ? colors.interactivePrimary : colors.borderSecondary,
           width: isCurrent ? 1.5 : 1,
         ),
       ),
@@ -410,11 +423,7 @@ class _FileProgressCard extends StatelessWidget {
                   color: colors.success,
                 )
               else if (entry.status == AnalysisStatus.error)
-                Icon(
-                  Icons.error_rounded,
-                  size: 16,
-                  color: colors.error,
-                )
+                Icon(Icons.error_rounded, size: 16, color: colors.error)
               else if (isCurrent)
                 SizedBox(
                   width: 12,
@@ -466,7 +475,6 @@ class _CompletedView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    final notifier = ref.read(analyzeProvider(state.workspaceId).notifier);
 
     final aggregateScore = state.aggregateScore ?? 0;
     final aggregateLevel = state.aggregateRiskLevel ?? RiskLevel.low;
@@ -497,43 +505,6 @@ class _CompletedView extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => notifier.runAllAnalysis(forceFresh: true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(
-                        SemanticRadius.radiusInput,
-                      ),
-                      border: Border.all(
-                        color: colors.borderSecondary,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh_rounded,
-                          size: 14,
-                          color: colors.contentPrimary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Re-run',
-                          style: typography.bodyDefault.copyWith(
-                            fontSize: 12.0,
-                            color: colors.contentPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -635,6 +606,10 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
     final result = widget.entry.result;
 
     if (result == null) {
+      final isError = widget.entry.status == AnalysisStatus.error;
+      final label = isError ? 'Failed' : 'Pending';
+      final color = isError ? colors.error : colors.contentSecondary;
+
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -653,10 +628,8 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
               ),
             ),
             Text(
-              'Failed',
-              style: typography.bodyDefault.copyWith(
-                color: colors.error,
-              ),
+              label,
+              style: typography.bodyDefault.copyWith(color: color),
             ),
           ],
         ),
@@ -693,6 +666,44 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
+                            if (widget.entry.fromCache && !widget.entry.isStale)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.interactivePrimary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'CACHED',
+                                  style: typography.bodyDefaultBold.copyWith(
+                                    fontSize: 10,
+                                    color: colors.interactivePrimary,
+                                  ),
+                                ),
+                              ),
+                            if (widget.entry.isStale)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.warning.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'FILE CHANGED',
+                                  style: typography.bodyDefaultBold.copyWith(
+                                    fontSize: 10,
+                                    color: colors.warning,
+                                  ),
+                                ),
+                              ),
                             Text(
                               'Score: ${result.overallScore}',
                               style: typography.bodyDefault.copyWith(

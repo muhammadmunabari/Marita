@@ -48,16 +48,60 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 
     // Listen for file changes to keep the list synced (no auto-audit run)
     ref.listen(allWorkspaceFilesProvider, (previous, next) {
+      final activeWorkspace = ref.read(activeWorkspaceProvider);
+      if (activeWorkspace?.id != workspaceId) return;
+
       final newFilesResult = next.asData?.value;
       if (newFilesResult is Success<List<FileItem>>) {
         _syncFileList(newFilesResult.data);
       }
     });
 
+    Future.microtask(() => _loadCachedResults());
+
     return AnalyzeState(
       fileEntries: entries,
       workspaceId: workspaceId,
     );
+  }
+
+  Future<void> _loadCachedResults() async {
+    final analyzeService = ref.read(analyzeServiceProvider);
+    bool hasAnyResult = false;
+
+    final currentEntries = List<FileAnalysisEntry>.from(state.fileEntries);
+    if (currentEntries.isEmpty) return;
+
+    for (final entry in currentEntries) {
+      final fileId = entry.file.id;
+      final cachedResult = await analyzeService.getCachedResult(workspaceId, fileId);
+
+      if (cachedResult != null) {
+        final cachedHash = await analyzeService.getCachedContentHash(workspaceId, fileId);
+        final currentHash = entry.file.contentHash;
+        final isStale = (currentHash == null) || (cachedHash == null) || (currentHash != cachedHash);
+
+        hasAnyResult = true;
+
+        final index = state.fileEntries.indexWhere((e) => e.file.id == fileId);
+        if (index != -1) {
+          final currentStateEntry = state.fileEntries[index];
+          final updatedEntry = currentStateEntry.copyWith(
+            status: AnalysisStatus.completed,
+            result: cachedResult,
+            stages: cachedResult.stages,
+            fromCache: true,
+            isStale: isStale,
+            auditedContentHash: cachedHash,
+          );
+          _updateEntry(index, updatedEntry);
+        }
+      }
+    }
+
+    if (hasAnyResult && state.status == AnalysisStatus.idle) {
+      state = state.copyWith(status: AnalysisStatus.completed);
+    }
   }
 
   void _syncFileList(List<FileItem> newFiles) {
@@ -132,23 +176,23 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
 
       // ── Check Firestore cache first (unless forcing fresh) ───────────────
       if (!forceFresh) {
-        final cachedHash = await analyzeService.getCachedContentHash(state.workspaceId, fileId);
-        final currentHash = entry.file.contentHash;
-        final isUnmodified = currentHash != null && cachedHash != null && currentHash == cachedHash;
+        final cached = await analyzeService.getCachedResult(state.workspaceId, fileId);
+        
+        if (cached != null) {
+          final cachedHash = await analyzeService.getCachedContentHash(state.workspaceId, fileId);
+          final currentHash = entry.file.contentHash;
+          final isStale = (currentHash == null) || (cachedHash == null) || (currentHash != cachedHash);
 
-        if (isUnmodified) {
-          final cached = await analyzeService.getCachedResult(state.workspaceId, fileId);
-          if (cached != null) {
-            final updatedEntry = entry.copyWith(
-              status: AnalysisStatus.completed,
-              result: cached,
-              stages: cached.stages,
-              fromCache: true,
-              auditedContentHash: cachedHash,
-            );
-            _updateEntry(i, updatedEntry);
-            continue;
-          }
+          final updatedEntry = entry.copyWith(
+            status: AnalysisStatus.completed,
+            result: cached,
+            stages: cached.stages,
+            fromCache: true,
+            isStale: isStale,
+            auditedContentHash: cachedHash,
+          );
+          _updateEntry(i, updatedEntry);
+          continue;
         }
       }
 

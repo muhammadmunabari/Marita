@@ -270,6 +270,7 @@ class FileAnalysisEntry {
   final AnalysisResult? result;
   final String? errorMessage;
   final bool fromCache; // true if result was loaded from Firestore cache
+  final bool isStale; // true if cached but hash mismatched (file changed)
   final String? auditedContentHash; // Hash saat file terakhir diaudit
 
   const FileAnalysisEntry({
@@ -279,6 +280,7 @@ class FileAnalysisEntry {
     this.result,
     this.errorMessage,
     this.fromCache = false,
+    this.isStale = false,
     this.auditedContentHash,
   });
 
@@ -289,6 +291,7 @@ class FileAnalysisEntry {
     AnalysisResult? result,
     String? errorMessage,
     bool? fromCache,
+    bool? isStale,
     String? auditedContentHash,
   }) {
     return FileAnalysisEntry(
@@ -298,6 +301,7 @@ class FileAnalysisEntry {
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
       fromCache: fromCache ?? this.fromCache,
+      isStale: isStale ?? this.isStale,
       auditedContentHash: auditedContentHash ?? this.auditedContentHash,
     );
   }

@@ -686,7 +686,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                         StateSetter? dialogSetState;
                         if (!context.mounted) return;
 
-                        final dialogContextCompleter = Completer<BuildContext>();
+                        final dialogContextCompleter =
+                            Completer<BuildContext>();
 
                         // Show download/open progress dialog
                         showDialog(
@@ -719,17 +720,14 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                                         backgroundColor:
                                             colors.backgroundPrimary,
                                       ),
-                                      const SizedBox(
-                                        height: MaritaSpacing.md,
-                                      ),
+                                      const SizedBox(height: MaritaSpacing.md),
                                       Text(
                                         downloadProgress > 0
                                             ? 'Downloading: ${(downloadProgress * 100).toStringAsFixed(0)}%'
                                             : 'Connecting...',
-                                        style: typography.bodyDefault
-                                            .copyWith(
-                                              color: colors.contentSecondary,
-                                            ),
+                                        style: typography.bodyDefault.copyWith(
+                                          color: colors.contentSecondary,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -739,7 +737,8 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                           },
                         );
 
-                        final dialogContext = await dialogContextCompleter.future;
+                        final dialogContext =
+                            await dialogContextCompleter.future;
 
                         final error = await FileOpenService.downloadAndOpen(
                           item,
@@ -753,7 +752,9 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
                         );
 
                         if (dialogContext.mounted) {
-                          Navigator.pop(dialogContext); // Dismiss progress dialog
+                          Navigator.pop(
+                            dialogContext,
+                          ); // Dismiss progress dialog
                         }
 
                         if (error != null && context.mounted) {
@@ -1203,16 +1204,13 @@ class _UploadProgressBanner extends StatelessWidget {
   final double progress;
   final int? totalBytes;
 
-  const _UploadProgressBanner({
-    required this.progress,
-    this.totalBytes,
-  });
+  const _UploadProgressBanner({required this.progress, this.totalBytes});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.maritaColors;
     final typography = context.maritaTypography;
-    
+
     String sizeText = '';
     if (totalBytes != null) {
       final mb = totalBytes! / (1024 * 1024);

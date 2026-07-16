@@ -79,7 +79,6 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: colors.backgroundPrimary,
-      drawer: const SidebarDrawer(),
       body: SafeArea(
         child: Column(
           children: [
@@ -139,17 +138,37 @@ class _MaritaAIScreenState extends ConsumerState<MaritaAIScreen> {
             iconPath: 'assets/icons/iconsax-menu.svg',
             iconData: IconsaxPlusLinear.menu,
             onTap: () {
-              _scaffoldKey.currentState?.openDrawer();
+              Navigator.of(context, rootNavigator: true).push(
+                PageRouteBuilder(
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
+                          const SidebarDrawer(),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    const begin = Offset(-1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeOutCubic;
+                    var tween = Tween(
+                      begin: begin,
+                      end: end,
+                    ).chain(CurveTween(curve: curve));
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+                ),
+              );
             },
           ),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _DynamicTitle(title: chatState.title ?? 'New chat'),
-                const SizedBox(height: MaritaSpacing.xs),
-                const WorkspaceHeaderChip(),
-              ],
+              children: [_DynamicTitle(title: chatState.title ?? 'New chat')],
             ),
           ),
           const SizedBox(
@@ -282,35 +301,3 @@ class _DynamicTitleState extends State<_DynamicTitle>
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
