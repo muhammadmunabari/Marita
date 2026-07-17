@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:marita/models/chat_message.dart';
 import 'package:marita/providers/settings_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
 class SidebarDrawer extends ConsumerStatefulWidget {
   const SidebarDrawer({super.key});
 
@@ -69,7 +70,8 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
   ) {
     final userProfileAsync = ref.watch(userProfileModelProvider);
     final userProfile = userProfileAsync.value;
-    final displayName = (userProfile?.name.isNotEmpty ?? false) ? userProfile!.name : 'User';
+    final displayName =
+        (userProfile?.name.isNotEmpty ?? false) ? userProfile!.name : 'User';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -83,9 +85,10 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
           CircleAvatar(
             radius: 20,
             backgroundColor: colors.backgroundSecondary,
-            backgroundImage: (userProfile?.photoUrl?.isNotEmpty ?? false)
-                ? NetworkImage(userProfile!.photoUrl!) as ImageProvider
-                : const AssetImage('assets/logos/Logomark.png'),
+            backgroundImage:
+                (userProfile?.photoUrl?.isNotEmpty ?? false)
+                    ? NetworkImage(userProfile!.photoUrl!) as ImageProvider
+                    : const AssetImage('assets/logos/Logomark.png'),
             onBackgroundImageError: (exception, stackTrace) {},
             child: const SizedBox(),
           ),
@@ -113,7 +116,10 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
                 'assets/icons/close.svg',
                 width: 24,
                 height: 24,
-                colorFilter: ColorFilter.mode(colors.contentPrimary, BlendMode.srcIn),
+                colorFilter: ColorFilter.mode(
+                  colors.contentPrimary,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),
@@ -419,36 +425,40 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            child: _isSearchFocused || !ref.watch(canWriteRobustProvider)
-                ? const SizedBox(width: 0)
-                : Row(
-                    children: [
-                      const SizedBox(width: MaritaSpacing.md),
-                      InkWell(
-                        onTap: () {
-                          ref.read(chatProvider.notifier).createNewChat();
-                          Navigator.pop(context);
-                        },
-                        borderRadius: BorderRadius.circular(24),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: colors.backgroundSecondary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/chat-linear.svg',
-                              width: 24,
-                              height: 24,
-                              colorFilter: ColorFilter.mode(colors.contentPrimary, BlendMode.srcIn),
+            child:
+                _isSearchFocused || !ref.watch(canWriteRobustProvider)
+                    ? const SizedBox(width: 0)
+                    : Row(
+                      children: [
+                        const SizedBox(width: MaritaSpacing.md),
+                        InkWell(
+                          onTap: () {
+                            ref.read(chatProvider.notifier).createNewChat();
+                            Navigator.pop(context);
+                          },
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: colors.backgroundSecondary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/icons/chat-linear.svg',
+                                width: 24,
+                                height: 24,
+                                colorFilter: ColorFilter.mode(
+                                  colors.contentPrimary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
           ),
         ],
       ),
@@ -515,22 +525,6 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
                   onTap: () {
                     Navigator.pop(bottomSheetContext);
                     _showRenameDialog(context, chatId, currentTitle);
-                  },
-                ),
-                ListTile(
-                  leading: MaritaIcon(
-                    icon: Icons.push_pin_outlined,
-                    color: colors.contentPrimary,
-                  ),
-                  title: Text(
-                    'Pin',
-                    style: typography.bodyLarge.copyWith(
-                      color: colors.contentPrimary,
-                    ),
-                  ),
-                  onTap: () {
-                    // Implement pin functionality later
-                    Navigator.pop(bottomSheetContext);
                   },
                 ),
               ],
