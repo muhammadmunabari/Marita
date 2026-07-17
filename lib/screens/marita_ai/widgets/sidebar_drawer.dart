@@ -230,34 +230,6 @@ class _SidebarDrawerState extends ConsumerState<SidebarDrawer> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (_searchQuery.isEmpty &&
-                    ref.watch(canWriteRobustProvider)) ...[
-                  const SizedBox(height: MaritaSpacing.lg),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.interactivePrimary,
-                      foregroundColor: colors.backgroundPrimary,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: MaritaSpacing.xl,
-                        vertical: MaritaSpacing.md,
-                      ),
-                    ),
-                    onPressed: () {
-                      ref.read(chatProvider.notifier).createNewChat();
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'New Chat',
-                      style: typography.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           );

@@ -76,7 +76,7 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/logos/Logobug white bg.png"
+  image_path: "assets/logos/Logobug colored bg.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 

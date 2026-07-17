@@ -14,6 +14,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/report_model.dart';
+import '../models/message_version_group.dart';
 import '../services/report_service.dart';
 import 'workspace_provider.dart';
 import 'chat_provider.dart';
@@ -105,49 +106,79 @@ class ReportNotifier extends Notifier<ReportState> {
     
     try {
       final service = ref.read(reportServiceProvider);
-      // Let's assume we fetch all reports for this message to allow version navigation
-      // But service currently only has getLatestReport. 
-      // We'll update the state with the latest report for now and simulate versioning.
       
-      final report = await service.getLatestReport(
+      MessageVersionGroup? targetGroup;
+      for (final group in chatState.messageGroups) {
+        if (group.responseVersions.any((r) => r.id == messageId)) {
+          targetGroup = group;
+          break;
+        }
+      }
+
+      if (targetGroup == null) {
+        throw Exception("Target message for the report could not be found.");
+      }
+
+      final messageIds = targetGroup.responseVersions.map((r) => r.id).toList();
+      
+      final reports = await service.getAllReportsForMessages(
         workspaceId: workspaceId,
         chatId: chatId,
-        messageId: messageId,
+        messageIds: messageIds,
       );
 
-      if (report != null) {
+      ReportModel? currentReport;
+      try {
+        currentReport = reports.firstWhere((r) => r.messageId == messageId);
+      } catch (_) {
+        currentReport = null;
+      }
+
+      if (reports.isNotEmpty && currentReport != null) {
         state = state.copyWith(
-          report: report, 
-          status: report.status,
-          allVersions: [report], // In a real implementation, we would query all versions
-          currentVersionIndex: 0,
+          report: currentReport, 
+          status: currentReport.status,
+          allVersions: reports,
+          currentVersionIndex: reports.indexOf(currentReport),
         );
-      } else {
-        state = state.copyWith(status: ReportStatus.generating);
+      } else if (reports.isNotEmpty && currentReport == null) {
+        state = state.copyWith(
+          status: ReportStatus.generating,
+          allVersions: reports,
+        );
         
-        String? responseContent;
-        int responseVersion = 1;
-        for (final group in chatState.messageGroups) {
-          for (final response in group.responseVersions) {
-            if (response.id == messageId) {
-              responseContent = response.text;
-              responseVersion = response.version;
-              break;
-            }
-          }
-        }
-        
-        if (responseContent == null) {
-          throw Exception("Target message for the report could not be found.");
-        }
+        final response = targetGroup.responseVersions.firstWhere((r) => r.id == messageId);
         
         final newReport = await service.generateReport(
           workspaceId: workspaceId,
           chatId: chatId,
           messageId: messageId,
-          responseContent: responseContent, 
-          responseVersion: responseVersion, 
+          responseContent: response.text, 
+          responseVersion: response.version, 
         );
+        
+        final updatedVersions = [newReport, ...reports];
+        updatedVersions.sort((a, b) => b.generatedAt.compareTo(a.generatedAt));
+        
+        state = state.copyWith(
+          report: newReport, 
+          status: newReport.status,
+          allVersions: updatedVersions,
+          currentVersionIndex: updatedVersions.indexOf(newReport),
+        );
+      } else {
+        state = state.copyWith(status: ReportStatus.generating);
+        
+        final response = targetGroup.responseVersions.firstWhere((r) => r.id == messageId);
+        
+        final newReport = await service.generateReport(
+          workspaceId: workspaceId,
+          chatId: chatId,
+          messageId: messageId,
+          responseContent: response.text, 
+          responseVersion: response.version, 
+        );
+        
         state = state.copyWith(
           report: newReport, 
           status: newReport.status,
@@ -171,33 +202,41 @@ class ReportNotifier extends Notifier<ReportState> {
       final service = ref.read(reportServiceProvider);
       
       String? responseContent;
+      String? targetMessageId;
+      int? responseVersion;
+      
       for (final group in chatState.messageGroups) {
-        for (final response in group.responseVersions) {
-          if (response.id == messageId) {
-            responseContent = response.text;
-            break;
+        if (group.responseVersions.any((r) => r.id == messageId)) {
+          final activeResponse = group.activeResponse;
+          if (activeResponse != null) {
+            responseContent = activeResponse.text;
+            targetMessageId = activeResponse.id;
+            responseVersion = activeResponse.version;
           }
+          break;
         }
       }
       
-      if (responseContent == null) {
+      if (responseContent == null || targetMessageId == null) {
         throw Exception("Target message for the report could not be found.");
       }
       
       final newReport = await service.generateReport(
         workspaceId: workspaceId,
         chatId: chatId,
-        messageId: messageId,
+        messageId: targetMessageId,
         responseContent: responseContent, 
-        responseVersion: (state.report?.responseVersion ?? 1) + 1, 
+        responseVersion: responseVersion ?? (state.report?.responseVersion ?? 1) + 1, 
       );
       
       final updatedVersions = [newReport, ...state.allVersions];
+      updatedVersions.sort((a, b) => b.generatedAt.compareTo(a.generatedAt));
+      
       state = state.copyWith(
-        report: newReport,
+        report: newReport, 
         status: newReport.status,
         allVersions: updatedVersions,
-        currentVersionIndex: 0,
+        currentVersionIndex: updatedVersions.indexOf(newReport),
       );
     } catch (e) {
       state = state.copyWith(status: ReportStatus.error, error: e.toString());

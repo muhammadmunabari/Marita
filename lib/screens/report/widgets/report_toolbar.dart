@@ -7,10 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ReportToolbar extends ConsumerWidget {
   final ReportState reportState;
+  final String messageId;
 
   const ReportToolbar({
     super.key,
     required this.reportState,
+    required this.messageId,
   });
 
   @override
@@ -60,7 +62,7 @@ class ReportToolbar extends ConsumerWidget {
                         : context.maritaColors.contentTertiary),
                     tooltip: 'Previous Version',
                     onPressed: reportState.currentVersionIndex < reportState.allVersions.length - 1 
-                        ? () => ref.read(reportProvider(reportState.report!.messageId).notifier).previousVersion()
+                        ? () => ref.read(reportProvider(messageId).notifier).previousVersion()
                         : null,
                   ),
                   Text(
@@ -76,7 +78,7 @@ class ReportToolbar extends ConsumerWidget {
                         : context.maritaColors.contentTertiary),
                     tooltip: 'Next Version',
                     onPressed: reportState.currentVersionIndex > 0
-                        ? () => ref.read(reportProvider(reportState.report!.messageId).notifier).nextVersion()
+                        ? () => ref.read(reportProvider(messageId).notifier).nextVersion()
                         : null,
                   ),
                 ],

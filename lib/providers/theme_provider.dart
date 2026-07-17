@@ -17,7 +17,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
         }
       }
     }
-    return ThemeMode.system;
+    return ThemeMode.light;
   }
 
   /// Updates the theme mode and persists it to SharedPreferences.

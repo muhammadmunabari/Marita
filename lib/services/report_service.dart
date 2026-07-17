@@ -20,7 +20,7 @@ class ReportService {
     String content;
     try {
       content = await GeminiService.generateContent(
-        prompt: 'Convert the following analysis response into a detailed, professional Markdown report with sections like Executive Summary, Key Findings, Detailed Analysis, and Recommendations. Make sure the content is highly detailed and well-structured.\n\nResponse to convert:\n$responseContent',
+        prompt: 'Convert the following analysis response into a detailed, professional Markdown report with sections like Executive Summary, Key Findings, Detailed Analysis, and Recommendations. Make sure the content is highly detailed and well-structured. Do NOT include the current date, date of analysis, or any generated timestamps in the report. IMPORTANT: The report MUST be written in the exact same language as the analysis response provided below.\n\nResponse to convert:\n$responseContent',
         modelName: GeminiService.mainModelName,
       );
     } catch (e) {
@@ -100,5 +100,43 @@ class ReportService {
         .collection('reports')
         .doc(reportId)
         .update({'shareUrl': shareUrl});
+  }
+
+  Future<List<ReportModel>> getAllReportsForMessages({
+    required String workspaceId,
+    required String chatId,
+    required List<String> messageIds,
+  }) async {
+    if (messageIds.isEmpty) return [];
+    
+    // Firestore whereIn supports up to 30 elements
+    final chunks = <List<String>>[];
+    for (var i = 0; i < messageIds.length; i += 30) {
+      chunks.add(
+        messageIds.sublist(i, i + 30 > messageIds.length ? messageIds.length : i + 30),
+      );
+    }
+    
+    final allReports = <ReportModel>[];
+    
+    for (final chunk in chunks) {
+      final snapshot = await _firestore
+          .collection('companies')
+          .doc(workspaceId)
+          .collection('chats')
+          .doc(chatId)
+          .collection('reports')
+          .where('messageId', whereIn: chunk)
+          .get();
+          
+      allReports.addAll(
+        snapshot.docs.map((doc) => ReportModel.fromMap(doc.data())).toList(),
+      );
+    }
+    
+    // Sort all reports descending by generatedAt
+    allReports.sort((a, b) => b.generatedAt.compareTo(a.generatedAt));
+    
+    return allReports;
   }
 }

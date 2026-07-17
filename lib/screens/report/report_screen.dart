@@ -40,7 +40,10 @@ class ReportScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: ReportToolbar(reportState: reportState),
+      bottomNavigationBar: ReportToolbar(
+        reportState: reportState,
+        messageId: messageId,
+      ),
     );
   }
 

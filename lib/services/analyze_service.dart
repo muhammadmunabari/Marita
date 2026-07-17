@@ -97,6 +97,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
 
 IMPORTANT: findings must be sorted by priority (1 = highest). Return at least 3 findings if data supports it, but NO MORE THAN 5 findings total.
 Ensure the risk scores are highly consistent with the provided Phase 1 extraction data.
+Do NOT include the current date, 'Date of analysis', or any generated timestamps in the executive summary or any other fields.
 Only output the JSON. No markdown fences, no explanatory text.
 ''';
 
