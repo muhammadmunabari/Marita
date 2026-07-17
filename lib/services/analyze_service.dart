@@ -39,19 +39,23 @@ const List<String> _kStageTitles = [
 // ---------------------------------------------------------------------------
 
 const String _kPhase1ExtractionPrompt = '''
-You are an expert financial auditor. Your task is to extract necessary financial metrics from the provided document to calculate the Beneish M-Score and identify key financial ratios.
+You are an expert financial auditor. Your task is to extract necessary financial metrics from the provided document and identify key financial ratios.
+
+CRITICAL INSTRUCTION FOR FINANCIAL STATEMENTS:
+If the uploaded document is a Financial Statement, you MUST automatically perform an analysis using the Beneish M-Score. The Beneish M-Score is MANDATORY for Financial Statements. You are free to add other relevant analyses as well.
 
 CRITICAL INSTRUCTION FOR MISSING DATA:
 If the document lacks some variables required for the Beneish M-Score (e.g., DSRI, GMI, AQI, SGI, DEPI, SGAI, LVGI, TATA), you MUST predict or estimate the missing gaps based on industry standards, the context of the available numbers, or reasonable financial assumptions for the entity type. Do not fail the calculation.
 
-Calculate the final Beneish M-Score and state whether it indicates potential manipulation.
+Calculate the final Beneish M-Score (especially if it is a Financial Statement) and state whether it indicates potential manipulation.
 
-Output your findings clearly in text format. Include the 8 variables and the final score.
+Output your findings clearly in text format. Include the variables, the final score, and any additional analyses you performed.
 ''';
 
 const String _kSystemPrompt = '''
 You are an expert financial auditor and AI Risk Intelligence Engine. 
 Perform a comprehensive 14-stage financial document audit and risk analysis.
+If the document is a Financial Statement, you MUST ensure that the Beneish M-Score (Stage 8) is thoroughly calculated and forms a core part of the findings, though other analyses may also be included.
 
 STAGES:
 1. File Identification — identify document type, date range, entity name
