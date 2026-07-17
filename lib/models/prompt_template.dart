@@ -5,7 +5,9 @@ class PromptTemplate {
   final String title;
   final String description;
   final String prompt;
-  final IconData icon;
+  final int iconCodePoint;
+  final String? iconFontFamily;
+  final String? iconFontPackage;
   final bool isCustom;
   final String category;
   final String requiredInput;
@@ -15,11 +17,19 @@ class PromptTemplate {
     required this.title,
     required this.description,
     required this.prompt,
-    required this.icon,
+    required this.iconCodePoint,
+    this.iconFontFamily,
+    this.iconFontPackage,
     this.isCustom = false,
     this.category = '',
     this.requiredInput = '',
   });
+
+  IconData get icon => IconData(
+    iconCodePoint,
+    fontFamily: iconFontFamily,
+    fontPackage: iconFontPackage,
+  );
 
   Map<String, dynamic> toMap() {
     return {
@@ -27,9 +37,9 @@ class PromptTemplate {
       'title': title,
       'description': description,
       'prompt': prompt,
-      'iconCode': icon.codePoint,
-      'iconFontFamily': icon.fontFamily,
-      'iconFontPackage': icon.fontPackage,
+      'iconCode': iconCodePoint,
+      'iconFontFamily': iconFontFamily,
+      'iconFontPackage': iconFontPackage,
       'isCustom': isCustom,
       'category': category,
       'requiredInput': requiredInput,
@@ -42,11 +52,9 @@ class PromptTemplate {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       prompt: map['prompt'] ?? '',
-      icon: IconData(
-        map['iconCode'] ?? 0,
-        fontFamily: map['iconFontFamily'],
-        fontPackage: map['iconFontPackage'],
-      ),
+      iconCodePoint: map['iconCode'] ?? 0,
+      iconFontFamily: map['iconFontFamily'],
+      iconFontPackage: map['iconFontPackage'],
       isCustom: map['isCustom'] ?? false,
       category: map['category'] ?? '',
       requiredInput: map['requiredInput'] ?? '',
