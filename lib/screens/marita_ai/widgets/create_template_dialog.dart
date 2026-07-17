@@ -85,9 +85,7 @@ class _CreateTemplateDialogState extends State<CreateTemplateDialog> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      iconCodePoint: Icon(Icons.close.codePoint,
-        iconFontFamily: Icon(Icons.close.fontFamily,
-        iconFontPackage: Icon(Icons.close.fontPackage, color: colors.contentSecondary),
+                      icon: Icon(Icons.close, color: colors.contentSecondary),
                     ),
                   ],
                 ),
@@ -195,9 +193,7 @@ class _CreateTemplateDialogState extends State<CreateTemplateDialog> {
                           title: _titleController.text.trim(),
                           description: _descController.text.trim(),
                           prompt: _promptController.text.trim(),
-                          iconCodePoint: widget.template?.icon ?? MaritaIcons.magicStar.codePoint,
-        iconFontFamily: widget.template?.icon ?? MaritaIcons.magicStar.fontFamily,
-        iconFontPackage: widget.template?.icon ?? MaritaIcons.magicStar.fontPackage,
+                          iconName: widget.template?.iconName ?? 'document_text',
                           isCustom: true,
                         );
                         Navigator.pop(context, template);

@@ -89,9 +89,7 @@ Output Style:
 * Strategic
 * Professional
 * Objective''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded annual report, including financial, operational, strategic, governance, and risk disclosures.',
       ),
@@ -187,9 +185,7 @@ Output Style:
 * CFO-level
 * Objective
 * Analytical''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded Balance Sheet, including assets, liabilities, equity, and supporting disclosures.',
       ),
@@ -281,9 +277,7 @@ Output Style:
 * Professional
 * Analytical
 * Decision-oriented''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded Cash Flow Statement, including operating, investing, financing, and cash balance data.',
       ),
@@ -362,9 +356,7 @@ Output Style:
 * Concise
 * Objective
 * Evidence-based''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded financial statements, including Income Statement, Balance Sheet, and Cash Flow Statement.',
       ),
@@ -452,9 +444,7 @@ Output Style:
 * Professional
 * Insight-driven
 * Objective''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded Income Statement, including revenue, expenses, profits, margins, and disclosures.',
       ),
@@ -606,9 +596,7 @@ Output Style:
 * Professional
 * Concise
 * Insight-driven''',
-        iconCodePoint: IconsaxPlusLinear.document_text.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_text.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_text.fontPackage,
+        iconName: 'document_text',
         category: 'Document Summary',
         requiredInput: 'Uploaded quarterly presentation, including financial results, KPIs, management commentary, and guidance.',
       ),
@@ -769,9 +757,7 @@ Output Style:
 * Executive-friendly
 
 Your objective is to verify procurement transactions, strengthen internal controls, and reduce payment and fraud risks.''',
-        iconCodePoint: IconsaxPlusLinear.shield_search.codePoint,
-        iconFontFamily: IconsaxPlusLinear.shield_search.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.shield_search.fontPackage,
+        iconName: 'shield_search',
         category: 'Fraud Detection',
         requiredInput: 'Purchase Orders, Goods Receipt Notes, Supplier Invoices, and supporting procurement documentation.',
       ),
@@ -780,9 +766,7 @@ Your objective is to verify procurement transactions, strengthen internal contro
         title: 'Beneish M-Score Analysis',
         description: 'Calculates Beneish M-Score and evaluates potential earnings manipulation, fraud risks, and red flags.',
         prompt: '''You are a Financial Fraud Detection Specialist with expertise in Beneish M-Score analysis, forensic accounting, financial statement fraud detection, and earnings manipulation assessment. Your primary responsibility is to identify potential financial statement fraud by calculating, interpreting, and explaining the Beneish M-Score and its underlying indicators. Objectives: 1. Detect potential earnings manipulation. 2. Identify financial statement fraud risks. 3. Analyze abnormal financial trends and ratios. 4. Evaluate the likelihood of management manipulation. 5. Provide clear, evidence-based fraud risk assessments. Instructions: - Analyze financial statements objectively and independently. - Use Beneish M-Score as the primary fraud detection methodology. - Never assume fraud has occurred without sufficient evidence. - Report findings as risk indicators, not definitive proof of fraud. - Clearly explain every calculation and conclusion. - If specific financial line items required for the Beneish M-Score (e.g., Accounts Receivable, COGS, Depreciation Expense) are not present in the uploaded document, do NOT leave the variable blank or write "N/A". Instead: (a) State which variable could not be calculated and which line item was missing from the document. (b) Explain the directional implication of the missing variable (e.g., "Without DSRI we cannot assess the rate of receivables growth — this is one of the strongest manipulation signals in the Beneish model."). (c) Calculate a Partial M-Score using only the variables that ARE available. Label it explicitly: "Partial M-Score (X of 8 variables computed)" and explain how the missing variables would directionally affect the result. (d) Cite the specific document name and page for every input value used (e.g., "Revenue FY2023: IDR 5.2T — Source: Annual Report 2023, p.42"). (e) Always provide numbers and analysis results from the financial statement document uploaded by the user, and provide a definitive answer whether there is a potential for "manipulated" or not. (f) CRITICAL: Predictive gap-fill tables are ONLY to be displayed when specific financial data is missing. Do NOT display a gap-fill table or predictive table if the document contains all 8 required variables. Predictive Gap-Fill Protocol: When variables are missing, follow these explicit industry-standard fallback heuristics: - DSRI: Use AR/Revenue ratio of 1.0 (industry neutral) if AR or Revenue for only one year is present. If both years missing, flag as highest-risk gap. - GMI: Use 1.0 (neutral) if Gross Margin cannot be computed. Note that this underestimates risk if the company is in a declining sector. - AQI: Estimate Non-Current Assets as Total Assets - Current Assets - Gross PPE if balance sheet subtotals are available. - SGI: If only one year's revenue is present, compare against industry median growth rate (typically 5-10% for mature firms, 15-25% for growth firms). State the assumption. - DEPI: Estimate Depreciation as 3-5% of gross PPE if depreciation expense is absent from the income statement. - SGAI: Use 15-20% of Revenue as SG&A estimate for product companies; 25-35% for service companies. - LVGI: Use industry-average leverage of 0.5 Debt/Assets if balance sheet data is incomplete. - TATA: Compute from Net Income - Operating Cash Flow if available; otherwise use 0.05 as a moderate-accruals default. Every predicted value MUST be labeled as `[PREDICTED — Reason: ...]` inline in the calculation table. Calculate a Weighted Partial M-Score where missing variables default to these industry-neutral benchmark values. Force a definitive binary conclusion (POTENTIAL MANIPULATOR / LIKELY NON-MANIPULATOR) with a confidence band. Required Financial Data: - Revenue - Accounts Receivable - Cost of Goods Sold (COGS) - Current Assets - Property, Plant & Equipment (PPE) - Total Assets - Depreciation Expense - Selling, General & Administrative Expenses (SG&A) - Total Debt - Operating Cash Flow - Net Income Calculate the following Beneish M-Score Variables: 1. DSRI (Days Sales in Receivables Index) 2. GMI (Gross Margin Index) 3. AQI (Asset Quality Index) 4. SGI (Sales Growth Index) 5. DEPI (Depreciation Index) 6. SGAI (Sales, General & Administrative Expenses Index) 7. LVGI (Leverage Index) 8. TATA (Total Accruals to Total Assets) After calculating all variables, calculate: Beneish M-Score Interpretation Rules: - M-Score > -2.22 → Potential Earnings Manipulator → Elevated Fraud Risk - M-Score ≤ -2.22 → Likely Non-Manipulator → Lower Fraud Risk Generate the following report: # Executive Summary ### Company Information | Item | Value | | ---------------- | ----- | | Company Name | | | Reporting Period | | | Currency | | | Industry | | Provide a summary of fraud risk and key findings. # Beneish M-Score Result Display: - Final M-Score - Risk Category - Confidence Level # Ratio Breakdown For each variable provide: - Formula - Calculated Value - Interpretation - Fraud Signal Assessment Analyze: - DSRI - GMI - AQI - SGI - DEPI - SGAI - LVGI - TATA # Fraud Risk Assessment Evaluate: - Revenue Manipulation Risk - Asset Manipulation Risk - Expense Manipulation Risk - Earnings Management Risk - Financial Reporting Risk Assign: - Low Risk - Moderate Risk - High Risk - Critical Risk # Red Flags Identify: - Unusual revenue growth - Abnormal receivable increases - Declining gross margins - Excessive accruals - Rising leverage - Aggressive accounting practices - Financial inconsistencies # Supporting Evidence List all indicators contributing to the fraud assessment. # Management Behavior Indicators Assess whether results may indicate: - Pressure - Opportunity - Rationalization - Capability - Arrogance Based on Fraud Pentagon Theory. # Recommendations Provide recommendations for: - Further investigation - Additional audit procedures - Internal control improvements - Financial monitoring actions # Limitations State: - Missing data - Data quality concerns - Assumptions used - Factors not captured by Beneish M-Score Important Rules: - Beneish M-Score indicates probability, not proof, of fraud. - A high M-Score should trigger additional investigation, not immediate conclusions. - Always explain findings in business language understandable by executives, investors, auditors, and founders. - Remain objective, evidence-based, and professional. Output Style: - Executive-friendly - Audit-ready - Data-driven - Structured - Professional - Transparent''',
-        iconCodePoint: IconsaxPlusLinear.shield_search.codePoint,
-        iconFontFamily: IconsaxPlusLinear.shield_search.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.shield_search.fontPackage,
+        iconName: 'shield_search',
         category: 'Fraud Detection',
         requiredInput: 'Uploaded financial statements containing revenue, assets, liabilities, cash flow, expenses, and disclosures.',
       ),
@@ -924,9 +908,7 @@ Output Style:
 * Evidence-based
 
 Your objective is to help identify unusual numerical patterns that warrant further review.''',
-        iconCodePoint: IconsaxPlusLinear.shield_search.codePoint,
-        iconFontFamily: IconsaxPlusLinear.shield_search.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.shield_search.fontPackage,
+        iconName: 'shield_search',
         category: 'Fraud Detection',
         requiredInput: 'Uploaded transactional datasets, including ledger entries, revenues, expenses, receivables, payables, and inventory.',
       ),
@@ -1009,9 +991,7 @@ Output Style:
 * Professional
 * Evidence-based
 * Investor-focused''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Balance Sheet, asset disclosures, liability details, and shareholder equity information.',
       ),
@@ -1107,9 +1087,7 @@ Output Style:
 * Evidence-based
 
 Your objective is to help identify companies trading below their intrinsic value while maintaining a sufficient margin of safety.''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Earnings data, growth history, financial statements, and market valuation information.',
       ),
@@ -1205,9 +1183,7 @@ Output Style:
 * Institutional-grade
 * Transparent
 * Professional''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Financial statements, free cash flow data, capital structure, and valuation assumptions.',
       ),
@@ -1288,9 +1264,7 @@ Output Style:
 * Dividend Investor-focused
 * Professional
 * Evidence-based''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Dividend history, payout data, earnings information, and shareholder return requirements.',
       ),
@@ -1394,9 +1368,7 @@ Output Style:
 * Investor-focused
 * Evidence-based
 * Professional''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Financial statements, annual reports, investor presentations, industry data, and strategic disclosures.',
       ),
@@ -1472,9 +1444,7 @@ Output Style:
 * Institutional-grade
 * Transparent
 * Professional''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Balance sheets, net income data, shareholder equity, and cost of equity assumptions.',
       ),
@@ -1559,9 +1529,7 @@ Output Style:
 * Investor-focused
 * Transparent
 * Data-driven''',
-        iconCodePoint: IconsaxPlusLinear.chart_2.codePoint,
-        iconFontFamily: IconsaxPlusLinear.chart_2.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.chart_2.fontPackage,
+        iconName: 'chart_2',
         category: 'Investment Analysis',
         requiredInput: 'Historical financial statements, earnings data, operational metrics, and business performance information.',
       ),
@@ -1664,9 +1632,7 @@ Output Style:
 * Decision-oriented
 
 Your objective is to make better decisions by understanding growth, profitability, liquidity, scalability, and long-term business sustainability.''',
-        iconCodePoint: IconsaxPlusLinear.briefcase.codePoint,
-        iconFontFamily: IconsaxPlusLinear.briefcase.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.briefcase.fontPackage,
+        iconName: 'briefcase',
         category: 'Business Analysis',
         requiredInput: 'Revenue data, fixed costs, variable costs, margins, and operational performance metrics.',
       ),
@@ -1763,9 +1729,7 @@ Output Style:
 * Executive-level
 * Decision-oriented
 * Strategic''',
-        iconCodePoint: IconsaxPlusLinear.briefcase.codePoint,
-        iconFontFamily: IconsaxPlusLinear.briefcase.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.briefcase.fontPackage,
+        iconName: 'briefcase',
         category: 'Business Analysis',
         requiredInput: 'Cash balances, operating expenses, cash flow statements, and funding-related information.',
       ),
@@ -1862,9 +1826,7 @@ Output Style:
 * Executive-level
 * Strategic
 * Insight-driven''',
-        iconCodePoint: IconsaxPlusLinear.briefcase.codePoint,
-        iconFontFamily: IconsaxPlusLinear.briefcase.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.briefcase.fontPackage,
+        iconName: 'briefcase',
         category: 'Business Analysis',
         requiredInput: 'Historical financial statements, operational metrics, customer data, and multi-period performance records.',
       ),
@@ -1966,9 +1928,7 @@ Output Style:
 * Founder-oriented
 * Investor-friendly
 * Strategic''',
-        iconCodePoint: IconsaxPlusLinear.briefcase.codePoint,
-        iconFontFamily: IconsaxPlusLinear.briefcase.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.briefcase.fontPackage,
+        iconName: 'briefcase',
         category: 'Business Analysis',
         requiredInput: 'Customer acquisition costs, revenue data, retention metrics, churn rates, and profitability information.',
       ),
@@ -2063,9 +2023,7 @@ Output Style:
 * Operationally focused
 * Strategic
 * Actionable''',
-        iconCodePoint: IconsaxPlusLinear.briefcase.codePoint,
-        iconFontFamily: IconsaxPlusLinear.briefcase.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.briefcase.fontPackage,
+        iconName: 'briefcase',
         category: 'Business Analysis',
         requiredInput: 'Balance Sheet, accounts receivable, inventory, accounts payable, and liquidity metrics.',
       ),
@@ -2610,9 +2568,7 @@ Before finalizing verify:
 ✓ Financial statement structure remains intact
 
 If any content cannot be traced to uploaded files, remove it from the report.''',
-        iconCodePoint: IconsaxPlusLinear.document_favorite.codePoint,
-        iconFontFamily: IconsaxPlusLinear.document_favorite.fontFamily,
-        iconFontPackage: IconsaxPlusLinear.document_favorite.fontPackage,
+        iconName: 'document_favorite',
         category: 'Generate Reports',
         requiredInput: 'All supporting financial documents.',
       ),
