@@ -5,17 +5,10 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import 'package:marita/models/message_version_group.dart';
-import '../../components/workspace_header_chip.dart';
 import 'widgets/chat_message_bubble.dart';
 import 'widgets/chat_input_area.dart';
 import 'package:marita/providers/chat_provider.dart';
 import 'widgets/sidebar_drawer.dart';
-
-// =============================================================================
-// SCREEN COMPONENT
-// =============================================================================
-// SCREEN COMPONENT
-// =============================================================================
 
 class MaritaAIScreen extends ConsumerStatefulWidget {
   const MaritaAIScreen({super.key});

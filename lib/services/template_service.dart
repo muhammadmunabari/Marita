@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:marita/models/prompt_template.dart';
-import 'package:iconsax_plus/iconsax_plus.dart';
 
 class TemplateService {
   static final _firestore = FirebaseFirestore.instance;

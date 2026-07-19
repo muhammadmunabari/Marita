@@ -360,10 +360,10 @@ class AnalyzeService {
     required String fileName,
     required String contextString,
   }) {
-    const int _kMaxContextChars = 20000;
+    const int kMaxContextChars = 20000;
     final cappedContext =
-        contextString.length > _kMaxContextChars
-            ? '${contextString.substring(0, _kMaxContextChars)}\n... [CONTEXT TRUNCATED]'
+        contextString.length > kMaxContextChars
+            ? '${contextString.substring(0, kMaxContextChars)}\n... [CONTEXT TRUNCATED]'
             : contextString;
 
     return '''
@@ -387,10 +387,10 @@ $cappedContext
     required String sessionId,
     required String extractedData,
   }) {
-    const int _kMaxContextChars = 16000;
+    const int kMaxContextChars = 16000;
     final cappedContext =
-        contextString.length > _kMaxContextChars
-            ? '${contextString.substring(0, _kMaxContextChars)}\n... [CONTEXT TRUNCATED — ${contextString.length - _kMaxContextChars} chars omitted]'
+        contextString.length > kMaxContextChars
+            ? '${contextString.substring(0, kMaxContextChars)}\n... [CONTEXT TRUNCATED — ${contextString.length - kMaxContextChars} chars omitted]'
             : contextString;
 
     return '''
@@ -450,8 +450,12 @@ Output ONLY the JSON result as specified. Do not include any other text.
     String partial = sb.toString().trimRight();
     if (partial.endsWith(',')) partial = partial.substring(0, partial.length - 1);
     final sb2 = StringBuffer(partial);
-    for (int i = 0; i < openBrackets - closeBrackets; i++) sb2.write(']');
-    for (int i = 0; i < openBraces - closeBraces; i++) sb2.write('}');
+    for (int i = 0; i < openBrackets - closeBrackets; i++) {
+      sb2.write(']');
+    }
+    for (int i = 0; i < openBraces - closeBraces; i++) {
+      sb2.write('}');
+    }
     return sb2.toString();
   }
 

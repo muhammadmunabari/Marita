@@ -674,7 +674,7 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: colors.interactivePrimary.withOpacity(0.1),
+                                  color: colors.interactivePrimary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -693,7 +693,7 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: colors.warning.withOpacity(0.1),
+                                  color: colors.warning.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(

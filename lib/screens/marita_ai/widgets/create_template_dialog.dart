@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:marita/design_system/marita_design_system.dart';
-import 'package:marita/design_system/marita_icons.dart';
 import 'package:marita/models/prompt_template.dart';
 
 class CreateTemplateDialog extends StatefulWidget {
