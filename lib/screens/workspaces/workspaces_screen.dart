@@ -892,7 +892,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Share Workspace',
-                      style: typography.titleLarge.copyWith(
+                      style: typography.titleMedium.copyWith(
                         color: colors.contentPrimary,
                       ),
                     ),
