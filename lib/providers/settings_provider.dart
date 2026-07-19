@@ -207,18 +207,21 @@ class SettingsNotifier extends Notifier<SettingsState> {
     }
   }
 
-  Future<void> deleteAccount() async {
+  Future<bool> deleteAccount() async {
     final user = ref.read(currentUserProvider);
-    if (user == null) return;
+    if (user == null) return false;
 
     state = state.copyWith(isLoading: true);
     final result = await _settingsService.deleteAccount(user.uid);
-    result.fold(
-      (data) {
+    return await result.fold(
+      (data) async {
+        await ref.read(authServiceProvider).signOut();
         state = SettingsState();
+        return true;
       },
-      (error) {
+      (error) async {
         state = SettingsState(error: error);
+        return false;
       },
     );
   }

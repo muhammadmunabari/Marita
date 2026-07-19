@@ -11,7 +11,6 @@ import '../providers/file_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../services/analyze_service.dart';
 import '../services/rag_service.dart';
-import '../core/result.dart';
 
 // ---------------------------------------------------------------------------
 // Service providers
@@ -40,8 +39,8 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
   AnalyzeState build() {
     // Read the files initially (do not watch, to avoid rebuilds of state)
     final filesResult = ref.read(allWorkspaceFilesProvider).asData?.value;
-    final files = (filesResult is Success<List<FileItem>>)
-        ? filesResult.data.where((f) => !f.isFolder).toList()
+    final files = (filesResult != null && filesResult.isSuccess)
+        ? filesResult.dataOrNull!.where((f) => !f.isFolder).toList()
         : const <FileItem>[];
 
     final entries = files.map((f) => FileAnalysisEntry(file: f)).toList();
@@ -52,8 +51,8 @@ class AnalyzeNotifier extends Notifier<AnalyzeState> {
       if (activeWorkspace?.id != workspaceId) return;
 
       final newFilesResult = next.asData?.value;
-      if (newFilesResult is Success<List<FileItem>>) {
-        _syncFileList(newFilesResult.data);
+      if (newFilesResult != null && newFilesResult.isSuccess) {
+        _syncFileList(newFilesResult.dataOrNull!);
       }
     });
 

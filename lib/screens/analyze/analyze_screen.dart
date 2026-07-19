@@ -23,10 +23,51 @@ class AnalyzeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeWorkspace = ref.watch(activeWorkspaceProvider);
     if (activeWorkspace == null) {
+      final colors = context.maritaColors;
+      final typography = context.maritaTypography;
       return Scaffold(
-        backgroundColor: context.maritaColors.backgroundPrimary,
-        body: const SafeArea(
-          child: Center(child: Text('No active workspace selected.')),
+        backgroundColor: colors.backgroundPrimary,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colors.backgroundSecondary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 64,
+                      color: colors.interactivePrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'No Workspace Selected',
+                    style: typography.titleLarge.copyWith(
+                      color: colors.contentPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Create or select a workspace from the Workspaces tab to start your AI-powered financial audit analysis.',
+                    style: typography.bodyDefault.copyWith(
+                      color: colors.contentSecondary,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     }

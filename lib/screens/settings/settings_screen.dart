@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../router.dart';
 import '../../design_system/marita_design_system.dart';
 import '../../design_system/marita_icons.dart';
 import '../../models/user_profile.dart';
@@ -883,9 +885,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                await ref
+                final success = await ref
                     .read(settingsNotifierProvider.notifier)
                     .deleteAccount();
+                if (success && context.mounted) {
+                  context.go(MaritaRoutes.onboarding);
+                }
               },
               child: Text(
                 'Delete',

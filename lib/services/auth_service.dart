@@ -49,6 +49,9 @@ class AuthService {
         .doc(userCredential.user!.uid)
         .set(userData);
 
+    // Send email verification
+    await userCredential.user?.sendEmailVerification();
+
     return userCredential;
   }
 
