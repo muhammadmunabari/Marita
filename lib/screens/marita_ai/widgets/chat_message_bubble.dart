@@ -307,12 +307,7 @@ class ChatMessageBubble extends ConsumerWidget {
 
   /// Returns true when the message has at least one non-null metric score
   /// and belongs to a non-general query type.
-  bool _hasMetrics(ChatMessage m) =>
-      m.queryType != null &&
-      m.queryType != 'general' &&
-      (m.evidenceScore != null ||
-          m.confidenceScore != null ||
-          m.precisionPercent != null);
+  bool _hasMetrics(ChatMessage m) => m.isAnalysisResponse == true;
 }
 
 class AIActionIcon extends StatelessWidget {

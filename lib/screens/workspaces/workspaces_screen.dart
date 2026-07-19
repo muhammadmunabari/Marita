@@ -293,7 +293,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
             ),
             const SizedBox(height: MaritaSpacing.xs),
             Text(
-              'Create a business account to collaborate and share financial data.',
+              'Create a workspace to collaborate and share financial data.',
               style: typography.bodyDefault.copyWith(
                 color: colors.contentSecondary,
               ),
@@ -603,8 +603,8 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     ),
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
-                      'Create Business Account',
-                      style: typography.titleLarge.copyWith(
+                      'Create New Workspace',
+                      style: typography.titleMedium.copyWith(
                         color: colors.contentPrimary,
                       ),
                     ),
@@ -641,7 +641,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     ),
                     const SizedBox(height: MaritaSpacing.xl),
                     MaritaPrimaryButton(
-                      label: 'Create Account',
+                      label: 'Create Workspace',
                       onPressed:
                           isFormValid
                               ? () async {

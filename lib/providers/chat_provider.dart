@@ -511,11 +511,14 @@ class ChatNotifier extends Notifier<ChatState> {
       final finalResult = pipelineService.lastResult;
       
       // Check if it's an analysis response
-      bool isAnalysis = false;
-      if (userMessage.loadingRequestType != null && 
-          userMessage.loadingRequestType != LoadingRequestType.general &&
-          userMessage.loadingRequestType != LoadingRequestType.accountingQuestion) {
-        isAnalysis = true;
+      // Show Verification Metrics and Full Analysis Report on ALL prompts,
+      // EXCEPT when the AI only provides a short answer and no context was retrieved.
+      bool isAnalysis = true;
+      final isShort = aiMessage.text.length < 300;
+      final noChunks = (finalResult?.retrievedChunksCount ?? 0) == 0;
+      
+      if (isShort && noChunks) {
+        isAnalysis = false;
       }
       
       aiMessage = aiMessage.copyWith(

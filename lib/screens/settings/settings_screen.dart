@@ -404,7 +404,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     activeColor: colors.interactivePrimary,
                   ),
                   onTap: () {
-                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                    ref
+                        .read(themeModeProvider.notifier)
+                        .setThemeMode(ThemeMode.light);
                   },
                 ),
                 Divider(color: colors.borderPrimary, height: 1),
@@ -417,7 +419,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     activeColor: colors.interactivePrimary,
                   ),
                   onTap: () {
-                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                    ref
+                        .read(themeModeProvider.notifier)
+                        .setThemeMode(ThemeMode.dark);
                   },
                 ),
                 Divider(color: colors.borderPrimary, height: 1),
@@ -425,13 +429,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   context: context,
                   leadingIcon: MaritaIcons.settings,
                   title: 'Use Device Settings',
-                  subtitle: "Match appearance to your device's Display & Brightness settings.",
+                  subtitle:
+                      "Match appearance to your device's Display & Brightness settings.",
                   trailing: Radio<ThemeMode>(
                     value: ThemeMode.system,
                     activeColor: colors.interactivePrimary,
                   ),
                   onTap: () {
-                    ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                    ref
+                        .read(themeModeProvider.notifier)
+                        .setThemeMode(ThemeMode.system);
                   },
                 ),
               ],
@@ -603,7 +610,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Edit Full Name',
-                      style: typography.titleLarge.copyWith(
+                      style: typography.titleMedium.copyWith(
                         color: colors.contentPrimary,
                       ),
                     ),
@@ -701,7 +708,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Change Password',
-                      style: typography.titleLarge.copyWith(
+                      style: typography.titleMedium.copyWith(
                         color: colors.contentPrimary,
                       ),
                     ),
