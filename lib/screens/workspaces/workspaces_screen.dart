@@ -721,7 +721,7 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                     const SizedBox(height: MaritaSpacing.lg),
                     Text(
                       'Edit Workspace Details',
-                      style: typography.titleLarge.copyWith(
+                      style: typography.titleMedium.copyWith(
                         color: colors.contentPrimary,
                       ),
                     ),
