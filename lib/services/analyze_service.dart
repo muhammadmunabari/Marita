@@ -13,6 +13,7 @@ import '../models/analyze_models.dart';
 import '../services/rag_service.dart';
 import '../services/gemini_service.dart';
 import '../services/firestore_service.dart';
+import '../services/fact_verification_service.dart';
 
 // ---------------------------------------------------------------------------
 // Stage definitions — titles match the analyze_screen.txt pipeline
@@ -229,7 +230,25 @@ class AnalyzeService {
       stages[13] = stages[13].copyWith(status: AnalysisStepStatus.running);
       yield stages[13];
 
-      // ── Step D: Parse response ──────────────────────────────────────
+      // ── Step D: Fact Verification (Stage 13ish / Parallel to parse) ─
+      final verificationResult = await FactVerificationService.verifyResponse(
+        draftResponse: jsonResponse,
+        retrievedChunks: chunks,
+      );
+
+      final evaluationMetrics = AuditEvaluationMetrics(
+        evidenceScore: verificationResult.evidenceScore,
+        confidenceScore: verificationResult.confidenceScore,
+        precisionPercent: verificationResult.assessment?.precisionPercent ?? 0.0,
+        fullCorrectCount: verificationResult.assessment?.fullCorrectCount ?? 0,
+        semiCorrectCount: verificationResult.assessment?.semiCorrectCount ?? 0,
+        incorrectCount: verificationResult.assessment?.incorrectCount ?? 0,
+        totalClaims: (verificationResult.assessment?.fullCorrectCount ?? 0) +
+            (verificationResult.assessment?.semiCorrectCount ?? 0) +
+            (verificationResult.assessment?.incorrectCount ?? 0),
+      );
+
+      // ── Step E: Parse response ──────────────────────────────────────
       AnalysisResult result;
       try {
         result = _parseAnalysisResult(
@@ -237,6 +256,7 @@ class AnalyzeService {
           fileId: fileId,
           fileName: fileName,
           stages: List.from(stages),
+          evaluationMetrics: evaluationMetrics,
         );
       } catch (e) {
         debugPrint('[AnalyzeService] Parse failed, falling back to flash: $e');
@@ -257,6 +277,7 @@ class AnalyzeService {
             fileId: fileId,
             fileName: fileName,
             stages: List.from(stages),
+            evaluationMetrics: evaluationMetrics,
           );
         } catch (e2) {
           result = _errorResult(
@@ -275,7 +296,7 @@ class AnalyzeService {
       );
       yield stages[13];
 
-      // ── Step E: Persist to Firestore ────────────────────────────────
+      // ── Step F: Persist to Firestore ────────────────────────────────
       await _firestoreService.saveAnalysisResult(
         companyId: companyId,
         fileId: fileId,
@@ -464,6 +485,7 @@ Output ONLY the JSON result as specified. Do not include any other text.
     required String fileId,
     required String fileName,
     required List<AnalysisPipelineStage> stages,
+    AuditEvaluationMetrics? evaluationMetrics,
   }) {
     // Strip markdown fences if Gemini adds them despite JSON mime type
     String cleaned = jsonResponse.trim();
@@ -521,6 +543,7 @@ Output ONLY the JSON result as specified. Do not include any other text.
       overallConfidence:
           (json['overallConfidence'] as num?)?.toDouble() ?? 0.7,
       analyzedAt: DateTime.now(),
+      evaluationMetrics: evaluationMetrics,
     );
   }
 

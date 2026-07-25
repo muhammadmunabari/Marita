@@ -11,7 +11,7 @@ import 'risk_level_badge.dart';
 /// A compact card showing one risk category: title, animated bar, score % and badge.
 ///
 /// Uses the same [TweenAnimationBuilder] animated bar pattern as
-/// [_MetricRow] in `verification_metrics_card.dart`.
+/// [_MetricRow] in `evaluation_metrics_card.dart`.
 class RiskScoreSummaryCard extends StatelessWidget {
   final String title;
   final RiskScore score;

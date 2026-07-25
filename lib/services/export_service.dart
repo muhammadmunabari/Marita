@@ -713,7 +713,7 @@ class ExportService {
     );
   }
 
-  /// Builds the Verification Metrics section for non-general AI responses.
+  /// Builds the Evaluation Metrics section for non-general AI responses.
   static pw.Widget _buildScoreMetricsSection(
     pw.Font base,
     pw.Font bold, {
@@ -816,7 +816,7 @@ class ExportService {
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                'VERIFICATION METRICS',
+                'EVALUATION METRICS',
                 style: pw.TextStyle(font: bold, fontSize: 11, color: PdfColors.black, letterSpacing: 1),
               ),
               pw.Container(

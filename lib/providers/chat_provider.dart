@@ -62,7 +62,7 @@ class ChatState {
       status: status ?? this.status,
     );
   }
-  
+
   ChatState clearEditingState() {
     return ChatState(
       chatId: chatId,
@@ -93,74 +93,100 @@ class ChatNotifier extends Notifier<ChatState> {
 
   void loadChat(String chatId, String? title, List<ChatMessage> messages) {
     state = ChatState(
-      chatId: chatId, 
-      title: title, 
-      messageGroups: _groupMessages(messages)
+      chatId: chatId,
+      title: title,
+      messageGroups: _groupMessages(messages),
     );
   }
 
   List<MessageVersionGroup> _groupMessages(List<ChatMessage> messages) {
     final groups = <MessageVersionGroup>[];
-    
-    final sortedMessages = List<ChatMessage>.from(messages)
-      ..sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
+
+    final sortedMessages = List<ChatMessage>.from(messages)..sort(
+      (a, b) => (a.createdAt ?? DateTime.now()).compareTo(
+        b.createdAt ?? DateTime.now(),
+      ),
+    );
 
     for (var msg in sortedMessages) {
       if (msg.role == MessageRole.user) {
         if (msg.parentMessageId == null) {
-          groups.add(MessageVersionGroup(
-            groupId: msg.id,
-            promptVersions: [msg],
-            responseVersions: [],
-            activePromptIndex: 0,
-            activeResponseIndex: 0,
-          ));
-        } else {
-          final targetGroupIndex = groups.indexWhere((g) => 
-              g.promptVersions.any((p) => p.id == msg.parentMessageId) || g.groupId == msg.parentMessageId);
-          
-          if (targetGroupIndex != -1) {
-            final group = groups[targetGroupIndex];
-            final updatedPrompts = List<ChatMessage>.from(group.promptVersions)..add(msg);
-            int newActiveIndex = msg.isCurrentVersion ? updatedPrompts.length - 1 : group.activePromptIndex;
-            
-            groups[targetGroupIndex] = group.copyWith(
-              promptVersions: updatedPrompts,
-              activePromptIndex: newActiveIndex,
-            );
-          } else {
-            groups.add(MessageVersionGroup(
+          groups.add(
+            MessageVersionGroup(
               groupId: msg.id,
               promptVersions: [msg],
               responseVersions: [],
               activePromptIndex: 0,
               activeResponseIndex: 0,
-            ));
+            ),
+          );
+        } else {
+          final targetGroupIndex = groups.indexWhere(
+            (g) =>
+                g.promptVersions.any((p) => p.id == msg.parentMessageId) ||
+                g.groupId == msg.parentMessageId,
+          );
+
+          if (targetGroupIndex != -1) {
+            final group = groups[targetGroupIndex];
+            final updatedPrompts = List<ChatMessage>.from(group.promptVersions)
+              ..add(msg);
+            int newActiveIndex =
+                msg.isCurrentVersion
+                    ? updatedPrompts.length - 1
+                    : group.activePromptIndex;
+
+            groups[targetGroupIndex] = group.copyWith(
+              promptVersions: updatedPrompts,
+              activePromptIndex: newActiveIndex,
+            );
+          } else {
+            groups.add(
+              MessageVersionGroup(
+                groupId: msg.id,
+                promptVersions: [msg],
+                responseVersions: [],
+                activePromptIndex: 0,
+                activeResponseIndex: 0,
+              ),
+            );
           }
         }
       } else {
         if (groups.isEmpty) continue;
-        
+
         if (msg.parentMessageId == null) {
           final targetGroupIndex = groups.length - 1;
           final group = groups[targetGroupIndex];
-          final updatedResponses = List<ChatMessage>.from(group.responseVersions)..add(msg);
-          int newActiveIndex = msg.isCurrentVersion ? updatedResponses.length - 1 : group.activeResponseIndex;
-          
+          final updatedResponses = List<ChatMessage>.from(
+            group.responseVersions,
+          )..add(msg);
+          int newActiveIndex =
+              msg.isCurrentVersion
+                  ? updatedResponses.length - 1
+                  : group.activeResponseIndex;
+
           groups[targetGroupIndex] = group.copyWith(
             responseVersions: updatedResponses,
             activeResponseIndex: newActiveIndex,
           );
         } else {
-          final targetGroupIndex = groups.indexWhere((g) => 
-              g.promptVersions.any((p) => p.id == msg.parentMessageId) || 
-              g.responseVersions.any((r) => r.id == msg.parentMessageId));
-              
+          final targetGroupIndex = groups.indexWhere(
+            (g) =>
+                g.promptVersions.any((p) => p.id == msg.parentMessageId) ||
+                g.responseVersions.any((r) => r.id == msg.parentMessageId),
+          );
+
           if (targetGroupIndex != -1) {
             final group = groups[targetGroupIndex];
-            final updatedResponses = List<ChatMessage>.from(group.responseVersions)..add(msg);
-            int newActiveIndex = msg.isCurrentVersion ? updatedResponses.length - 1 : group.activeResponseIndex;
-            
+            final updatedResponses = List<ChatMessage>.from(
+              group.responseVersions,
+            )..add(msg);
+            int newActiveIndex =
+                msg.isCurrentVersion
+                    ? updatedResponses.length - 1
+                    : group.activeResponseIndex;
+
             groups[targetGroupIndex] = group.copyWith(
               responseVersions: updatedResponses,
               activeResponseIndex: newActiveIndex,
@@ -168,10 +194,15 @@ class ChatNotifier extends Notifier<ChatState> {
           } else {
             final groupIndex = groups.length - 1;
             final group = groups[groupIndex];
-            final updatedResponses = List<ChatMessage>.from(group.responseVersions)..add(msg);
+            final updatedResponses = List<ChatMessage>.from(
+              group.responseVersions,
+            )..add(msg);
             groups[groupIndex] = group.copyWith(
               responseVersions: updatedResponses,
-              activeResponseIndex: msg.isCurrentVersion ? updatedResponses.length - 1 : group.activeResponseIndex,
+              activeResponseIndex:
+                  msg.isCurrentVersion
+                      ? updatedResponses.length - 1
+                      : group.activeResponseIndex,
             );
           }
         }
@@ -204,17 +235,19 @@ class ChatNotifier extends Notifier<ChatState> {
   Future<void> sendEditedMessage(String newText) async {
     final editingState = state.editingState;
     if (editingState == null) return;
-    
+
     final groupId = editingState.targetGroupId;
-    final groupIndex = state.messageGroups.indexWhere((g) => g.groupId == groupId);
+    final groupIndex = state.messageGroups.indexWhere(
+      (g) => g.groupId == groupId,
+    );
     if (groupIndex == -1) return;
-    
+
     final group = state.messageGroups[groupIndex];
     final originalPrompt = group.activePrompt;
-    
+
     final workspace = ref.read(activeWorkspaceProvider);
     if (workspace == null) return;
-    
+
     final firestoreService = ref.read(firestoreServiceProvider);
     final activeChatId = state.chatId;
     if (activeChatId == null) return;
@@ -231,15 +264,16 @@ class ChatNotifier extends Notifier<ChatState> {
     );
 
     // Add to group and make active
-    final updatedPrompts = List<ChatMessage>.from(group.promptVersions)..add(newPrompt);
+    final updatedPrompts = List<ChatMessage>.from(group.promptVersions)
+      ..add(newPrompt);
     final newGroup = group.copyWith(
       promptVersions: updatedPrompts,
       activePromptIndex: updatedPrompts.length - 1,
     );
-    
+
     final newGroups = List<MessageVersionGroup>.from(state.messageGroups);
     newGroups[groupIndex] = newGroup;
-    
+
     state = state.copyWith(
       messageGroups: newGroups,
       isLoading: true,
@@ -264,15 +298,17 @@ class ChatNotifier extends Notifier<ChatState> {
   }
 
   Future<void> regenerateResponse(String groupId) async {
-    final groupIndex = state.messageGroups.indexWhere((g) => g.groupId == groupId);
+    final groupIndex = state.messageGroups.indexWhere(
+      (g) => g.groupId == groupId,
+    );
     if (groupIndex == -1) return;
-    
+
     final group = state.messageGroups[groupIndex];
     final activePrompt = group.activePrompt;
-    
+
     final workspace = ref.read(activeWorkspaceProvider);
     if (workspace == null) return;
-    
+
     final activeChatId = state.chatId;
     if (activeChatId == null) return;
 
@@ -292,10 +328,16 @@ class ChatNotifier extends Notifier<ChatState> {
     );
   }
 
-  void navigateVersion(String groupId, {required bool isPrompt, required int direction}) {
-    final groupIndex = state.messageGroups.indexWhere((g) => g.groupId == groupId);
+  void navigateVersion(
+    String groupId, {
+    required bool isPrompt,
+    required int direction,
+  }) {
+    final groupIndex = state.messageGroups.indexWhere(
+      (g) => g.groupId == groupId,
+    );
     if (groupIndex == -1) return;
-    
+
     final group = state.messageGroups[groupIndex];
     if (isPrompt) {
       final newIndex = group.activePromptIndex + direction;
@@ -316,7 +358,7 @@ class ChatNotifier extends Notifier<ChatState> {
 
   Future<void> submitFeedback(MessageFeedback feedback) async {
     final firestoreService = ref.read(firestoreServiceProvider);
-    
+
     try {
       // Save to Firestore (assuming method exists or will be implemented)
       await firestoreService.submitFeedback(feedback);
@@ -325,25 +367,28 @@ class ChatNotifier extends Notifier<ChatState> {
     }
 
     // Update local state to reflect that feedback was given
-    final groupIndex = state.messageGroups.indexWhere((g) => 
-        g.responseVersions.any((r) => r.id == feedback.messageId));
-        
+    final groupIndex = state.messageGroups.indexWhere(
+      (g) => g.responseVersions.any((r) => r.id == feedback.messageId),
+    );
+
     if (groupIndex != -1) {
       final group = state.messageGroups[groupIndex];
-      final responseIndex = group.responseVersions.indexWhere((r) => r.id == feedback.messageId);
-      
+      final responseIndex = group.responseVersions.indexWhere(
+        (r) => r.id == feedback.messageId,
+      );
+
       if (responseIndex != -1) {
         final updatedResponse = group.responseVersions[responseIndex].copyWith(
           feedbackType: feedback.type,
           feedbackSubmitted: true,
         );
-        
+
         final newResponses = List<ChatMessage>.from(group.responseVersions);
         newResponses[responseIndex] = updatedResponse;
-        
+
         final newGroups = List<MessageVersionGroup>.from(state.messageGroups);
         newGroups[groupIndex] = group.copyWith(responseVersions: newResponses);
-        
+
         state = state.copyWith(messageGroups: newGroups);
       }
     }
@@ -353,7 +398,10 @@ class ChatNotifier extends Notifier<ChatState> {
     // Placeholder for Phase 1B/2B
   }
 
-  LoadingRequestType _detectRequestType(String message, List<String> fileNames) {
+  LoadingRequestType _detectRequestType(
+    String message,
+    List<String> fileNames,
+  ) {
     final lower = message.toLowerCase();
     final allText = '$lower ${fileNames.join(' ').toLowerCase()}';
 
@@ -369,10 +417,16 @@ class ChatNotifier extends Notifier<ChatState> {
     if (allText.contains(RegExp(r'contract|perjanjian|kontrak'))) {
       return LoadingRequestType.contracts;
     }
-    if (allText.contains(RegExp(r'financial statement|laporan keuangan|neraca|balance sheet|income statement'))) {
+    if (allText.contains(
+      RegExp(
+        r'financial statement|laporan keuangan|neraca|balance sheet|income statement',
+      ),
+    )) {
       return LoadingRequestType.financialStatements;
     }
-    if (allText.contains(RegExp(r'jurnal|debit|kredit|akuntansi|accounting|cogs|depreciation'))) {
+    if (allText.contains(
+      RegExp(r'jurnal|debit|kredit|akuntansi|accounting|cogs|depreciation'),
+    )) {
       return LoadingRequestType.accountingQuestion;
     }
     return LoadingRequestType.general;
@@ -381,9 +435,9 @@ class ChatNotifier extends Notifier<ChatState> {
   void sendMessage(String text, {List<ChatAttachment>? attachments}) async {
     final workspace = ref.read(activeWorkspaceProvider);
     if (workspace == null) return;
-    
+
     final firestoreService = ref.read(firestoreServiceProvider);
-    
+
     String? activeChatId = state.chatId;
     if (activeChatId == null) {
       // First message in a new chat, auto-generate title
@@ -396,7 +450,7 @@ class ChatNotifier extends Notifier<ChatState> {
       );
       state = state.copyWith(chatId: activeChatId, title: title);
     }
-    
+
     final promptId = const Uuid().v4();
     final userMessage = ChatMessage(
       id: promptId,
@@ -404,9 +458,12 @@ class ChatNotifier extends Notifier<ChatState> {
       role: MessageRole.user,
       attachments: attachments ?? [],
       createdAt: DateTime.now(),
-      loadingRequestType: _detectRequestType(text, attachments?.map((a) => a.name).toList() ?? []),
+      loadingRequestType: _detectRequestType(
+        text,
+        attachments?.map((a) => a.name).toList() ?? [],
+      ),
     );
-    
+
     // Create new group for the prompt
     final newGroup = MessageVersionGroup(
       groupId: promptId,
@@ -415,19 +472,19 @@ class ChatNotifier extends Notifier<ChatState> {
       activePromptIndex: 0,
       activeResponseIndex: 0,
     );
-    
+
     state = state.copyWith(
       messageGroups: [...state.messageGroups, newGroup],
       isLoading: true,
       pipelinePhase: AIPipelinePhase.retrievingContext,
     );
-    
+
     await firestoreService.addWorkspaceChatMessage(
       companyId: workspace.id,
       chatId: activeChatId,
       messageMap: userMessage.toMap(),
     );
-    
+
     await _generateAiResponse(
       workspaceId: workspace.id,
       activeChatId: activeChatId,
@@ -449,7 +506,7 @@ class ChatNotifier extends Notifier<ChatState> {
     required ChatMessage userMessage,
   }) async {
     final firestoreService = ref.read(firestoreServiceProvider);
-    
+
     final group = state.messageGroups.firstWhere((g) => g.groupId == groupId);
     final currentVersion = group.responseVersions.length + 1;
 
@@ -464,28 +521,29 @@ class ChatNotifier extends Notifier<ChatState> {
       parentMessageId: promptId,
       version: currentVersion,
     );
-    
+
     // Add AI message placeholder to the group
     _updateGroupWithAIResponse(groupId, aiMessage);
-    
+
     try {
       final pipelineService = ref.read(aiPipelineServiceProvider);
-      
+
       // Update phase
       state = state.copyWith(pipelinePhase: AIPipelinePhase.generating);
-      
+
       // We need to pass the context/history. We can flatmap the active messages for context
-      final history = state.messageGroups.expand((g) {
-        final msgs = <ChatMessage>[];
-        if (g.groupId != groupId) {
-          msgs.add(g.activePrompt);
-          if (g.responseVersions.isNotEmpty) {
-            msgs.add(g.activeResponse!);
-          }
-        }
-        return msgs;
-      }).toList();
-      
+      final history =
+          state.messageGroups.expand((g) {
+            final msgs = <ChatMessage>[];
+            if (g.groupId != groupId) {
+              msgs.add(g.activePrompt);
+              if (g.responseVersions.isNotEmpty) {
+                msgs.add(g.activeResponse!);
+              }
+            }
+            return msgs;
+          }).toList();
+
       await for (final chunk in pipelineService.processQueryStream(
         workspaceId: workspaceId,
         query: text,
@@ -500,27 +558,27 @@ class ChatNotifier extends Notifier<ChatState> {
           _updateGroupWithAIResponse(groupId, aiMessage);
           break;
         }
-        
+
         aiMessage = aiMessage.copyWith(
           text: aiMessage.text + (chunk.textChunk ?? ''),
         );
         _updateGroupWithAIResponse(groupId, aiMessage);
       }
-      
+
       // Finalize message
       final finalResult = pipelineService.lastResult;
-      
+
       // Check if it's an analysis response
-      // Show Verification Metrics and Full Analysis Report on ALL prompts,
+      // Show Evaluation Metrics and Full Analysis Report on ALL prompts,
       // EXCEPT when the AI only provides a short answer and no context was retrieved.
       bool isAnalysis = true;
       final isShort = aiMessage.text.length < 300;
       final noChunks = (finalResult?.retrievedChunksCount ?? 0) == 0;
-      
+
       if (isShort && noChunks) {
         isAnalysis = false;
       }
-      
+
       aiMessage = aiMessage.copyWith(
         isStreaming: false,
         confidenceScore: finalResult?.confidenceScore ?? 1.0,
@@ -536,19 +594,18 @@ class ChatNotifier extends Notifier<ChatState> {
         isAnalysisResponse: isAnalysis,
         queryType: userMessage.loadingRequestType?.name ?? 'general',
       );
-      
+
       _updateGroupWithAIResponse(groupId, aiMessage);
-      
+
       // Save AI message to firestore
       await firestoreService.addWorkspaceChatMessage(
         companyId: workspaceId,
         chatId: activeChatId,
         messageMap: aiMessage.toMap(),
       );
-      
+
       // Invalidate chat history so the sidebar updates
       ref.invalidate(chatHistoryProvider);
-      
     } catch (e) {
       aiMessage = aiMessage.copyWith(
         text: 'An unexpected error occurred.',
@@ -562,28 +619,33 @@ class ChatNotifier extends Notifier<ChatState> {
       );
     }
   }
-  
+
   void _updateGroupWithAIResponse(String groupId, ChatMessage aiMessage) {
-    final groupIndex = state.messageGroups.indexWhere((g) => g.groupId == groupId);
+    final groupIndex = state.messageGroups.indexWhere(
+      (g) => g.groupId == groupId,
+    );
     if (groupIndex != -1) {
       final group = state.messageGroups[groupIndex];
-      
-      final responseIndex = group.responseVersions.indexWhere((r) => r.id == aiMessage.id);
+
+      final responseIndex = group.responseVersions.indexWhere(
+        (r) => r.id == aiMessage.id,
+      );
       List<ChatMessage> updatedResponses;
-      
+
       if (responseIndex != -1) {
         updatedResponses = List<ChatMessage>.from(group.responseVersions);
         updatedResponses[responseIndex] = aiMessage;
       } else {
-        updatedResponses = List<ChatMessage>.from(group.responseVersions)..add(aiMessage);
+        updatedResponses = List<ChatMessage>.from(group.responseVersions)
+          ..add(aiMessage);
       }
-      
+
       final updatedGroups = List<MessageVersionGroup>.from(state.messageGroups);
       updatedGroups[groupIndex] = group.copyWith(
         responseVersions: updatedResponses,
         activeResponseIndex: updatedResponses.length - 1, // Focus on the latest
       );
-      
+
       state = state.copyWith(messageGroups: updatedGroups);
     }
   }
@@ -593,10 +655,11 @@ final chatProvider = NotifierProvider<ChatNotifier, ChatState>(
   ChatNotifier.new,
 );
 
-final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final chatHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final workspace = ref.watch(activeWorkspaceProvider);
   if (workspace == null) return [];
   final firestoreService = ref.watch(firestoreServiceProvider);
   return firestoreService.getWorkspaceChats(workspace.id);
 });
-

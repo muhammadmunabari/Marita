@@ -1,37 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:marita/design_system/marita_design_system.dart';
-import 'package:marita/models/chat_message.dart';
+import 'package:marita/models/analyze_models.dart';
 
 // =============================================================================
-// VERIFICATION METRICS CARD
+// AUDIT EVALUATION METRICS CARD
 // =============================================================================
 
-/// Standalone card displayed **outside** the AI response bubble, positioned
-/// between the response bubble and the action buttons (Copy / Regenerate / Export).
-///
-/// Spec: ui_verification_metrics.txt
-///
-/// Layout hierarchy:
-/// ```
-///   AI Response Bubble
-///         ↓ 12dp
-///   VerificationMetricsCard   ← this widget
-///         ↓ 12dp
-///   Action Buttons
-/// ```
-///
-/// Entrance: fade-in + slide-up (250 ms) after [message.isStreaming] becomes false.
-class VerificationMetricsCard extends StatefulWidget {
-  final ChatMessage message;
+/// Card for displaying Evaluation Metrics (Evidence, Confidence, Precision)
+/// inside the Analyze screen.
+class AuditEvaluationMetricsCard extends StatefulWidget {
+  final AuditEvaluationMetrics metrics;
+  final bool showDetailedBreakdown;
 
-  const VerificationMetricsCard({super.key, required this.message});
+  const AuditEvaluationMetricsCard({
+    super.key,
+    required this.metrics,
+    this.showDetailedBreakdown = false,
+  });
 
   @override
-  State<VerificationMetricsCard> createState() =>
-      _VerificationMetricsCardState();
+  State<AuditEvaluationMetricsCard> createState() =>
+      _AuditEvaluationMetricsCardState();
 }
 
-class _VerificationMetricsCardState extends State<VerificationMetricsCard>
+class _AuditEvaluationMetricsCardState extends State<AuditEvaluationMetricsCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _fade;
@@ -90,16 +82,10 @@ class _VerificationMetricsCardState extends State<VerificationMetricsCard>
     final palette = Theme.of(context).extension<MaritaColorPalette>()!;
     final typography = context.maritaTypography;
 
-    // Convert to 0–100 scale
-    final evidencePct =
-        widget.message.evidenceScore != null
-            ? widget.message.evidenceScore! * 100
-            : null;
-    final confidencePct =
-        widget.message.confidenceScore != null
-            ? widget.message.confidenceScore! * 100
-            : null;
-    final precisionPct = widget.message.precisionPercent;
+    // Convert to 0–100 scale where appropriate
+    final evidencePct = widget.metrics.evidenceScore * 100;
+    final confidencePct = widget.metrics.confidenceScore * 100;
+    final precisionPct = widget.metrics.precisionPercent;
 
     return FadeTransition(
       opacity: _fade,
@@ -148,6 +134,17 @@ class _VerificationMetricsCardState extends State<VerificationMetricsCard>
                   palette: palette,
                   typography: typography,
                 ),
+
+                if (widget.showDetailedBreakdown) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _DetailedBreakdown(
+                    metrics: widget.metrics,
+                    palette: palette,
+                    typography: typography,
+                  ),
+                ],
               ],
             ),
           ),
@@ -178,7 +175,7 @@ class _CardHeader extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          'Verification Metrics',
+          'Evaluation Metrics',
           style: typography.bodyLargeBold.copyWith(
             color: palette.contentPrimary,
           ),
@@ -192,7 +189,6 @@ class _CardHeader extends StatelessWidget {
 // METRIC ROW
 // =============================================================================
 
-/// A single metric row: label + animated progress bar + percentage value.
 class _MetricRow extends StatelessWidget {
   final String label;
   final double? pct; // 0–100, nullable = N/A
@@ -259,6 +255,84 @@ class _MetricRow extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+// =============================================================================
+// DETAILED BREAKDOWN
+// =============================================================================
+
+class _DetailedBreakdown extends StatelessWidget {
+  final AuditEvaluationMetrics metrics;
+  final MaritaColorPalette palette;
+  final MaritaTypographyAccessor typography;
+
+  const _DetailedBreakdown({
+    required this.metrics,
+    required this.palette,
+    required this.typography,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        _Indicator(
+          icon: Icons.check_circle_rounded,
+          color: palette.success,
+          text: '${metrics.fullCorrectCount} fully correct',
+          typography: typography,
+          palette: palette,
+        ),
+        _Indicator(
+          icon: Icons.info_rounded,
+          color: palette.warning,
+          text: '${metrics.semiCorrectCount} partial/approx',
+          typography: typography,
+          palette: palette,
+        ),
+        _Indicator(
+          icon: Icons.cancel_rounded,
+          color: palette.error,
+          text: '${metrics.incorrectCount} incorrect',
+          typography: typography,
+          palette: palette,
+        ),
+      ],
+    );
+  }
+}
+
+class _Indicator extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  final MaritaTypographyAccessor typography;
+  final MaritaColorPalette palette;
+
+  const _Indicator({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.typography,
+    required this.palette,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: typography.bodySmall.copyWith(color: palette.contentSecondary),
         ),
       ],
     );

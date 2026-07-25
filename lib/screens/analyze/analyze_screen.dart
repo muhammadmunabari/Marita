@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/analysis_pipeline_step.dart';
 import '../../components/audit_finding_card.dart';
+import '../../components/audit_evaluation_metrics_card.dart';
 import '../../components/marita_primary_button.dart';
 import '../../components/risk_level_badge.dart';
 import '../../components/risk_score_gauge.dart';
@@ -604,6 +605,17 @@ class _CompletedView extends ConsumerWidget {
           ),
         ),
 
+        if (state.aggregateEvaluationMetrics != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: AuditEvaluationMetricsCard(
+                metrics: state.aggregateEvaluationMetrics!,
+                showDetailedBreakdown: true,
+              ),
+            ),
+          ),
+
         // ── File Results List ─────────────────────────────────────────────
         SliverToBoxAdapter(
           child: Padding(
@@ -791,6 +803,13 @@ class _CompletedFileCardState extends State<_CompletedFileCard> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (result.evaluationMetrics != null) ...[
+                    AuditEvaluationMetricsCard(
+                      metrics: result.evaluationMetrics!,
+                      showDetailedBreakdown: true,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   if (result.findings.isNotEmpty) ...[
                     Row(
                       children: [

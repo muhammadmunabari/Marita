@@ -151,6 +151,51 @@ class RiskScore {
   }
 }
 
+/// Evaluation metrics hasil dari FactVerificationService dalam pipeline audit.
+class AuditEvaluationMetrics {
+  final double evidenceScore; // 0.0–1.0
+  final double confidenceScore; // 0.0–1.0
+  final double precisionPercent; // 0.0–100.0
+  final int fullCorrectCount;
+  final int semiCorrectCount;
+  final int incorrectCount;
+  final int totalClaims;
+
+  const AuditEvaluationMetrics({
+    required this.evidenceScore,
+    required this.confidenceScore,
+    required this.precisionPercent,
+    required this.fullCorrectCount,
+    required this.semiCorrectCount,
+    required this.incorrectCount,
+    required this.totalClaims,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'evidenceScore': evidenceScore,
+      'confidenceScore': confidenceScore,
+      'precisionPercent': precisionPercent,
+      'fullCorrectCount': fullCorrectCount,
+      'semiCorrectCount': semiCorrectCount,
+      'incorrectCount': incorrectCount,
+      'totalClaims': totalClaims,
+    };
+  }
+
+  factory AuditEvaluationMetrics.fromMap(Map<String, dynamic> map) {
+    return AuditEvaluationMetrics(
+      evidenceScore: (map['evidenceScore'] as num?)?.toDouble() ?? 0.0,
+      confidenceScore: (map['confidenceScore'] as num?)?.toDouble() ?? 0.0,
+      precisionPercent: (map['precisionPercent'] as num?)?.toDouble() ?? 0.0,
+      fullCorrectCount: map['fullCorrectCount'] as int? ?? 0,
+      semiCorrectCount: map['semiCorrectCount'] as int? ?? 0,
+      incorrectCount: map['incorrectCount'] as int? ?? 0,
+      totalClaims: map['totalClaims'] as int? ?? 0,
+    );
+  }
+}
+
 /// The overall structured result of a completed document audit.
 class AnalysisResult {
   final String fileId;
@@ -165,6 +210,7 @@ class AnalysisResult {
   final List<AnalysisPipelineStage> stages;
   final double overallConfidence;
   final DateTime analyzedAt;
+  final AuditEvaluationMetrics? evaluationMetrics;
 
   const AnalysisResult({
     required this.fileId,
@@ -179,6 +225,7 @@ class AnalysisResult {
     required this.stages,
     required this.overallConfidence,
     required this.analyzedAt,
+    this.evaluationMetrics,
   });
 
   Map<String, dynamic> toMap() {
@@ -195,6 +242,8 @@ class AnalysisResult {
       'stages': stages.map((e) => e.toMap()).toList(),
       'overallConfidence': overallConfidence,
       'analyzedAt': analyzedAt.toIso8601String(),
+      if (evaluationMetrics != null)
+        'evaluationMetrics': evaluationMetrics!.toMap(),
     };
   }
 
@@ -207,28 +256,43 @@ class AnalysisResult {
     return AnalysisResult(
       fileId: map['fileId'] as String? ?? '',
       fileName: map['fileName'] as String? ?? '',
-      organizationRisk:
-          RiskScore.fromMap(Map<String, dynamic>.from(map['organizationRisk'] ?? {})),
-      transactionRisk:
-          RiskScore.fromMap(Map<String, dynamic>.from(map['transactionRisk'] ?? {})),
-      entityRisk:
-          RiskScore.fromMap(Map<String, dynamic>.from(map['entityRisk'] ?? {})),
+      organizationRisk: RiskScore.fromMap(
+        Map<String, dynamic>.from(map['organizationRisk'] ?? {}),
+      ),
+      transactionRisk: RiskScore.fromMap(
+        Map<String, dynamic>.from(map['transactionRisk'] ?? {}),
+      ),
+      entityRisk: RiskScore.fromMap(
+        Map<String, dynamic>.from(map['entityRisk'] ?? {}),
+      ),
       financialStatementRisk: RiskScore.fromMap(
-          Map<String, dynamic>.from(map['financialStatementRisk'] ?? {})),
-      documentRisk:
-          RiskScore.fromMap(Map<String, dynamic>.from(map['documentRisk'] ?? {})),
+        Map<String, dynamic>.from(map['financialStatementRisk'] ?? {}),
+      ),
+      documentRisk: RiskScore.fromMap(
+        Map<String, dynamic>.from(map['documentRisk'] ?? {}),
+      ),
       executiveSummary: map['executiveSummary'] as String? ?? '',
-      findings: (map['findings'] as List?)
+      findings:
+          (map['findings'] as List?)
               ?.map((e) => AuditFinding.fromMap(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
-      stages: (map['stages'] as List?)
+      stages:
+          (map['stages'] as List?)
               ?.map(
-                  (e) => AnalysisPipelineStage.fromMap(Map<String, dynamic>.from(e)))
+                (e) =>
+                    AnalysisPipelineStage.fromMap(Map<String, dynamic>.from(e)),
+              )
               .toList() ??
           [],
       overallConfidence: (map['overallConfidence'] as num?)?.toDouble() ?? 0.0,
       analyzedAt: parseDateTime(map['analyzedAt']),
+      evaluationMetrics:
+          map['evaluationMetrics'] != null
+              ? AuditEvaluationMetrics.fromMap(
+                Map<String, dynamic>.from(map['evaluationMetrics']),
+              )
+              : null,
     );
   }
 
@@ -253,8 +317,7 @@ class AnalysisResult {
       financialStatementRisk.level,
       documentRisk.level,
     ];
-    return levels.reduce(
-        (a, b) => b.index > a.index ? b : a);
+    return levels.reduce((a, b) => b.index > a.index ? b : a);
   }
 }
 
@@ -365,7 +428,8 @@ class AnalyzeState {
 
   /// Average overall score across all completed results (null if none).
   int? get aggregateScore {
-    final results = completedEntries.map((e) => e.result).whereType<AnalysisResult>();
+    final results =
+        completedEntries.map((e) => e.result).whereType<AnalysisResult>();
     if (results.isEmpty) return null;
     final total = results.map((r) => r.overallScore).reduce((a, b) => a + b);
     return (total / results.length).round();
@@ -373,10 +437,52 @@ class AnalyzeState {
 
   /// Highest risk level across all completed results.
   RiskLevel? get aggregateRiskLevel {
-    final results = completedEntries.map((e) => e.result).whereType<AnalysisResult>();
+    final results =
+        completedEntries.map((e) => e.result).whereType<AnalysisResult>();
     if (results.isEmpty) return null;
     return results
         .map((r) => r.highestRiskLevel)
         .reduce((a, b) => b.index > a.index ? b : a);
+  }
+
+  /// Average Evaluation Metrics across all completed results (null if none).
+  AuditEvaluationMetrics? get aggregateEvaluationMetrics {
+    final results =
+        completedEntries.map((e) => e.result).whereType<AnalysisResult>();
+    final resultsWithMetrics =
+        results.where((r) => r.evaluationMetrics != null).toList();
+    if (resultsWithMetrics.isEmpty) return null;
+
+    double totalEvidence = 0;
+    double totalConfidence = 0;
+    double totalPrecision = 0;
+    int totalFull = 0;
+    int totalSemi = 0;
+    int totalIncorrect = 0;
+    int totalClaimsSum = 0;
+
+    for (final result in resultsWithMetrics) {
+      final metrics = result.evaluationMetrics!;
+      totalEvidence += metrics.evidenceScore;
+      totalConfidence += metrics.confidenceScore;
+      totalPrecision += metrics.precisionPercent;
+      totalFull += metrics.fullCorrectCount;
+      totalSemi += metrics.semiCorrectCount;
+      totalIncorrect += metrics.incorrectCount;
+      totalClaimsSum += metrics.totalClaims;
+    }
+
+    final count = resultsWithMetrics.length;
+
+    return AuditEvaluationMetrics(
+      evidenceScore: totalEvidence / count,
+      confidenceScore: totalConfidence / count,
+      precisionPercent: totalPrecision / count,
+      fullCorrectCount:
+          totalFull, // we could average or sum, sum makes more sense for raw counts
+      semiCorrectCount: totalSemi,
+      incorrectCount: totalIncorrect,
+      totalClaims: totalClaimsSum,
+    );
   }
 }

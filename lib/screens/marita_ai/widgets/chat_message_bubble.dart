@@ -12,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:marita/providers/chat_provider.dart';
 import 'package:marita/providers/workspace_provider.dart';
 import '../../../components/audit_loading_widget.dart';
-import '../../../components/verification_metrics_card.dart';
+import '../../../components/evaluation_metrics_card.dart';
 import '../../../components/version_navigator.dart';
 import '../../../components/version_badge.dart';
 import '../../../components/see_full_analysis_button.dart';
@@ -88,13 +88,21 @@ class ChatMessageBubble extends ConsumerWidget {
                     children: [
                       if (isUser && group.promptVersions.length > 1)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: MaritaSpacing.sm),
-                          child: const VersionBadge(type: VersionBadgeType.edited),
+                          padding: const EdgeInsets.only(
+                            bottom: MaritaSpacing.sm,
+                          ),
+                          child: const VersionBadge(
+                            type: VersionBadgeType.edited,
+                          ),
                         ),
                       if (!isUser && group.responseVersions.length > 1)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: MaritaSpacing.sm),
-                          child: const VersionBadge(type: VersionBadgeType.regenerated),
+                          padding: const EdgeInsets.only(
+                            bottom: MaritaSpacing.sm,
+                          ),
+                          child: const VersionBadge(
+                            type: VersionBadgeType.regenerated,
+                          ),
                         ),
                       if (message.attachments.isNotEmpty)
                         Padding(
@@ -126,7 +134,8 @@ class ChatMessageBubble extends ConsumerWidget {
                           : AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
                             child:
-                                (!message.isStreaming || message.text.isNotEmpty)
+                                (!message.isStreaming ||
+                                        message.text.isNotEmpty)
                                     ? MarkdownBody(
                                       key: const ValueKey('md'),
                                       data: message.text,
@@ -147,29 +156,24 @@ class ChatMessageBubble extends ConsumerWidget {
                                       ),
                                     )
                                     : AuditLoadingWidget(
-                                      key: ValueKey(
-                                        'loading_${message.id}',
-                                      ),
+                                      key: ValueKey('loading_${message.id}'),
                                       requestType:
                                           message.loadingRequestType ??
                                           LoadingRequestType.general,
                                       phase: pipelinePhase,
                                     ),
                           ),
-
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          // ── Verification Metrics Card — outside bubble, above action buttons
-          if (!isUser &&
-              !message.isStreaming &&
-              _hasMetrics(message))
+          // ── Evaluation Metrics Card — outside bubble, above action buttons
+          if (!isUser && !message.isStreaming && _hasMetrics(message))
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: VerificationMetricsCard(message: message),
+              child: EvaluationMetricsCard(message: message),
             ),
           if (isUser)
             Padding(
@@ -182,11 +186,24 @@ class ChatMessageBubble extends ConsumerWidget {
                       currentVersion: group.activePromptIndex + 1,
                       totalVersions: group.promptVersions.length,
                       label: 'Prompt',
-                      onPrevious: () => ref.read(chatProvider.notifier).navigateVersion(group.groupId, isPrompt: true, direction: -1),
-                      onNext: () => ref.read(chatProvider.notifier).navigateVersion(group.groupId, isPrompt: true, direction: 1),
+                      onPrevious:
+                          () => ref
+                              .read(chatProvider.notifier)
+                              .navigateVersion(
+                                group.groupId,
+                                isPrompt: true,
+                                direction: -1,
+                              ),
+                      onNext:
+                          () => ref
+                              .read(chatProvider.notifier)
+                              .navigateVersion(
+                                group.groupId,
+                                isPrompt: true,
+                                direction: 1,
+                              ),
                     ),
-                  if (group.promptVersions.length > 1)
-                    const Spacer(),
+                  if (group.promptVersions.length > 1) const Spacer(),
                   AIActionIcon(
                     icon: IconsaxPlusLinear.copy,
                     onTap: () {
@@ -200,7 +217,9 @@ class ChatMessageBubble extends ConsumerWidget {
                   AIActionIcon(
                     icon: IconsaxPlusLinear.edit,
                     onTap: () {
-                      ref.read(chatProvider.notifier).startEditingMessage(group.groupId);
+                      ref
+                          .read(chatProvider.notifier)
+                          .startEditingMessage(group.groupId);
                     },
                   ),
                 ],
@@ -219,8 +238,22 @@ class ChatMessageBubble extends ConsumerWidget {
                           currentVersion: group.activeResponseIndex + 1,
                           totalVersions: group.responseVersions.length,
                           label: 'Response',
-                          onPrevious: () => ref.read(chatProvider.notifier).navigateVersion(group.groupId, isPrompt: false, direction: -1),
-                          onNext: () => ref.read(chatProvider.notifier).navigateVersion(group.groupId, isPrompt: false, direction: 1),
+                          onPrevious:
+                              () => ref
+                                  .read(chatProvider.notifier)
+                                  .navigateVersion(
+                                    group.groupId,
+                                    isPrompt: false,
+                                    direction: -1,
+                                  ),
+                          onNext:
+                              () => ref
+                                  .read(chatProvider.notifier)
+                                  .navigateVersion(
+                                    group.groupId,
+                                    isPrompt: false,
+                                    direction: 1,
+                                  ),
                         ),
                       if (group.responseVersions.length > 1)
                         const SizedBox(width: MaritaSpacing.md),
@@ -229,7 +262,9 @@ class ChatMessageBubble extends ConsumerWidget {
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: message.text));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Copied to clipboard')),
+                            const SnackBar(
+                              content: Text('Copied to clipboard'),
+                            ),
                           );
                         },
                       ),
@@ -247,40 +282,60 @@ class ChatMessageBubble extends ConsumerWidget {
                       ],
                       // Thumbs up
                       AIActionIcon(
-                        icon: message.feedbackType == FeedbackType.thumbUp ? IconsaxPlusBold.like_1 : IconsaxPlusLinear.like_1,
+                        icon:
+                            message.feedbackType == FeedbackType.thumbUp
+                                ? IconsaxPlusBold.like_1
+                                : IconsaxPlusLinear.like_1,
                         onTap: () {
                           showDialog(
                             context: context,
-                            builder: (context) => FeedbackDialog(
-                              type: FeedbackType.thumbUp,
-                              messageId: message.id,
-                              onSubmitted: (feedback) {
-                                ref.read(chatProvider.notifier).submitFeedback(feedback);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Thank you for your feedback!')),
-                                );
-                              },
-                            ),
+                            builder:
+                                (context) => FeedbackDialog(
+                                  type: FeedbackType.thumbUp,
+                                  messageId: message.id,
+                                  onSubmitted: (feedback) {
+                                    ref
+                                        .read(chatProvider.notifier)
+                                        .submitFeedback(feedback);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Thank you for your feedback!',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                           );
                         },
                       ),
                       const SizedBox(width: MaritaSpacing.md),
                       // Thumbs down
                       AIActionIcon(
-                        icon: message.feedbackType == FeedbackType.thumbDown ? IconsaxPlusBold.dislike : IconsaxPlusLinear.dislike,
+                        icon:
+                            message.feedbackType == FeedbackType.thumbDown
+                                ? IconsaxPlusBold.dislike
+                                : IconsaxPlusLinear.dislike,
                         onTap: () {
                           showDialog(
                             context: context,
-                            builder: (context) => FeedbackDialog(
-                              type: FeedbackType.thumbDown,
-                              messageId: message.id,
-                              onSubmitted: (feedback) {
-                                ref.read(chatProvider.notifier).submitFeedback(feedback);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Thank you for your feedback!')),
-                                );
-                              },
-                            ),
+                            builder:
+                                (context) => FeedbackDialog(
+                                  type: FeedbackType.thumbDown,
+                                  messageId: message.id,
+                                  onSubmitted: (feedback) {
+                                    ref
+                                        .read(chatProvider.notifier)
+                                        .submitFeedback(feedback);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Thank you for your feedback!',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                           );
                         },
                       ),
