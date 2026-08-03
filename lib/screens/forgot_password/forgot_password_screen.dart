@@ -101,8 +101,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   ),
                   Image.asset(
                     'assets/logos/Logobug black bg.png',
-                    width: 48,
-                    height: 48,
+                    width: 36,
+                    height: 36,
                   ),
                 ],
               ),
@@ -120,8 +120,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                     // Title
                     Text(
-                      'Forgot Password',
-                      style: context.maritaTypography.displaySmall.copyWith(
+                      'Forgot password',
+                      style: context.maritaTypography.titleMedium.copyWith(
                         color: context.maritaColors.contentPrimary,
                       ),
                     ),

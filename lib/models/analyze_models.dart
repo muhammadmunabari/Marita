@@ -211,6 +211,7 @@ class AnalysisResult {
   final double overallConfidence;
   final DateTime analyzedAt;
   final AuditEvaluationMetrics? evaluationMetrics;
+  final double? mScore;
 
   const AnalysisResult({
     required this.fileId,
@@ -226,6 +227,7 @@ class AnalysisResult {
     required this.overallConfidence,
     required this.analyzedAt,
     this.evaluationMetrics,
+    this.mScore,
   });
 
   Map<String, dynamic> toMap() {
@@ -244,6 +246,7 @@ class AnalysisResult {
       'analyzedAt': analyzedAt.toIso8601String(),
       if (evaluationMetrics != null)
         'evaluationMetrics': evaluationMetrics!.toMap(),
+      if (mScore != null) 'mScore': mScore,
     };
   }
 
@@ -293,11 +296,33 @@ class AnalysisResult {
                 Map<String, dynamic>.from(map['evaluationMetrics']),
               )
               : null,
+      mScore: (map['mScore'] as num?)?.toDouble(),
     );
   }
 
-  /// Composite overall score (average of all 5 dimension scores).
+  /// Composite overall score — didominasi oleh Beneish M-Score jika tersedia.
   int get overallScore {
+    if (mScore != null) {
+      final m = mScore!;
+      if (m <= -2.22) {
+        // NON-MANIPULATOR: clamp semua dimensi ke ≤ 39
+        final avg = _avgDimensionScore();
+        return avg.clamp(0, 39);
+      } else if (m <= -1.78) {
+        // POSSIBLE MANIPULATOR: clamp ke 40–69
+        final avg = _avgDimensionScore();
+        return avg.clamp(40, 69);
+      } else {
+        // MANIPULATOR: clamp ke 70–100
+        final avg = _avgDimensionScore();
+        return avg.clamp(70, 100);
+      }
+    }
+    // Fallback: rata-rata 5 dimensi (dokumen lama tanpa mScore)
+    return _avgDimensionScore();
+  }
+
+  int _avgDimensionScore() {
     final scores = [
       organizationRisk.score,
       transactionRisk.score,
@@ -308,16 +333,12 @@ class AnalysisResult {
     return (scores.reduce((a, b) => a + b) / scores.length).round();
   }
 
-  /// Highest risk level across all dimensions.
+  /// Highest risk level — strictly tied to the overallScore.
   RiskLevel get highestRiskLevel {
-    final levels = [
-      organizationRisk.level,
-      transactionRisk.level,
-      entityRisk.level,
-      financialStatementRisk.level,
-      documentRisk.level,
-    ];
-    return levels.reduce((a, b) => b.index > a.index ? b : a);
+    final score = overallScore;
+    if (score < 40) return RiskLevel.low;
+    if (score < 70) return RiskLevel.medium;
+    return RiskLevel.high;
   }
 }
 
@@ -435,14 +456,13 @@ class AnalyzeState {
     return (total / results.length).round();
   }
 
-  /// Highest risk level across all completed results.
+  /// Aggregate risk level strictly tied to aggregateScore.
   RiskLevel? get aggregateRiskLevel {
-    final results =
-        completedEntries.map((e) => e.result).whereType<AnalysisResult>();
-    if (results.isEmpty) return null;
-    return results
-        .map((r) => r.highestRiskLevel)
-        .reduce((a, b) => b.index > a.index ? b : a);
+    final score = aggregateScore;
+    if (score == null) return null;
+    if (score < 40) return RiskLevel.low;
+    if (score < 70) return RiskLevel.medium;
+    return RiskLevel.high;
   }
 
   /// Average Evaluation Metrics across all completed results (null if none).

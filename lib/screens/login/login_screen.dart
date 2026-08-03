@@ -119,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Title
                     Text(
                       'Welcome back',
-                      style: context.maritaTypography.displaySmall.copyWith(
+                      style: context.maritaTypography.titleMedium.copyWith(
                         color: context.maritaColors.contentPrimary,
                       ),
                     ),
