@@ -60,17 +60,6 @@ enum WorkspaceRole {
     }
   }
 
-  String get description {
-    switch (this) {
-      case WorkspaceRole.cLevel:
-        return 'Executive/management access';
-      case WorkspaceRole.investor:
-        return 'View and analyze financial data';
-      case WorkspaceRole.employee:
-        return 'Standard staff access';
-    }
-  }
-
   static WorkspaceRole fromString(String value) {
     switch (value.toLowerCase()) {
       case 'c-level':

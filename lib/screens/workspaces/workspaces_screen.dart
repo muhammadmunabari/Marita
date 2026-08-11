@@ -815,12 +815,6 @@ class _WorkspacesScreenState extends ConsumerState<WorkspacesScreen> {
                         color: colors.contentPrimary,
                       ),
                     ),
-                    subtitle: Text(
-                      role.description,
-                      style: typography.bodyDefault.copyWith(
-                        color: colors.contentSecondary,
-                      ),
-                    ),
                     trailing: MaritaIcon(
                       icon: MaritaIcons.arrowRight,
                       size: MaritaIconSize.small,
