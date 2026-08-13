@@ -230,10 +230,9 @@ CRITICAL SCORING CALIBRATION — READ BEFORE ASSIGNING ANY SCORE:
 You MUST derive all risk scores from the Phase 1 extraction data provided below, NOT from independent conservative assumptions.
 
 For financialStatementRisk score, use the Beneish M-Score result as the PRIMARY driver:
-- M-Score ≤ -2.22 (Likely Non-Manipulator): financialStatementRisk score = 20–40 (low), level = "low"
-- M-Score between -2.22 and -1.78: financialStatementRisk score = 40–60 (medium), level = "medium"
-- M-Score between -1.78 and -1.49: financialStatementRisk score = 60–74 (medium-high), level = "medium"
-- M-Score > -1.49 (Strong Manipulator Signal): financialStatementRisk score = 75–90 (high), level = "high"
+- M-Score ≤ -2.22 (Likely Non-Manipulator): financialStatementRisk score = 0–39 (low), level = "low"
+- M-Score between -2.22 and -1.49: financialStatementRisk score = 40–74 (medium), level = "medium"
+- M-Score > -1.49 (Strong Manipulator Signal): financialStatementRisk score = 75–100 (high), level = "high"
 - If Beneish M-Score is NOT available (missing data), score = 50, level = "medium"
 
 For other risk categories, calibrate against actual data, not worst-case assumptions:
@@ -691,21 +690,17 @@ Now output the JSON result.
       );
 
       if (mScore <= -2.22 || (hasLowManipulationNote && mScore <= -1.80)) {
-        mandatoryScoreRange = '20–40';
+        mandatoryScoreRange = '0–39';
         mandatoryLevel = 'low';
         if (hasLowManipulationNote) {
-          industryNote =
-            'Phase 1 noted industry calibration: elevated M-Score variables '
-            'are consistent with industry norms. financialStatementRisk stays LOW.';
+          industryNote = 
+          'Phase 1 noted industry calibration: M-Score variables are consistent with industry norms. financialStatementRisk stays LOW.';
         }
-      } else if (mScore <= -1.78) {
-        mandatoryScoreRange = '40–59';
-        mandatoryLevel = 'medium';
       } else if (mScore <= -1.49) {
-        mandatoryScoreRange = '60–74';
+        mandatoryScoreRange = '40–74';
         mandatoryLevel = 'medium';
       } else {
-        mandatoryScoreRange = '75–90';
+        mandatoryScoreRange = '75–100';
         mandatoryLevel = 'high';
       }
 
